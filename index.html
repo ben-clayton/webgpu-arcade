@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang='en'>
+  <head>
+    <title>Hello World!</title>
+    <meta charset='utf-8'>
+    <meta name='viewport' content='width=device-width, initial-scale=1'>
+    <style>
+      html, body {
+        margin: 0;
+        padding: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas></canvas>
+
+    <script type='module'>
+      import { World } from 'https://ecsy.io/build/ecsy.module.js';
+      import { MovableSystem, DamageSystem, DeathSystem, RenderingSystem, InputSystem } from './systems.js';
+      import { Player, PlayerBullet, Enemy, Dead, Transform, Velocity, Collider, Health,
+               Damage, Lifespan, Polygon } from './components.js';
+
+      const canvas = document.querySelector('canvas');
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+
+      // Create world and register the components and systems on it
+      let world = new World();
+      world
+        .registerComponent(Velocity)
+        .registerComponent(Transform)
+        .registerComponent(Collider)
+        .registerComponent(Polygon)
+        .registerComponent(Health)
+        .registerComponent(Damage)
+        .registerComponent(Lifespan)
+        .registerComponent(Dead)
+        .registerComponent(Player)
+        .registerComponent(PlayerBullet)
+        .registerComponent(Enemy)
+        .registerSystem(InputSystem)
+        .registerSystem(MovableSystem, { canvas })
+        .registerSystem(DamageSystem)
+        .registerSystem(DeathSystem)
+        .registerSystem(RenderingSystem, { canvas });
+
+      for (let i = 0; i < 20; ++i) {
+        let points = [];
+        let radius = (Math.random()) * 10 + 10;
+        for (let i = 0; i < 10; ++i) {
+          const rad = i * ((Math.PI * 2) / 10);
+          points.push(
+            Math.cos(rad) * radius + ((Math.random() - 0.5) * 5),
+            Math.sin(rad) * radius + ((Math.random() - 0.5) * 5));
+        }
+
+        let asteroid = world.createEntity()
+          .addComponent(Velocity, {
+            x: (Math.random() - 0.5) * 200.0,
+            y: (Math.random() - 0.5) * 200.0,
+            angular: (Math.random() - 0.5) * Math.PI * 2.0,
+          })
+          .addComponent(Transform, { x: Math.random() * canvas.width, y: Math.random() * canvas.height })
+          .addComponent(Collider, { radius })
+          .addComponent(Health, { value: 10 })
+          .addComponent(Damage, { value: 4, immune: [Enemy] })
+          .addComponent(Polygon, { points })
+          .addComponent(Enemy)
+      }
+
+      const playerPolygon = [
+        15, 0,
+        -10, 10,
+        -7.5, 0,
+        -10, -10
+      ];
+
+      let player = world.createEntity()
+          .addComponent(Velocity, { maxSpeed: 200 })
+          .addComponent(Transform, { x: canvas.width * 0.5, y: canvas.height * 0.5 })
+          .addComponent(Collider, { radius: 10 })
+          .addComponent(Health, { value: 10 })
+          .addComponent(Damage, { value: 10, immune: [PlayerBullet] })
+          .addComponent(Polygon, { points: playerPolygon, fill: "#736ee2", stroke: "#4843b7" })
+          .addComponent(Player)
+
+      let lastTime = performance.now();
+      function onFrame(time) {
+        const delta = (time - lastTime) / 1000.0;
+
+        // Run all the systems
+        world.execute(delta, time);
+
+        lastTime = time;
+        requestAnimationFrame(onFrame);
+      }
+
+      onFrame(lastTime);
+    </script>
+  </body>
+</html>
