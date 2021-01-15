@@ -15,10 +15,10 @@
     <canvas></canvas>
 
     <script type='module'>
-      import { World } from 'https://ecsy.io/build/ecsy.module.js';
+      import { World } from './third-party/ecsy/src/World.js';
       import { MovableSystem, DamageSystem, DeathSystem, RenderingSystem, InputSystem } from './systems.js';
       import { Player, PlayerBullet, Enemy, Dead, Transform, Velocity, Collider, Health,
-               Damage, Lifespan, Polygon } from './components.js';
+               Damage, Lifespan, Polygon, CanvasContext } from './components.js';
 
       const canvas = document.querySelector('canvas');
       canvas.width = window.innerWidth;
@@ -38,11 +38,12 @@
         .registerComponent(Player)
         .registerComponent(PlayerBullet)
         .registerComponent(Enemy)
+        .registerSingletonComponent(CanvasContext, { canvas })
         .registerSystem(InputSystem)
-        .registerSystem(MovableSystem, { canvas })
+        .registerSystem(MovableSystem)
         .registerSystem(DamageSystem)
         .registerSystem(DeathSystem)
-        .registerSystem(RenderingSystem, { canvas });
+        .registerSystem(RenderingSystem);
 
       for (let i = 0; i < 20; ++i) {
         let points = [];
@@ -56,16 +57,16 @@
 
         let asteroid = world.createEntity()
           .addComponent(Velocity, {
-            x: (Math.random() - 0.5) * 200.0,
-            y: (Math.random() - 0.5) * 200.0,
+            direction: [(Math.random() - 0.5) * 200.0,
+                        (Math.random() - 0.5) * 200.0],
             angular: (Math.random() - 0.5) * Math.PI * 2.0,
           })
-          .addComponent(Transform, { x: Math.random() * canvas.width, y: Math.random() * canvas.height })
+          .addComponent(Transform, { position: [Math.random() * canvas.width, Math.random() * canvas.height] })
           .addComponent(Collider, { radius })
           .addComponent(Health, { value: 10 })
           .addComponent(Damage, { value: 4, immune: [Enemy] })
           .addComponent(Polygon, { points })
-          .addComponent(Enemy)
+          .addComponent(Enemy);
       }
 
       const playerPolygon = [
@@ -77,25 +78,19 @@
 
       let player = world.createEntity()
           .addComponent(Velocity, { maxSpeed: 200 })
-          .addComponent(Transform, { x: canvas.width * 0.5, y: canvas.height * 0.5 })
+          .addComponent(Transform, { position: [canvas.width * 0.5, canvas.height * 0.5] })
           .addComponent(Collider, { radius: 10 })
           .addComponent(Health, { value: 10 })
           .addComponent(Damage, { value: 10, immune: [PlayerBullet] })
           .addComponent(Polygon, { points: playerPolygon, fill: "#736ee2", stroke: "#4843b7" })
-          .addComponent(Player)
+          .addComponent(Player);
 
-      let lastTime = performance.now();
-      function onFrame(time) {
-        const delta = (time - lastTime) / 1000.0;
-
-        // Run all the systems
-        world.execute(delta, time);
-
-        lastTime = time;
+      function onFrame() {
+        world.execute();
         requestAnimationFrame(onFrame);
       }
 
-      onFrame(lastTime);
+      onFrame();
     </script>
   </body>
 </html>

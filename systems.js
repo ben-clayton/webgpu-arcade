@@ -1,6 +1,7 @@
-import {System, Not } from "https://ecsy.io/build/ecsy.module.js";
-import { Player, PlayerBullet, Dead, Transform, Velocity, Collider,
-         Health, Damage, Lifespan, Polygon } from './components.js';
+import {System, Not } from './third-party/ecsy/src/index.js';
+import { Player, PlayerBullet, Dead, Transform, Velocity, Collider, Health,
+         Damage, Lifespan, Polygon, CanvasContext } from './components.js';
+import { vec2 } from './third-party/gl-matrix/dist/esm/index.js'
 
 //-----------------------
 // Systems
@@ -11,23 +12,20 @@ export class MovableSystem extends System {
     moving: { components: [Velocity, Transform] }
   };
 
-  init(attributes) {
-    this.canvas = attributes.canvas;
-  }
-
   execute(delta, time) {
+    const canvas = this.getSingletonComponent(CanvasContext).canvas;
+
     this.queries.moving.results.forEach(entity => {
-      const velocity = entity.getComponent(Velocity);
-      const transform = entity.getMutableComponent(Transform);
-      transform.x += velocity.x * delta;
-      transform.y += velocity.y * delta;
+      const vel = entity.getComponent(Velocity);
+      const trans = entity.getMutableComponent(Transform);
 
-      transform.orientation += velocity.angular * delta;
+      vec2.scaleAndAdd(trans.position, trans.position, vel.direction, delta);
+      trans.orientation += vel.angular * delta;
 
-      if (transform.x > this.canvas.width) { transform.x = 0; }
-      if (transform.x < 0) { transform.x = this.canvas.width; }
-      if (transform.y > this.canvas.height) { transform.y = 0; }
-      if (transform.y < 0) { transform.y = this.canvas.height; }
+      if (trans.position[0] > canvas.width) { trans.position[0] = 0; }
+      if (trans.position[0] < 0) { trans.position[0] = canvas.width; }
+      if (trans.position[1] > canvas.height) { trans.position[1] = 0; }
+      if (trans.position[1] < 0) { trans.position[1] = canvas.height; }
     });
   }
 }
@@ -42,7 +40,7 @@ export class DamageSystem extends System {
     const damagables = this.queries.damagable.results;
 
     this.queries.damaging.results.forEach(src => {
-      const srcTransform = src.getComponent(Transform);
+      const srcTrans = src.getComponent(Transform);
       const srcCollider = src.getComponent(Collider);
       const damage = src.getComponent(Damage);
 
@@ -57,12 +55,10 @@ export class DamageSystem extends System {
         const health = dst.getMutableComponent(Health);
         if (health <= 0) { continue; }
 
-        const dstTransform = dst.getComponent(Transform);
+        const dstTrans = dst.getComponent(Transform);
         const dstCollider = dst.getComponent(Collider);
 
-        const distSq =
-          ((srcTransform.x - dstTransform.x) * (srcTransform.x - dstTransform.x)) +
-          ((srcTransform.y - dstTransform.y) * (srcTransform.y - dstTransform.y));
+        const distSq = vec2.sqrDist(srcTrans.position, dstTrans.position);
 
         let damageDistSq = dstCollider.radius + srcCollider.radius;
         damageDistSq = damageDistSq * damageDistSq;
@@ -110,23 +106,27 @@ export class RenderingSystem extends System {
   };
 
   init(attributes) {
-    // Initialize canvas
-    this.canvas = attributes.canvas;
-    this.ctx = this.canvas.getContext("2d");
+    const canvasContext = this.getMutableSingletonComponent(CanvasContext);
+    if (!canvasContext.ctx) {
+      canvasContext.ctx = canvasContext.canvas.getContext("2d");
+    }
   }
 
   execute(delta, time) {
-    const ctx = this.ctx;
+    const cc = this.getSingletonComponent(CanvasContext);
+    const canvas = cc.canvas;
+    const ctx = cc.ctx;
+
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.fillStyle = "#d4d4d4";
-    ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     this.queries.renderable.results.forEach(entity => {
       const polygon = entity.getComponent(Polygon);
-      const transform = entity.getComponent(Transform);
+      const trans = entity.getComponent(Transform);
 
-      ctx.setTransform(1, 0, 0, 1, transform.x, transform.y);
-      ctx.rotate(transform.orientation);
+      ctx.setTransform(1, 0, 0, 1, trans.position[0], trans.position[1]);
+      ctx.rotate(trans.orientation);
 
       ctx.beginPath();
 
@@ -168,15 +168,14 @@ export class InputSystem extends System {
   }
 
   fireBullet(entity) {
-    let transform = entity.getComponent(Transform);
+    let trans = entity.getComponent(Transform);
     let speed = 500;
-    let velocity = {
-      x: Math.cos(transform.orientation) * speed,
-      y: Math.sin(transform.orientation) * speed
-    };
     let bullet = this.world.createEntity()
-      .addComponent(Transform, { x: transform.x, y: transform.y })
-      .addComponent(Velocity, velocity)
+      .addComponent(Transform, { position: trans.position })
+      .addComponent(Velocity, {
+        direction: [Math.cos(trans.orientation) * speed,
+                    Math.sin(trans.orientation) * speed]
+      })
       .addComponent(Damage, { value: 1, immune: [Player] })
       .addComponent(Health, { value: 1 })
       .addComponent(Lifespan, { value: 1 })
@@ -187,37 +186,35 @@ export class InputSystem extends System {
 
   execute(delta, time) {
     this.queries.player.results.forEach(entity => {
-      const transform = entity.getMutableComponent(Transform);
-      const velocity = entity.getMutableComponent(Velocity);
+      const trans = entity.getMutableComponent(Transform);
+      const vel = entity.getMutableComponent(Velocity);
 
-      const direction = { x: 0, y: 0 };
+      const dir = [0, 0];
 
-      if (this.pressedKeys['W'.charCodeAt(0)]) {
-        direction.y -= 1;
-      }
-      if (this.pressedKeys['S'.charCodeAt(0)]) {
-        direction.y += 1;
+      if (this.pressedKeys['D'.charCodeAt(0)]) {
+        dir[0] += 1;
       }
       if (this.pressedKeys['A'.charCodeAt(0)]) {
-        direction.x -= 1;
+        dir[0] -= 1;
       }
-      if (this.pressedKeys['D'.charCodeAt(0)]) {
-        direction.x += 1;
+      if (this.pressedKeys['S'.charCodeAt(0)]) {
+        dir[1] += 1;
+      }
+      if (this.pressedKeys['W'.charCodeAt(0)]) {
+        dir[1] -= 1;
       }
 
-      if (direction.x || direction.y) {
-        velocity.x += direction.x * 100.0 * delta;
-        velocity.y += direction.y * 100.0 * delta;
+      if (dir[0] || dir[1]) {
+        vec2.scaleAndAdd(vel.direction, vel.direction, dir, 100.0 * delta);
 
-        const speed = Math.sqrt(velocity.x * velocity.x + velocity.y * velocity.y);
-        if (speed > velocity.maxSpeed) {
-          velocity.x *= velocity.maxSpeed / speed;
-          velocity.y *= velocity.maxSpeed / speed;
+        const speed = vec2.length(vel.direction);
+        if (speed > vel.maxSpeed) {
+          vec2.scale(vel.direction, vel.direction, vel.maxSpeed / speed);
         }
 
-        const targetOrientation = Math.atan2(direction.y, direction.x);
-        let orientationDelta = targetOrientation - transform.orientation;
-        transform.orientation += ( targetOrientation - transform.orientation ) * 0.1;
+        const targetOrientation = Math.atan2(dir[1], dir[0]);
+        let orientationDelta = targetOrientation - trans.orientation;
+        trans.orientation += ( targetOrientation - trans.orientation ) * 0.1;
       }
 
       // Fire bullets
