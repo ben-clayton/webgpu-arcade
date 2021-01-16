@@ -61,12 +61,14 @@
                         (Math.random() - 0.5) * 200.0],
             angular: (Math.random() - 0.5) * Math.PI * 2.0,
           })
-          .addComponent(Transform, { position: [Math.random() * canvas.width, Math.random() * canvas.height] })
-          .addComponent(Collider, { radius })
-          .addComponent(Health, { value: 10 })
-          .addComponent(Damage, { value: 4, immune: [Enemy] })
-          .addComponent(Polygon, { points })
-          .addComponent(Enemy);
+          .addComponents({
+            Transform: { position: [Math.random() * canvas.width, Math.random() * canvas.height] },
+            Collider: { radius },
+            Health: { value: 10 },
+            Damage: { value: 4, immune: [Enemy] },
+            Polygon: { points },
+            Enemy: {}
+          });
       }
 
       const playerPolygon = [
@@ -77,13 +79,15 @@
       ];
 
       let player = world.createEntity()
-          .addComponent(Velocity, { maxSpeed: 200 })
-          .addComponent(Transform, { position: [canvas.width * 0.5, canvas.height * 0.5] })
-          .addComponent(Collider, { radius: 10 })
-          .addComponent(Health, { value: 10 })
-          .addComponent(Damage, { value: 10, immune: [PlayerBullet] })
-          .addComponent(Polygon, { points: playerPolygon, fill: "#736ee2", stroke: "#4843b7" })
-          .addComponent(Player);
+          .addComponents({
+            Velocity: { maxSpeed: 200 },
+            Transform: { position: [canvas.width * 0.5, canvas.height * 0.5] },
+            Collider: { radius: 10 },
+            Health: { value: 10 },
+            Damage: { value: 10, immune: [PlayerBullet] },
+            Polygon: { points: playerPolygon, fill: "#736ee2", stroke: "#4843b7" },
+            Player: {},
+          });
 
       function onFrame() {
         world.execute();

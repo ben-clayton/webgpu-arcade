@@ -1,4 +1,4 @@
-import Query from "./Query.js";
+
 import wrapImmutableComponent from "./WrapImmutableComponent.js";
 import { IS_DEBUG } from "./Config.js";
 
@@ -87,6 +87,13 @@ export class Entity {
 
   addComponent(Component, values) {
     this._entityManager.entityAddComponent(this, Component, values);
+    return this;
+  }
+
+  addComponents(components) {
+    for (const key in components) {
+      this._entityManager.entityAddComponentByName(this, key, components[key]);
+    }
     return this;
   }
 

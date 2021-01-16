@@ -4,6 +4,7 @@ export class ComponentManager {
   constructor() {
     this.Components = [];
     this._ComponentsMap = {};
+    this._ComponentsByName = {};
 
     this._componentPool = {};
     this.numComponents = {};
@@ -14,10 +15,21 @@ export class ComponentManager {
     return this.Components.indexOf(Component) !== -1;
   }
 
+  getComponentByName(ComponentName) {
+    return this._ComponentsByName[ComponentName];
+  }
+
   registerComponent(Component, objectPool) {
     if (this.Components.indexOf(Component) !== -1) {
       console.warn(
         `Component type: '${Component.getName()}' already registered.`
+      );
+      return;
+    }
+
+    if (this._ComponentsByName[Component.getName()]) {
+      console.warn(
+        `Component name: '${Component.getName()}' already registered.`
       );
       return;
     }
@@ -43,6 +55,7 @@ export class ComponentManager {
     Component._typeId = this.nextComponentId++;
     this.Components.push(Component);
     this._ComponentsMap[Component._typeId] = Component;
+    this._ComponentsByName[Component.getName()] = Component;
     this.numComponents[Component._typeId] = 0;
 
     if (objectPool === undefined) {

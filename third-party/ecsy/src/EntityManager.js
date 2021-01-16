@@ -139,6 +139,17 @@ export class EntityManager {
     this.eventDispatcher.dispatchEvent(COMPONENT_ADDED, entity, Component);
   }
 
+  entityAddComponentByName(entity, componentName, values) {
+    const Component = this.componentsManager.getComponentByName(componentName);
+    if (!Component) {
+      throw new Error(
+        `Attempted to add unregistered component "${componentName}"`
+      );
+    }
+
+    this.entityAddComponent(entity, Component, values);
+  }
+
   /**
    * Remove a component from an entity
    * @param {Entity} entity Entity which will get removed the component
