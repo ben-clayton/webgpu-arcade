@@ -63,6 +63,20 @@ export class System {
           );
         }
 
+        let singletonComponents = Components.filter(
+          (Component) => Component.isSingleton
+        );
+
+        if (singletonComponents.length > 0) {
+          throw new Error(
+            `Tried to create a query '${
+              this.constructor.name
+            }.${queryName}' with singleton components: [${singletonComponents
+              .map((c) => c.getName())
+              .join(", ")}]`
+          );
+        }
+
         var query = this.world.entityManager.queryComponents(Components);
 
         this._queries[queryName] = query;
