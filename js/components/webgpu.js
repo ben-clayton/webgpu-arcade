@@ -9,6 +9,6 @@ export class WebGPU extends Component {
     swapChain: { type: Types.Ref },
     swapChainFormat: { type: Types.String },
     depthFormat: { type: Types.String, default: 'depth24plus' },
-    sampleCount: { type: Types.Number, default: 4 }
+    sampleCount: { type: Types.Number, default: 4 },
   };
 }
