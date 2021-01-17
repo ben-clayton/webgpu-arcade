@@ -1,0 +1,70 @@
+<!doctype html>
+
+<!--
+Copyright 2021 Brandon Jones
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
+documentation files (the "Software"), to deal in the Software without restriction, including without limitation the
+rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to
+permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the
+Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE
+WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+-->
+
+<html>
+  <head>
+    <meta charset='utf-8'>
+    <meta name='viewport' content='width=device-width, initial-scale=1, user-scalable=no'>
+    <meta name='mobile-web-app-capable' content='yes'>
+    <meta name='apple-mobile-web-app-capable' content='yes'>
+
+    <title>Toro</title>
+
+    <style>
+      html, body {
+        height: 100%;
+        margin: 0;
+        background-color: #000000;
+      }
+
+      canvas {
+        position: absolute;
+        z-index: 0;
+        height: 100%;
+        width: 100%;
+        left: 0;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        margin: 0;
+        touch-action: none;
+      }
+    </style>
+  </head>
+  <body>
+    <script type="module">
+      import { World } from './js/third-party/ecsy/src/World.js';
+      import { WebGPU } from './js/components/webgpu.js';
+      import { WebGPURenderer } from './js/systems/webgpu-renderer.js';
+
+      const canvas = document.createElement('canvas');
+      document.body.appendChild(canvas);
+
+      let world = new World()
+        .registerSingletonComponent(WebGPU, { canvas })
+        .registerSystem(WebGPURenderer);
+
+      function onFrame() {
+        requestAnimationFrame(onFrame);
+        world.execute();
+      }
+      onFrame();
+    </script>
+  </body>
+</html>
