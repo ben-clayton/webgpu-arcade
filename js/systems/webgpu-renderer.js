@@ -1,13 +1,15 @@
 import {System} from '../third-party/ecsy/src/System.js';
-import {WebGPU} from '../components/webgpu.js';
+import {WebGPU, WebGPUSwapConfig} from '../components/webgpu.js';
 
 export class WebGPURenderer extends System {
   static queries = {
+    swapConfig: { components: [WebGPUSwapConfig], listen: { changed: true } }
     //renderable: { components: [] }
   };
 
   async init() {
     const gpu = this.getMutableSingletonComponent(WebGPU);
+    const swapConfig = this.getMutableSingletonComponent(WebGPUSwapConfig);
 
     if (!gpu.canvas) {
       // Create a canvas if one is not available.
@@ -23,21 +25,19 @@ export class WebGPURenderer extends System {
       gpu.device = await adapter.requestDevice();
     }
 
-    if (!gpu.swapChainFormat) {
+    if (!swapConfig.format) {
       // Get the preferred swap chain format if one wasn't specified.
-      gpu.swapChainFormat = gpu.context.getSwapChainPreferredFormat(gpu.device.adapter);
+      swapConfig.format = gpu.context.getSwapChainPreferredFormat(gpu.device.adapter);
     }
 
     gpu.swapChain = gpu.context.configureSwapChain({
       device: gpu.device,
-      format: gpu.swapChainFormat
+      format: swapConfig.format
     });
 
-    gpu.canvas.width = gpu.canvas.offsetWidth * devicePixelRatio;
-    gpu.canvas.height = gpu.canvas.offsetHeight * devicePixelRatio;
+    swapConfig.width = gpu.canvas.offsetWidth * devicePixelRatio;
+    swapConfig.height = gpu.canvas.offsetHeight * devicePixelRatio;
 
-    this.activeSwapChainFormat = gpu.swapChainFormat;
-    this.activeSampleCount = gpu.sampleCount;
     this.colorAttachment = {
       attachment: undefined,
       resolveTarget: undefined,
@@ -58,17 +58,32 @@ export class WebGPURenderer extends System {
     this.updateRenderTargets();
   }
 
+  checkResize(canvas) {
+    // TODO: Monitor this better with events
+    const canvasWidth = Math.floor(canvas.offsetWidth * devicePixelRatio);
+    const canvasHeight = Math.floor(canvas.offsetWidth * devicePixelRatio);
+    if (canvas.width != canvasWidth ||
+        canvas.height != canvasHeight) {
+      const swapConfig = this.getMutableSingletonComponent(WebGPUSwapConfig);
+      swapConfig.width = canvasWidth;
+      swapConfig.height = canvasHeight;
+      return true;
+    }
+    return false;
+  }
+
   updateRenderTargets() {
     const gpu = this.getSingletonComponent(WebGPU);
+    const swapConfig = this.getSingletonComponent(WebGPUSwapConfig);
 
-    gpu.canvas.width = gpu.canvas.offsetWidth * devicePixelRatio;
-    gpu.canvas.height = gpu.canvas.offsetWidth * devicePixelRatio
+    gpu.canvas.width = swapConfig.width;
+    gpu.canvas.height = swapConfig.height;
 
-    if (gpu.sampleCount > 1) {
+    if (swapConfig.sampleCount > 1) {
       const msaaColorTexture = gpu.device.createTexture({
-        size: { width: gpu.canvas.width, height: gpu.canvas.height, depth: 1 },
-        sampleCount: gpu.sampleCount,
-        format: gpu.swapChainFormat,
+        size: { width: swapConfig.width, height: swapConfig.height, depth: 1 },
+        sampleCount: swapConfig.sampleCount,
+        format: swapConfig.format,
         usage: GPUTextureUsage.OUTPUT_ATTACHMENT,
       });
       this.colorAttachment.attachment = msaaColorTexture.createView();
@@ -77,33 +92,24 @@ export class WebGPURenderer extends System {
     }
 
     const depthTexture = gpu.device.createTexture({
-      size: { width: gpu.canvas.width, height: gpu.canvas.height, depth: 1 },
-      sampleCount: gpu.sampleCount,
-      format: gpu.depthFormat,
+      size: { width: swapConfig.width, height: swapConfig.height, depth: 1 },
+      sampleCount: swapConfig.sampleCount,
+      format: swapConfig.depthFormat,
       usage: GPUTextureUsage.OUTPUT_ATTACHMENT
     });
     this.depthAttachment.attachment = depthTexture.createView();
-
-    this.activeSampleCount = gpu.sampleCount;
-    this.activeSwapChainFormat = gpu.swapChainFormat;
   }
 
   execute(delta, time) {
     const gpu = this.getSingletonComponent(WebGPU);
+    const swapConfig = this.getSingletonComponent(WebGPUSwapConfig);
     if (!gpu.device) { return; }
 
-    // TODO: Monitor this better with events
-    const canvasWidth = Math.floor(gpu.canvas.offsetWidth * devicePixelRatio);
-    const canvasHeight = Math.floor(gpu.canvas.offsetWidth * devicePixelRatio);
-    if (gpu.canvas.width != canvasWidth ||
-        gpu.canvas.height != canvasHeight ||
-        gpu.sampleCount != this.activeSampleCount ||
-        gpu.swapChainFormat != this.activeSwapChainFormat) {
-      // If the size or format of the render targets has changed rebuild them.
+    if (this.checkResize(gpu.canvas) || this.queries.swapConfig.changed.length) {
       this.updateRenderTargets();
     }
 
-    if (gpu.sampleCount > 1) {
+    if (swapConfig.sampleCount > 1) {
       this.colorAttachment.resolveTarget = gpu.swapChain.getCurrentTexture().createView();
     } else {
       this.colorAttachment.attachment = gpu.swapChain.getCurrentTexture().createView();

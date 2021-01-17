@@ -1,4 +1,5 @@
 
+import Query from "./Query.js";
 import wrapImmutableComponent from "./WrapImmutableComponent.js";
 import { IS_DEBUG } from "./Config.js";
 

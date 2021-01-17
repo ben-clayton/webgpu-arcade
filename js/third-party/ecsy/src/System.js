@@ -63,7 +63,7 @@ export class System {
           );
         }
 
-        let singletonComponents = Components.filter(
+        /*let singletonComponents = Components.filter(
           (Component) => Component.isSingleton
         );
 
@@ -75,7 +75,7 @@ export class System {
               .map((c) => c.getName())
               .join(", ")}]`
           );
-        }
+        }*/
 
         var query = this.world.entityManager.queryComponents(Components);
 

@@ -50,7 +50,7 @@ OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
   <body>
     <script type="module">
       import { World } from './js/third-party/ecsy/src/World.js';
-      import { WebGPU } from './js/components/webgpu.js';
+      import { WebGPU, WebGPUSwapConfig } from './js/components/webgpu.js';
       import { WebGPURenderer } from './js/systems/webgpu-renderer.js';
 
       const canvas = document.createElement('canvas');
@@ -58,6 +58,7 @@ OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 
       let world = new World()
         .registerSingletonComponent(WebGPU, { canvas })
+        .registerSingletonComponent(WebGPUSwapConfig)
         .registerSystem(WebGPURenderer);
 
       function onFrame() {
