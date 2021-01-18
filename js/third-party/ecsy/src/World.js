@@ -69,6 +69,14 @@ export class World {
     return this.systemManager.getSystems();
   }
 
+  getSingletonComponent(Component) {
+    return this._singletonEntity.getComponent(Component);
+  }
+
+  getMutableSingletonComponent(Component) {
+    return this._singletonEntity.getMutableComponent(Component);
+  }
+
   execute(delta, time) {
     if (!delta) {
       time = now() / 1000;

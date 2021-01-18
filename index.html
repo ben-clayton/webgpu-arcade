@@ -49,17 +49,41 @@ OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
   </head>
   <body>
     <script type="module">
-      import { World } from './js/third-party/ecsy/src/World.js';
-      import { WebGPU, WebGPUSwapConfig } from './js/components/webgpu.js';
-      import { WebGPURenderer } from './js/systems/webgpu-renderer.js';
+      import { WebGPUWorld } from './js/webgpu-world.js';
+
+      import { Geometry, VertexAttribute, VertexInterleavedAttributes } from './js/components/geometry.js';
 
       const canvas = document.createElement('canvas');
       document.body.appendChild(canvas);
 
-      let world = new World()
-        .registerSingletonComponent(WebGPU, { canvas })
-        .registerSingletonComponent(WebGPUSwapConfig)
-        .registerSystem(WebGPURenderer);
+      const world = new WebGPUWorld({ canvas });
+
+      const verts = new Float32Array([
+        0, 1,   1, 0, 0, 1,
+        1, .5,  0, 1, 0, 1,
+        0, .25, 1, 0, 1, 1,
+        -1, .5, 0, 0, 1, 1,
+      ]);
+
+      const normals = new Float32Array([
+        0, 0, 1,
+        0, 0, 1,
+        0, 0, 1,
+        0, 0, 1,
+      ]);
+
+      const geometry = {
+        vertices: [
+        new VertexAttribute('normal', normals),
+          new VertexInterleavedAttributes(verts, 24)
+            .addAttribute('color', 8)
+            .addAttribute('position', 0, 'float2'),
+        ],
+        indices: new Uint32Array([0, 1, 2, 0, 2, 3]),
+      };
+
+      world.createEntity()
+        .addComponent(Geometry, geometry);
 
       function onFrame() {
         requestAnimationFrame(onFrame);

@@ -180,11 +180,11 @@ export class System {
   }
 
   getSingletonComponent(Component) {
-    return this.world._singletonEntity.getComponent(Component);
+    return this.world.getSingletonComponent(Component);
   }
 
   getMutableSingletonComponent(Component) {
-    return this.world._singletonEntity.getMutableComponent(Component);
+    return this.world.getMutableSingletonComponent(Component);
   }
 
   stop() {
