@@ -1,4 +1,4 @@
-import { System, Not} from '../third-party/ecsy/src/System.js';
+import { System, Not } from '../third-party/ecsy/src/System.js';
 import { Geometry, GeometryError, RenderGeometry } from '../components/geometry.js';
 import { WebGPU, WebGPURenderGeometry } from '../components/webgpu.js';
 
@@ -8,7 +8,7 @@ function typedArrayToBuffer(device, typedArray, usage, commandEncoder = null) {
     size: alignedLength,
     usage: usage | GPUBufferUsage.COPY_DST
   });
-  
+
   const copyBuffer = device.createBuffer({
     size: alignedLength,
     usage: GPUBufferUsage.COPY_SRC,
@@ -32,7 +32,7 @@ function typedArrayToBuffer(device, typedArray, usage, commandEncoder = null) {
 export class WebGPUGeometrySystem extends System {
   static queries = {
     pendingGeometry: { components: [Geometry, Not(GeometryError), Not(WebGPURenderGeometry)] },
-    removedGeometry: { components: [Not(RenderGeometry), WebGPURenderGeometry]}
+    removeGeometry: { components: [Not(RenderGeometry), WebGPURenderGeometry]}
   };
 
   execute() {
@@ -121,7 +121,7 @@ export class WebGPUGeometrySystem extends System {
 
     // Loop through any WebGPU resources that no longer have the RenderGeometry tag component and remove the associated
     // WebGPU resources as well.
-    this.queries.pendingGeometry.results.forEach((entity) => {
+    this.queries.removeGeometry.results.forEach((entity) => {
       const gpuGeometry = entity.getComponent(WebGPURenderGeometry);
 
       if (gpuGeometry.indexBuffer) {

@@ -3,8 +3,8 @@ import {WebGPU, WebGPUSwapConfig} from '../components/webgpu.js';
 
 export class WebGPURenderer extends System {
   static queries = {
-    swapConfig: { components: [WebGPUSwapConfig], listen: { changed: true } }
-    //renderable: { components: [] }
+    swapConfig: { components: [WebGPUSwapConfig], listen: { changed: true } },
+    renderable: { components: [WebGPURenderGeometry] }
   };
 
   async init() {

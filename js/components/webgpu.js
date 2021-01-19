@@ -30,3 +30,9 @@ export class WebGPURenderGeometry extends SystemStateComponent {
     topology: { type: Types.String },
   };
 }
+
+export class WebGPUPipeline extends SystemStateComponent {
+  static schema = {
+    pipeline: { type: Types.Ref },
+  };
+}
