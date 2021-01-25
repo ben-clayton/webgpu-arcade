@@ -58,7 +58,7 @@ export class WebGPUGeometrySystem extends System {
         vertexState: {
           vertexBuffers: []
         },
-        vertexCount: geometry.vertices[0].maxVertexCount,
+        drawCount: geometry.vertices[0].maxVertexCount,
         topology: geometry.topology,
       };
 
@@ -87,7 +87,7 @@ export class WebGPUGeometrySystem extends System {
           })
         }
         gpuGeometry.vertexState.vertexBuffers.push(bufferState);
-        gpuGeometry.vertexCount = Math.min(gpuGeometry.vertexCount, vertexBuffer.maxVertexCount);
+        gpuGeometry.drawCount = Math.min(gpuGeometry.drawCount, vertexBuffer.maxVertexCount);
       }
 
       if (geometry.indices instanceof Uint16Array ||
@@ -98,7 +98,7 @@ export class WebGPUGeometrySystem extends System {
           offset: 0,
           size: geometry.indices.byteLength,
         };
-        gpuGeometry.vertexCount = geometry.indices.length;
+        gpuGeometry.drawCount = geometry.indices.length;
         if (geometry.topology == 'triangle-strip' ||
             geometry.topology == 'line-strip') {
           gpuGeometry.vertexState.indexFormat = gpuGeometry.indexBuffer.format;
@@ -110,8 +110,8 @@ export class WebGPUGeometrySystem extends System {
         return;
       }
 
-      if (geometry.vertexCount) {
-        gpuGeometry.vertexCount = geometry.vertexCount;
+      if (geometry.drawCount) {
+        gpuGeometry.drawCount = geometry.drawCount;
       }
 
       entity.removeComponent(Geometry);

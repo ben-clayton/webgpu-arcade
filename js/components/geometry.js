@@ -2,7 +2,7 @@ import { Component } from '../third-party/ecsy/src/Component.js';
 import { TagComponent } from '../third-party/ecsy/src/TagComponent.js'; 
 import { Types } from '../third-party/ecsy/src/Types.js';
 
-const DefaultLocation = {
+export const AttributeLocation = {
   position: 0,
   normal: 1,
   tangent: 2,
@@ -65,7 +65,7 @@ export class VertexInterleavedAttributes {
       format = DefaultAttributeType[location];
     }
     if (typeof location == 'string') {
-      location = DefaultLocation[location];
+      location = AttributeLocation[location];
     }
     this.minAttributeLocation = Math.min(this.minAttributeLocation, location);
     this.attributes.push({location, offset, format});
@@ -94,7 +94,7 @@ export class Geometry extends Component {
   static schema = {
     indices: { type: Types.Ref },
     vertices: { type: Types.Array },
-    vertexCount: { type: Types.Number },
+    drawCount: { type: Types.Number },
     topology: { type: Types.String, default: 'triangle-list' }
   };
 }

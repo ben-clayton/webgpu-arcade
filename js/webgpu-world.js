@@ -1,8 +1,9 @@
 import { World } from './third-party/ecsy/src/World.js';
-import { WebGPU, WebGPUSwapConfig, WebGPURenderGeometry } from './components/webgpu.js';
+import { WebGPU, WebGPUSwapConfig, WebGPURenderGeometry, WebGPUPipeline } from './components/webgpu.js';
 import { Geometry, GeometryError, RenderGeometry } from './components/geometry.js';
 import { WebGPURenderer } from './systems/webgpu-renderer.js';
 import { WebGPUGeometrySystem } from './systems/webgpu-geometry.js';
+import { WebGPUPipelineSystem } from './systems/webgpu-pipeline.js';
 
 export class WebGPUWorld extends World {
   constructor(options = {}) {
@@ -19,8 +20,10 @@ export class WebGPUWorld extends World {
     this.registerComponent(GeometryError);
     this.registerComponent(RenderGeometry);
     this.registerComponent(WebGPURenderGeometry);
+    this.registerComponent(WebGPUPipeline);
 
     this.registerSystem(WebGPURenderer);
     this.registerSystem(WebGPUGeometrySystem);
+    this.registerSystem(WebGPUPipelineSystem);
   }
 }

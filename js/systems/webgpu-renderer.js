@@ -1,10 +1,10 @@
 import {System} from '../third-party/ecsy/src/System.js';
-import {WebGPU, WebGPUSwapConfig} from '../components/webgpu.js';
+import {WebGPU, WebGPUSwapConfig, WebGPURenderGeometry, WebGPUPipeline} from '../components/webgpu.js';
 
 export class WebGPURenderer extends System {
   static queries = {
     swapConfig: { components: [WebGPUSwapConfig], listen: { changed: true } },
-    renderable: { components: [WebGPURenderGeometry] }
+    renderable: { components: [WebGPURenderGeometry, WebGPUPipeline] }
   };
 
   async init() {
@@ -117,6 +117,28 @@ export class WebGPURenderer extends System {
 
     const commandEncoder = gpu.device.createCommandEncoder({});
     const passEncoder = commandEncoder.beginRenderPass(this.renderPassDescriptor);
+
+    this.queries.renderable.results.forEach((entity) => {
+      const geometry = entity.getComponent(WebGPURenderGeometry);
+      const pipeline = entity.getComponent(WebGPUPipeline);
+
+      // Bind the pipeline
+      passEncoder.setPipeline(pipeline.pipeline);
+
+      // TODO: Bind materials
+
+      // Bind the geometry
+      for (const vb of geometry.vertexBuffers) {
+        passEncoder.setVertexBuffer(vb.slot, vb.buffer, vb.offset, vb.size);
+      }
+      if (geometry.indexBuffer) {
+        const ib = geometry.indexBuffer;
+        passEncoder.setIndexBuffer(ib.buffer, ib.format, ib.offset, ib.size);
+        passEncoder.drawIndexed(geometry.drawCount);
+      } else {
+        passEncoder.draw(geometry.drawCount);
+      }
+    });
 
     passEncoder.endPass();
     gpu.device.defaultQueue.submit([commandEncoder.finish()]);

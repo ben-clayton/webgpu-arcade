@@ -26,7 +26,7 @@ export class WebGPURenderGeometry extends SystemStateComponent {
     indexBuffer: { type: Types.Ref },
     vertexBuffers: { type: Types.Array },
     vertexState: { type: Types.Ref },
-    vertexCount: { type: Types.Number },
+    drawCount: { type: Types.Number },
     topology: { type: Types.String },
   };
 }
