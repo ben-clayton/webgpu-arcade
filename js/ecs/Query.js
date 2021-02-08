@@ -73,8 +73,8 @@ export default class Query {
 
   match(entity) {
     return (
-      entity.hasAllComponents(this.Components) &&
-      !entity.hasAnyComponents(this.NotComponents)
+      entity.hasAll(this.Components) &&
+      !entity.hasAny(this.NotComponents)
     );
   }
 

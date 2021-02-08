@@ -1,7 +1,7 @@
-import {System, Not } from '../third-party/ecsy/src/index.js';
+import {System, Not } from '../js/ecs/index.js';
 import { Player, PlayerBullet, Dead, Transform, Velocity, Collider, Health,
          Damage, Lifespan, Polygon, CanvasContext } from './components.js';
-import { vec2 } from '../third-party/gl-matrix/dist/esm/index.js'
+import { vec2 } from '../js/third-party/gl-matrix/dist/esm/index.js'
 
 //-----------------------
 // Systems
@@ -13,11 +13,11 @@ export class MovableSystem extends System {
   };
 
   execute(delta, time) {
-    const canvas = this.getSingletonComponent(CanvasContext).canvas;
+    const canvas = this.readSingleton(CanvasContext).canvas;
 
     this.queries.moving.results.forEach(entity => {
-      const vel = entity.getComponent(Velocity);
-      const trans = entity.getMutableComponent(Transform);
+      const vel = entity.read(Velocity);
+      const trans = entity.modify(Transform);
 
       vec2.scaleAndAdd(trans.position, trans.position, vel.direction, delta);
       trans.orientation += vel.angular * delta;
@@ -40,23 +40,23 @@ export class DamageSystem extends System {
     const damagables = this.queries.damagable.results;
 
     this.queries.damaging.results.forEach(src => {
-      const srcTrans = src.getComponent(Transform);
-      const srcCollider = src.getComponent(Collider);
-      const damage = src.getComponent(Damage);
+      const srcTrans = src.read(Transform);
+      const srcCollider = src.read(Collider);
+      const damage = src.read(Damage);
 
       for (const dst of damagables) {
         // Never damage yourself.
         if (dst == src) { continue; }
 
         // Skip if target is immune to this type of damage
-        if (dst.hasAnyComponents(damage.immune)) { continue; }
+        if (dst.hasAny(damage.immune)) { continue; }
 
         // Don't beat dead horses.
-        const health = dst.getMutableComponent(Health);
+        const health = dst.modify(Health);
         if (health <= 0) { continue; }
 
-        const dstTrans = dst.getComponent(Transform);
-        const dstCollider = dst.getComponent(Collider);
+        const dstTrans = dst.read(Transform);
+        const dstCollider = dst.read(Collider);
 
         const distSq = vec2.sqrDist(srcTrans.position, dstTrans.position);
 
@@ -67,7 +67,7 @@ export class DamageSystem extends System {
           health.value -= damage.value;
 
           if (health.value <= 0) {
-            dst.addComponent(Dead);
+            dst.add(Dead);
           }
         }
       }
@@ -83,10 +83,10 @@ export class DeathSystem extends System {
 
   execute(delta, time) {
     this.queries.lifespan.results.forEach(entity => {
-      let lifespan = entity.getMutableComponent(Lifespan);
+      let lifespan = entity.modify(Lifespan);
       lifespan.value -= delta;
       if (lifespan.value <= 0) {
-        entity.addComponent(Dead);
+        entity.add(Dead);
       }
     });
 
@@ -95,7 +95,7 @@ export class DeathSystem extends System {
     // Important to iterate in reverse order
     for (var i = dead.length - 1; i >= 0; i--) {
       // Just remove for now, later can do things like explode. :)
-      dead[i].remove();
+      dead[i].delete();
     }
   }
 }
@@ -106,14 +106,14 @@ export class RenderingSystem extends System {
   };
 
   init(attributes) {
-    const canvasContext = this.getMutableSingletonComponent(CanvasContext);
+    const canvasContext = this.modifySingleton(CanvasContext);
     if (!canvasContext.ctx) {
       canvasContext.ctx = canvasContext.canvas.getContext("2d");
     }
   }
 
   execute(delta, time) {
-    const cc = this.getSingletonComponent(CanvasContext);
+    const cc = this.readSingleton(CanvasContext);
     const canvas = cc.canvas;
     const ctx = cc.ctx;
 
@@ -122,8 +122,8 @@ export class RenderingSystem extends System {
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     this.queries.renderable.results.forEach(entity => {
-      const polygon = entity.getComponent(Polygon);
-      const trans = entity.getComponent(Transform);
+      const polygon = entity.read(Polygon);
+      const trans = entity.read(Transform);
 
       ctx.setTransform(1, 0, 0, 1, trans.position[0], trans.position[1]);
       ctx.rotate(trans.orientation);
@@ -137,7 +137,7 @@ export class RenderingSystem extends System {
         }
         ctx.lineTo(polygon.points[0], polygon.points[1]);
       } else {
-        const collider = entity.getComponent(Collider);
+        const collider = entity.read(Collider);
         ctx.arc(0, 0, collider ? collider.radius : 5.0, 0, 2 * Math.PI, false);
         //ctx.rect(-5, -5, 10, 10);
       }
@@ -168,26 +168,27 @@ export class InputSystem extends System {
   }
 
   fireBullet(entity) {
-    let trans = entity.getComponent(Transform);
+    let trans = entity.read(Transform);
     let speed = 500;
-    let bullet = this.world.createEntity()
-      .addComponent(Transform, { position: trans.position })
-      .addComponent(Velocity, {
-        direction: [Math.cos(trans.orientation) * speed,
-                    Math.sin(trans.orientation) * speed]
+    let bullet = this.world.create({
+        Transform: { position: trans.position },
+        Velocity: {
+          direction: [Math.cos(trans.orientation) * speed,
+                      Math.sin(trans.orientation) * speed]
+        },
+        Damage: { value: 1, immune: [Player] },
+        Health: { value: 1 },
+        Lifespan: { value: 1 },
+        Polygon: { fill: "#FFFF77", stroke: "#FFFF99" },
+        Collider: { radius: 1 }
       })
-      .addComponent(Damage, { value: 1, immune: [Player] })
-      .addComponent(Health, { value: 1 })
-      .addComponent(Lifespan, { value: 1 })
-      .addComponent(Polygon, { fill: "#FFFF77", stroke: "#FFFF99" })
-      .addComponent(Collider, { radius: 1 })
-      .addComponent(PlayerBullet);
+      .add(PlayerBullet);
   }
 
   execute(delta, time) {
     this.queries.player.results.forEach(entity => {
-      const trans = entity.getMutableComponent(Transform);
-      const vel = entity.getMutableComponent(Velocity);
+      const trans = entity.modify(Transform);
+      const vel = entity.modify(Velocity);
 
       const dir = [0, 0];
 

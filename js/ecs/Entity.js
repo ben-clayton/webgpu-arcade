@@ -1,5 +1,6 @@
 
 import Query from "./Query.js";
+import { Component } from "./Component.js";
 import wrapImmutableComponent from "./WrapImmutableComponent.js";
 import { IS_DEBUG } from "./Config.js";
 
@@ -32,24 +33,71 @@ export class Entity {
 
   // COMPONENTS
 
-  getComponent(Component, includeRemoved) {
-    var component = this._components[Component._typeId];
+  read(T, includeRemoved) {
+    var component = this._components[T._typeId];
 
     if (!component && includeRemoved === true) {
-      component = this._componentsToRemove[Component._typeId];
+      component = this._componentsToRemove[T._typeId];
     }
 
     return IS_DEBUG
-      ? wrapImmutableComponent(Component, component)
+      ? wrapImmutableComponent(T, component)
       : component;
   }
 
-  getRemovedComponent(Component) {
-    const component = this._componentsToRemove[Component._typeId];
+  modify(T) {
+    var component = this._components[T._typeId];
+
+    if (!component) {
+      return;
+    }
+
+    for (var i = 0; i < this.queries.length; i++) {
+      var query = this.queries[i];
+      // @todo accelerate this check. Maybe having query._Components as an object
+      // @todo add Not components
+      if (query.reactive && query.Components.indexOf(T) !== -1) {
+        query.eventDispatcher.dispatchEvent(
+          Query.prototype.COMPONENT_CHANGED,
+          this,
+          component
+        );
+      }
+    }
+    return component;
+  }
+
+  add(component, values) {
+    if (Component.isPrototypeOf(component)) {
+      // Single component at a time
+      this._entityManager.entityAddComponent(this, component, values);
+    } else {
+      // Dictionary of components
+      for (const key in component) {
+        this._entityManager.entityAddComponentByName(this, key, component[key]);
+      }
+    }
+    return this;
+  }
+
+  remove(component, forceImmediate) {
+    this._entityManager.entityRemoveComponent(this, component, forceImmediate);
+    return this;
+  }
+
+  has(component, includeRemoved) {
+    return (
+      !!~this._ComponentTypes.indexOf(component) ||
+      (includeRemoved === true && this.hasRemovedComponent(component))
+    );
+  }
+
+  getRemovedComponent(component) {
+    const c = this._componentsToRemove[component._typeId];
 
     return IS_DEBUG
-      ? wrapImmutableComponent(Component, component)
-      : component;
+      ? wrapImmutableComponent(component, c)
+      : c;
   }
 
   getComponents() {
@@ -64,71 +112,25 @@ export class Entity {
     return this._ComponentTypes;
   }
 
-  getMutableComponent(Component) {
-    var component = this._components[Component._typeId];
-
-    if (!component) {
-      return;
-    }
-
-    for (var i = 0; i < this.queries.length; i++) {
-      var query = this.queries[i];
-      // @todo accelerate this check. Maybe having query._Components as an object
-      // @todo add Not components
-      if (query.reactive && query.Components.indexOf(Component) !== -1) {
-        query.eventDispatcher.dispatchEvent(
-          Query.prototype.COMPONENT_CHANGED,
-          this,
-          component
-        );
-      }
-    }
-    return component;
+  hasRemoved(component) {
+    return !!~this._ComponentTypesToRemove.indexOf(component);
   }
 
-  addComponent(Component, values) {
-    this._entityManager.entityAddComponent(this, Component, values);
-    return this;
-  }
-
-  addComponents(components) {
-    for (const key in components) {
-      this._entityManager.entityAddComponentByName(this, key, components[key]);
-    }
-    return this;
-  }
-
-  removeComponent(Component, forceImmediate) {
-    this._entityManager.entityRemoveComponent(this, Component, forceImmediate);
-    return this;
-  }
-
-  hasComponent(Component, includeRemoved) {
-    return (
-      !!~this._ComponentTypes.indexOf(Component) ||
-      (includeRemoved === true && this.hasRemovedComponent(Component))
-    );
-  }
-
-  hasRemovedComponent(Component) {
-    return !!~this._ComponentTypesToRemove.indexOf(Component);
-  }
-
-  hasAllComponents(Components) {
+  hasAll(Components) {
     for (var i = 0; i < Components.length; i++) {
-      if (!this.hasComponent(Components[i])) return false;
+      if (!this.has(Components[i])) return false;
     }
     return true;
   }
 
-  hasAnyComponents(Components) {
+  hasAny(Components) {
     for (var i = 0; i < Components.length; i++) {
-      if (this.hasComponent(Components[i])) return true;
+      if (this.has(Components[i])) return true;
     }
     return false;
   }
 
-  removeAllComponents(forceImmediate) {
+  removeAll(forceImmediate) {
     return this._entityManager.entityRemoveAllComponents(this, forceImmediate);
   }
 
@@ -158,7 +160,7 @@ export class Entity {
     }
   }
 
-  remove(forceImmediate) {
+  delete(forceImmediate) {
     return this._entityManager.removeEntity(this, forceImmediate);
   }
 }

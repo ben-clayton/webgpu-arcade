@@ -179,12 +179,12 @@ export class System {
     }
   }
 
-  getSingletonComponent(Component) {
-    return this.world.getSingletonComponent(Component);
+  readSingleton(T) {
+    return this.world.readSingleton(T);
   }
 
-  getMutableSingletonComponent(Component) {
-    return this.world.getMutableSingletonComponent(Component);
+  modifySingleton(T) {
+    return this.world.modifySingleton(T);
   }
 
   stop() {

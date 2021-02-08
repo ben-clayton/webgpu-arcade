@@ -43,7 +43,7 @@ export class World {
   registerSingletonComponent(Component, values) {
     Component.isSingleton = true;
     this.componentsManager.registerComponent(Component, false);
-    this._singletonEntity.addComponent(Component, values);
+    this._singletonEntity.add(Component, values);
     return this;
   }
 
@@ -69,12 +69,12 @@ export class World {
     return this.systemManager.getSystems();
   }
 
-  getSingletonComponent(Component) {
-    return this._singletonEntity.getComponent(Component);
+  readSingleton(T) {
+    return this._singletonEntity.read(T);
   }
 
-  getMutableSingletonComponent(Component) {
-    return this._singletonEntity.getMutableComponent(Component);
+  modifySingleton(T) {
+    return this._singletonEntity.modify(T);
   }
 
   execute(delta, time) {
@@ -98,8 +98,12 @@ export class World {
     this.enabled = true;
   }
 
-  createEntity(name) {
-    return this.entityManager.createEntity(name);
+  create(components = null, name) {
+    const entity = this.entityManager.createEntity(name);
+    if (components) {
+      entity.add(components);
+    }
+    return entity;
   }
 
   stats() {

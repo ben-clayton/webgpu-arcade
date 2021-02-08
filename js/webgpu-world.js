@@ -1,4 +1,4 @@
-import { World } from './third-party/ecsy/src/World.js';
+import { World } from './ecs/World.js';
 import { WebGPU, WebGPUSwapConfig, WebGPURenderGeometry, WebGPUPipeline } from './components/webgpu.js';
 import { Geometry, GeometryError, RenderGeometry } from './components/geometry.js';
 import { WebGPURenderer } from './systems/webgpu-renderer.js';

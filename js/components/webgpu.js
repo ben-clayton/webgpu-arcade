@@ -1,6 +1,6 @@
-import { Component } from '../third-party/ecsy/src/Component.js';
-import { SystemStateComponent } from '../third-party/ecsy/src/SystemStateComponent.js';
-import { Types } from '../third-party/ecsy/src/Types.js';
+import { Component } from '../ecs/Component.js';
+import { SystemStateComponent } from '../ecs/SystemStateComponent.js';
+import { Types } from '../ecs/Types.js';
 
 export class WebGPU extends Component {
   static schema = {

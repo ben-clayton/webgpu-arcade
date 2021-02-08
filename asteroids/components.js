@@ -1,4 +1,4 @@
-import { Component, TagComponent, Types } from '../third-party/ecsy/src/index.js';
+import { Component, TagComponent, Types } from '../js/ecs/index.js';
 
 //----------------------
 // Components

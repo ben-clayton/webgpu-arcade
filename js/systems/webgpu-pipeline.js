@@ -1,4 +1,4 @@
-import { System, Not } from '../third-party/ecsy/src/System.js';
+import { System, Not } from '../ecs/System.js';
 import { WebGPU, WebGPUSwapConfig, WebGPURenderGeometry, WebGPUPipeline } from '../components/webgpu.js';
 import { AttributeLocation } from '../components/geometry.js';
 
@@ -24,10 +24,10 @@ function getDefaultShader(geometry) {
     vertex: `
     [[location(${AttributeLocation.position})]] var<in> position : vec3<f32>;
     [[location(${AttributeLocation.color})]] var<in> color : vec4<f32>;
-  
+
     [[builtin(position)]] var<out> outPosition : vec4<f32>;
     [[location(0)]] var<out> outColor : vec4<f32>;
-  
+
     [[stage(vertex)]]
     fn vertexMain() -> void {
       outColor = color;
@@ -58,13 +58,13 @@ export class WebGPUPipelineSystem extends System {
   }
 
   execute() {
-    const gpu = this.getSingletonComponent(WebGPU);
+    const gpu = this.readSingleton(WebGPU);
     if (!gpu.device) { return; }
 
-    const swapConfig = this.getSingletonComponent(WebGPUSwapConfig);
+    const swapConfig = this.readSingleton(WebGPUSwapConfig);
 
     this.queries.pendingPipeline.results.forEach((entity) => {
-      const geometry = entity.getComponent(WebGPURenderGeometry);
+      const geometry = entity.read(WebGPURenderGeometry);
 
       // TODO: Optimize
       const pipelineKey = JSON.stringify(geometry.vertexState);
@@ -98,11 +98,11 @@ export class WebGPUPipelineSystem extends System {
         });
       }
 
-      entity.addComponent(WebGPUPipeline, { pipeline: gpuPipeline });
+      entity.add(WebGPUPipeline, { pipeline: gpuPipeline });
     });
 
     this.queries.removePipeline.results.forEach((entity) => {
-      entity.removeComponent(WebGPUPipeline);
+      entity.remove(WebGPUPipeline);
     });
   }
 }

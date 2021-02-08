@@ -15,7 +15,7 @@
     <canvas></canvas>
 
     <script type='module'>
-      import { World } from '../third-party/ecsy/src/World.js';
+      import { World } from '../js/ecs/World.js';
       import { MovableSystem, DamageSystem, DeathSystem, RenderingSystem, InputSystem } from './systems.js';
       import { Player, PlayerBullet, Enemy, Dead, Transform, Velocity, Collider, Health,
                Damage, Lifespan, Polygon, CanvasContext } from './components.js';
@@ -55,13 +55,13 @@
             Math.sin(rad) * radius + ((Math.random() - 0.5) * 5));
         }
 
-        let asteroid = world.createEntity()
-          .addComponent(Velocity, {
+        let asteroid = world.create()
+          .add(Velocity, {
             direction: [(Math.random() - 0.5) * 200.0,
                         (Math.random() - 0.5) * 200.0],
             angular: (Math.random() - 0.5) * Math.PI * 2.0,
           })
-          .addComponents({
+          .add({
             Transform: { position: [Math.random() * canvas.width, Math.random() * canvas.height] },
             Collider: { radius },
             Health: { value: 10 },
@@ -78,16 +78,15 @@
         -10, -10
       ];
 
-      let player = world.createEntity()
-          .addComponents({
-            Velocity: { maxSpeed: 200 },
-            Transform: { position: [canvas.width * 0.5, canvas.height * 0.5] },
-            Collider: { radius: 10 },
-            Health: { value: 10 },
-            Damage: { value: 10, immune: [PlayerBullet] },
-            Polygon: { points: playerPolygon, fill: "#736ee2", stroke: "#4843b7" },
-            Player: {},
-          });
+      let player = world.create({
+        Velocity: { maxSpeed: 200 },
+        Transform: { position: [canvas.width * 0.5, canvas.height * 0.5] },
+        Collider: { radius: 10 },
+        Health: { value: 10 },
+        Damage: { value: 10, immune: [PlayerBullet] },
+        Polygon: { points: playerPolygon, fill: "#736ee2", stroke: "#4843b7" },
+        Player: {},
+      });
 
       function onFrame() {
         world.execute();

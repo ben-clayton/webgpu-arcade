@@ -1,4 +1,4 @@
-import {System} from '../third-party/ecsy/src/System.js';
+import {System} from '../ecs/System.js';
 import {WebGPU, WebGPUSwapConfig, WebGPURenderGeometry, WebGPUPipeline} from '../components/webgpu.js';
 
 export class WebGPURenderer extends System {
@@ -8,8 +8,8 @@ export class WebGPURenderer extends System {
   };
 
   async init() {
-    const gpu = this.getMutableSingletonComponent(WebGPU);
-    const swapConfig = this.getMutableSingletonComponent(WebGPUSwapConfig);
+    const gpu = this.modifySingleton(WebGPU);
+    const swapConfig = this.modifySingleton(WebGPUSwapConfig);
 
     if (!gpu.canvas) {
       // Create a canvas if one is not available.
@@ -64,7 +64,7 @@ export class WebGPURenderer extends System {
     const canvasHeight = Math.floor(canvas.offsetWidth * devicePixelRatio);
     if (canvas.width != canvasWidth ||
         canvas.height != canvasHeight) {
-      const swapConfig = this.getMutableSingletonComponent(WebGPUSwapConfig);
+      const swapConfig = this.modifySingleton(WebGPUSwapConfig);
       swapConfig.width = canvasWidth;
       swapConfig.height = canvasHeight;
       return true;
@@ -73,8 +73,8 @@ export class WebGPURenderer extends System {
   }
 
   updateRenderTargets() {
-    const gpu = this.getSingletonComponent(WebGPU);
-    const swapConfig = this.getSingletonComponent(WebGPUSwapConfig);
+    const gpu = this.readSingleton(WebGPU);
+    const swapConfig = this.readSingleton(WebGPUSwapConfig);
 
     gpu.canvas.width = swapConfig.width;
     gpu.canvas.height = swapConfig.height;
@@ -84,7 +84,7 @@ export class WebGPURenderer extends System {
         size: { width: swapConfig.width, height: swapConfig.height, depth: 1 },
         sampleCount: swapConfig.sampleCount,
         format: swapConfig.format,
-        usage: GPUTextureUsage.OUTPUT_ATTACHMENT,
+        usage: GPUTextureUsage.RENDER_ATTACHMENT,
       });
       this.colorAttachment.attachment = msaaColorTexture.createView();
     } else {
@@ -95,14 +95,14 @@ export class WebGPURenderer extends System {
       size: { width: swapConfig.width, height: swapConfig.height, depth: 1 },
       sampleCount: swapConfig.sampleCount,
       format: swapConfig.depthFormat,
-      usage: GPUTextureUsage.OUTPUT_ATTACHMENT
+      usage: GPUTextureUsage.RENDER_ATTACHMENT
     });
     this.depthAttachment.attachment = depthTexture.createView();
   }
 
   execute(delta, time) {
-    const gpu = this.getSingletonComponent(WebGPU);
-    const swapConfig = this.getSingletonComponent(WebGPUSwapConfig);
+    const gpu = this.readSingleton(WebGPU);
+    const swapConfig = this.readSingleton(WebGPUSwapConfig);
     if (!gpu.device) { return; }
 
     if (this.checkResize(gpu.canvas) || this.queries.swapConfig.changed.length) {
@@ -119,8 +119,8 @@ export class WebGPURenderer extends System {
     const passEncoder = commandEncoder.beginRenderPass(this.renderPassDescriptor);
 
     this.queries.renderable.results.forEach((entity) => {
-      const geometry = entity.getComponent(WebGPURenderGeometry);
-      const pipeline = entity.getComponent(WebGPUPipeline);
+      const geometry = entity.read(WebGPURenderGeometry);
+      const pipeline = entity.read(WebGPUPipeline);
 
       // Bind the pipeline
       passEncoder.setPipeline(pipeline.pipeline);
@@ -141,6 +141,6 @@ export class WebGPURenderer extends System {
     });
 
     passEncoder.endPass();
-    gpu.device.defaultQueue.submit([commandEncoder.finish()]);
+    gpu.device.queue.submit([commandEncoder.finish()]);
   }
 }

@@ -1,4 +1,4 @@
-import { System, Not } from '../third-party/ecsy/src/System.js';
+import { System, Not } from '../ecs/System.js';
 import { Geometry, GeometryError, RenderGeometry } from '../components/geometry.js';
 import { WebGPU, WebGPURenderGeometry } from '../components/webgpu.js';
 
@@ -21,7 +21,7 @@ function typedArrayToBuffer(device, typedArray, usage, commandEncoder = null) {
   if (!commandEncoder) {
     const commandEncoder = device.createCommandEncoder({});
     commandEncoder.copyBufferToBuffer(copyBuffer, 0, gpuBuffer, 0, alignedLength);
-    device.defaultQueue.submit([commandEncoder.finish()]);
+    device.queue.submit([commandEncoder.finish()]);
   } else {
     commandEncoder.copyBufferToBuffer(copyBuffer, 0, gpuBuffer, 0, alignedLength);
   }
@@ -36,7 +36,7 @@ export class WebGPUGeometrySystem extends System {
   };
 
   execute() {
-    const gpu = this.getSingletonComponent(WebGPU);
+    const gpu = this.readSingleton(WebGPU);
 
     if (!gpu.device) { return; }
 
@@ -44,10 +44,10 @@ export class WebGPUGeometrySystem extends System {
     // The Geometry components will be removed to allow the arrays they use to be GCed, and a RenderGeometry tag
     // component will be added in it's place. Removing the RenderGeometry component will remove to the WebGPU resources.
     this.queries.pendingGeometry.results.forEach((entity) => {
-      const geometry = entity.getComponent(Geometry);
+      const geometry = entity.read(Geometry);
 
       if (!geometry.vertices || !geometry.vertices.length) {
-        entity.addComponent(GeometryError, {
+        entity.add(GeometryError, {
           message: 'Geometry must have at least one vertex attribute.'
         });
         return;
@@ -104,7 +104,7 @@ export class WebGPUGeometrySystem extends System {
           gpuGeometry.vertexState.indexFormat = gpuGeometry.indexBuffer.format;
         }
       } else if (geometry.indices) {
-        entity.addComponent(GeometryError, {
+        entity.add(GeometryError, {
           message: 'Invalid Geometry indices format. Must be given as a Uint16Array or Uint32Array.'
         });
         return;
@@ -114,15 +114,15 @@ export class WebGPUGeometrySystem extends System {
         gpuGeometry.drawCount = geometry.drawCount;
       }
 
-      entity.removeComponent(Geometry);
-      entity.addComponent(RenderGeometry);
-      entity.addComponent(WebGPURenderGeometry, gpuGeometry);
+      entity.remove(Geometry);
+      entity.add(RenderGeometry);
+      entity.add(WebGPURenderGeometry, gpuGeometry);
     });
 
     // Loop through any WebGPU resources that no longer have the RenderGeometry tag component and remove the associated
     // WebGPU resources as well.
     this.queries.removeGeometry.results.forEach((entity) => {
-      const gpuGeometry = entity.getComponent(WebGPURenderGeometry);
+      const gpuGeometry = entity.read(WebGPURenderGeometry);
 
       if (gpuGeometry.indexBuffer) {
         gpuGeometry.indexBuffer.destroy();
@@ -131,7 +131,7 @@ export class WebGPUGeometrySystem extends System {
         vertexBuffer.buffer.destroy();
       }
 
-      entity.removeComponent(WebGPURenderGeometry);
+      entity.remove(WebGPURenderGeometry);
     });
   }
 }

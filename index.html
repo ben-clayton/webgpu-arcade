@@ -82,8 +82,8 @@ OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
         indices: new Uint32Array([0, 1, 2, 0, 2, 3]),
       };
 
-      world.createEntity()
-        .addComponent(Geometry, geometry);
+      world.create()
+        .add(Geometry, geometry);
 
       function onFrame() {
         requestAnimationFrame(onFrame);
