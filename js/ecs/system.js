@@ -1,5 +1,5 @@
-import Query from "./Query.js";
-import { componentRegistered } from "./Utils.js";
+import { Query } from "./query.js";
+import { componentRegistered } from "./utils.js";
 
 export class System {
   canExecute() {

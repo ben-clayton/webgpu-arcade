@@ -1,4 +1,4 @@
-import { ObjectPool } from "./ObjectPool.js";
+import { ObjectPool } from "./object-pool.js";
 
 export class ComponentManager {
   constructor() {

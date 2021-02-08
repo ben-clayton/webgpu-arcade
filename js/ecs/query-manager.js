@@ -1,11 +1,11 @@
-import Query from "./Query.js";
-import { queryKey } from "./Utils.js";
+import { Query } from "./query.js";
+import { queryKey } from "./utils.js";
 
 /**
  * @private
  * @class QueryManager
  */
-export default class QueryManager {
+export class QueryManager {
   constructor(world) {
     this._world = world;
 

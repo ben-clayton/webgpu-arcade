@@ -1,4 +1,4 @@
-import { now } from "./Utils.js";
+import { now } from "./utils.js";
 
 export class SystemManager {
   constructor(world) {

@@ -1,9 +1,9 @@
-import { SystemManager } from "./SystemManager.js";
-import { EntityManager } from "./EntityManager.js";
-import { ComponentManager } from "./ComponentManager.js";
-import { Version } from "./Version.js";
-import { hasWindow, now } from "./Utils.js";
-import { Entity } from "./Entity.js";
+import { SystemManager } from "./system-manager.js";
+import { EntityManager } from "./entity-manager.js";
+import { ComponentManager } from "./component-manager.js";
+import { Version } from "./version.js";
+import { hasWindow, now } from "./utils.js";
+import { Entity } from "./entity.js";
 
 const DEFAULT_OPTIONS = {
   entityPoolSize: 0,

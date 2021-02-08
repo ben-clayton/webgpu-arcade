@@ -1,4 +1,4 @@
-import {System, Not } from '../js/ecs/index.js';
+import { System, Not } from '../js/ecs/index.js';
 import { Player, PlayerBullet, Dead, Transform, Velocity, Collider, Health,
          Damage, Lifespan, Polygon, CanvasContext } from './components.js';
 import { vec2 } from '../js/third-party/gl-matrix/dist/esm/index.js'

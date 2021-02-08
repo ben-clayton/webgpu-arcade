@@ -2,7 +2,7 @@
  * @private
  * @class EventDispatcher
  */
-export default class EventDispatcher {
+export class EventDispatcher {
   constructor() {
     this._listeners = {};
     this.stats = {

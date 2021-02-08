@@ -1,8 +1,8 @@
-import { ObjectPool } from "./ObjectPool.js";
-import QueryManager from "./QueryManager.js";
-import EventDispatcher from "./EventDispatcher.js";
-import { SystemStateComponent } from "./SystemStateComponent.js";
-import { IS_DEBUG } from "./Config.js";
+import { ObjectPool } from "./object-pool.js";
+import { QueryManager } from "./query-manager.js";
+import { EventDispatcher } from "./event-dispatcher.js";
+import { SystemStateComponent } from "./system-state-component.js";
+import { IS_DEBUG } from "./config.js";
 
 class EntityPool extends ObjectPool {
   constructor(entityManager, entityClass, initialSize) {

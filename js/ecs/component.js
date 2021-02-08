@@ -1,4 +1,4 @@
-import { IS_DEBUG } from "./Config.js";
+import { IS_DEBUG } from "./config.js";
 
 export class Component {
   constructor(props) {

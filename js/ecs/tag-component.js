@@ -1,4 +1,4 @@
-import { Component } from "./Component.js";
+import { Component } from "./component.js";
 
 export class TagComponent extends Component {
   constructor() {

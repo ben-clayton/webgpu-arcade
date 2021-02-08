@@ -1,8 +1,8 @@
 
-import Query from "./Query.js";
-import { Component } from "./Component.js";
-import wrapImmutableComponent from "./WrapImmutableComponent.js";
-import { IS_DEBUG } from "./Config.js";
+import { Query } from "./query.js";
+import { Component } from "./component.js";
+import { wrapImmutableComponent } from "./wrap-immutable-component.js";
+import { IS_DEBUG } from "./config.js";
 
 export class Entity {
   constructor(entityManager) {

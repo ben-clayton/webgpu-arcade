@@ -10,7 +10,7 @@ const proxyHandler = {
   },
 };
 
-export default function wrapImmutableComponent(T, component) {
+export function wrapImmutableComponent(T, component) {
   if (component === undefined) {
     return undefined;
   }
