@@ -1,9 +1,9 @@
 import { World } from './ecs/World.js';
 import { WebGPU, WebGPUSwapConfig, WebGPURenderGeometry, WebGPUPipeline } from './components/webgpu.js';
 import { Geometry, GeometryError, RenderGeometry } from './components/geometry.js';
-import { WebGPURenderer } from './systems/webgpu-renderer.js';
-import { WebGPUGeometrySystem } from './systems/webgpu-geometry.js';
-import { WebGPUPipelineSystem } from './systems/webgpu-pipeline.js';
+import { WebGPURenderer } from './systems/webgpu/webgpu-renderer.js';
+import { WebGPUGeometrySystem } from './systems/webgpu/webgpu-geometry.js';
+import { WebGPUPipelineSystem } from './systems/webgpu/webgpu-pipeline.js';
 
 export class WebGPUWorld extends World {
   constructor(options = {}) {

@@ -1,8 +1,6 @@
 export { World } from "./world.js";
 export { System, Not } from "./system.js";
-export { Component } from "./component.js";
-export { SystemStateComponent } from "./system-state-component.js";
-export { TagComponent } from "./tag-component.js";
+export { Component, TagComponent, SystemStateComponent } from "./component.js";
 export { ObjectPool } from "./object-pool.js";
 export {
   Types,

@@ -94,3 +94,15 @@ Component.isSingleton = false;
 Component.getName = function () {
   return this.displayName || this.name;
 };
+
+export class TagComponent extends Component {
+  constructor() {
+    super(false);
+  }
+}
+
+TagComponent.isTagComponent = true;
+
+export class SystemStateComponent extends Component {}
+
+SystemStateComponent.isSystemStateComponent = true;
