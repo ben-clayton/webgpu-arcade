@@ -129,7 +129,7 @@ export const Types = {
 
   Quat: createType({
     name: "Quat",
-    default: [0, 0, 0, 0],
+    default: [0, 0, 0, 1],
     copy: copyArray,
     clone: cloneArray,
   }),
