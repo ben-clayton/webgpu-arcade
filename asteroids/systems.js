@@ -102,7 +102,7 @@ export class DeathSystem extends System {
 
 export class RenderingSystem extends System {
   static queries = {
-    renderable: { components: [Polygon, Transform] }
+    renderable: { components: [Polygon] }
   };
 
   init(attributes) {
@@ -125,8 +125,13 @@ export class RenderingSystem extends System {
       const polygon = entity.read(Polygon);
       const trans = entity.read(Transform);
 
-      ctx.setTransform(1, 0, 0, 1, trans.position[0], trans.position[1]);
-      ctx.rotate(trans.orientation);
+      if (trans) {
+        ctx.setTransform(1, 0, 0, 1, trans.position[0], trans.position[1]);
+        ctx.rotate(trans.orientation);
+      } else {
+        // Default transform, if the polygon doesn't have one.
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+      }
 
       ctx.beginPath();
 

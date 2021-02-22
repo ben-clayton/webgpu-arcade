@@ -6,13 +6,28 @@ export class Query {
    * @param {Array(Component)} Components List of types of components to query
    */
   constructor(Components, manager) {
-    this.Components = [];
+    this.AllComponents = [];
     this.NotComponents = [];
+    this.AnyComponents = [];
+
+    this.Components = [];
 
     Components.forEach((component) => {
       if (typeof component === "object") {
-        this.NotComponents.push(component.Component);
+        switch (component.operator) {
+          case "not":
+            this.NotComponents.push(...component.Components);
+            break;
+          case "any":
+            this.AnyComponents.push(component.Components);
+            this.Components.push(...component.Components);
+            break;
+          default:
+            throw new Error(`Unknown operator: ${component.operator}`);
+        }
+
       } else {
+        this.AllComponents.push(component);
         this.Components.push(component);
       }
     });
@@ -72,8 +87,13 @@ export class Query {
   }
 
   match(entity) {
+    for (const any of this.AnyComponents) {
+      if (!entity.hasAny(any)) {
+        return false;
+      }
+    }
     return (
-      entity.hasAll(this.Components) &&
+      entity.hasAll(this.AllComponents) &&
       !entity.hasAny(this.NotComponents)
     );
   }
@@ -83,8 +103,9 @@ export class Query {
       key: this.key,
       reactive: this.reactive,
       components: {
-        included: this.Components.map((C) => C.name),
+        included: this.AllComponents.map((C) => C.name),
         not: this.NotComponents.map((C) => C.name),
+        // TODO: Reflect 'any' operators
       },
       numEntities: this.entities.length,
     };

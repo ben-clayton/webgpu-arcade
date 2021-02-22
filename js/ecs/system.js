@@ -268,9 +268,16 @@ System.getName = function () {
   return this.displayName || this.name;
 };
 
-export function Not(Component) {
+export function Not(component) {
   return {
     operator: "not",
-    Component: Component,
+    Components: [component],
+  };
+}
+
+export function Any(...components) {
+  return {
+    operator: "any",
+    Components: components,
   };
 }

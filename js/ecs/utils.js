@@ -31,8 +31,11 @@ export function queryKey(Components) {
     }
 
     if (typeof T === "object") {
-      var operator = T.operator === "not" ? "!" : T.operator;
-      ids.push(operator + T.Component._typeId);
+      let components = "";
+      for (const c of T.Components) {
+        components += `${c._typeId},`;
+      }
+      ids.push(`${T.operator}(${components})`);
     } else {
       ids.push(T._typeId);
     }
@@ -51,8 +54,13 @@ export const now =
     : Date.now.bind(Date);
 
 export function componentRegistered(T) {
-  return (
-    (typeof T === "object" && T.Component._typeId !== undefined) ||
-    (T.isComponent && T._typeId !== undefined)
-  );
+  if (typeof T === "object") {
+    for (const c of T.Components) {
+      if (c._typeId === undefined) {
+        return false;
+      }
+    }
+    return true;
+  }
+  return (T.isComponent && T._typeId !== undefined);
 }

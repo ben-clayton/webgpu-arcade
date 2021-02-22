@@ -5,10 +5,9 @@ export class Position extends Component {
   static schema = {
     value: { type: Types.Vec3 },
   };
-  static default = Float32Array([0, 0, 0]);
 }
 
-export class Orientation extends Component {
+export class Rotation extends Component {
   static schema = {
     value: { type: Types.Quat },
   };
