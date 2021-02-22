@@ -1,6 +1,5 @@
-import { Component } from '../ecs/Component.js';
-import { SystemStateComponent } from '../ecs/SystemStateComponent.js';
-import { Types } from '../ecs/Types.js';
+import { Component, SystemStateComponent } from '../ecs/component.js';
+import { Types } from '../ecs/types.js';
 
 export class WebGPU extends Component {
   static schema = {
