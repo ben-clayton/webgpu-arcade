@@ -1,5 +1,9 @@
 import { System } from '../ecs/system.js';
-import { WebGPU, WebGPUSwapConfig, WebGPURenderGeometry, WebGPUPipeline } from './webgpu-components.js';
+import { WebGPU, WebGPUSwapConfig, WebGPULayouts,
+         WebGPURenderGeometry, WebGPUPipeline } from './webgpu-components.js';
+import { mat4 } from '../third-party/gl-matrix/dist/esm/index.js';
+
+const MATRIX_SIZE_IN_BYTES = Float32Array.BYTES_PER_ELEMENT * 16;
 
 export class WebGPURenderer extends System {
   static queries = {
@@ -55,6 +59,79 @@ export class WebGPURenderer extends System {
       depthStencilAttachment: this.depthAttachment
     }
 
+    const layouts = this.modifySingleton(WebGPULayouts);
+
+    // Bind group layouts
+    layouts.bindGroup = {
+      frame: gpu.device.createBindGroupLayout({
+        entries: [{
+          // ProjectionUniforms
+          binding: 0,
+          visibility: GPUShaderStage.VERTEX,
+          buffer: {}
+        }, {
+          // ViewUniforms
+          binding: 1,
+          visibility: GPUShaderStage.VERTEX,
+          buffer: {}
+        }],
+      }),
+
+      model: gpu.device.createBindGroupLayout({
+        entries: [{
+          // ModelUniforms
+          binding: 0,
+          visibility: GPUShaderStage.VERTEX,
+          buffer: {}
+        }],
+      })
+    };
+
+    this.projectionBuffer = gpu.device.createBuffer({
+      size: MATRIX_SIZE_IN_BYTES,
+      usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.UNIFORM,
+    });
+
+    this.viewBuffer = gpu.device.createBuffer({
+      size: MATRIX_SIZE_IN_BYTES,
+      usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.UNIFORM,
+    });
+
+    this.defaultModelBuffer = gpu.device.createBuffer({
+      size: MATRIX_SIZE_IN_BYTES,
+      usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.UNIFORM,
+    });
+
+    // Set an identity matrix for the view matrix
+    const identityMatrix = mat4.create();
+    gpu.device.queue.writeBuffer(this.viewBuffer, 0, identityMatrix);
+    gpu.device.queue.writeBuffer(this.defaultModelBuffer, 0, identityMatrix);
+
+    this.frameBindGroup = gpu.device.createBindGroup({
+      layout: layouts.bindGroup.frame,
+      entries: [{
+        binding: 0,
+        resource: {
+          buffer: this.projectionBuffer,
+        },
+      }, {
+        binding: 1,
+        resource: {
+          buffer: this.viewBuffer,
+        },
+      }],
+    });
+
+    this.defaultModelBindGroup = gpu.device.createBindGroup({
+      layout: layouts.bindGroup.model,
+      entries: [{
+        binding: 0,
+        resource: {
+          buffer: this.defaultModelBuffer,
+        },
+      }],
+    });
+
     this.updateRenderTargets();
   }
 
@@ -98,6 +175,16 @@ export class WebGPURenderer extends System {
       usage: GPUTextureUsage.RENDER_ATTACHMENT
     });
     this.depthAttachment.attachment = depthTexture.createView();
+
+    // Compute the projection matrix
+    const aspect = gpu.canvas.width / gpu.canvas.height;
+    // Using mat4.perspectiveZO instead of mat4.perpective because WebGPU's
+    // normalized device coordinates Z range is [0, 1], instead of WebGL's [-1, 1]
+    const projectionMatrix = mat4.create();
+    mat4.perspectiveZO(projectionMatrix, Math.PI * 0.5, aspect, 0.01, 1024);
+
+    // Update the projection matrix to ensure that it matches the canvas dimensions
+    gpu.device.queue.writeBuffer(this.projectionBuffer, 0, projectionMatrix);
   }
 
   execute(delta, time) {
@@ -118,6 +205,8 @@ export class WebGPURenderer extends System {
     const commandEncoder = gpu.device.createCommandEncoder({});
     const passEncoder = commandEncoder.beginRenderPass(this.renderPassDescriptor);
 
+    passEncoder.setBindGroup(0, this.frameBindGroup);
+
     this.queries.renderable.results.forEach((entity) => {
       const geometry = entity.read(WebGPURenderGeometry);
       const pipeline = entity.read(WebGPUPipeline);
@@ -126,6 +215,8 @@ export class WebGPURenderer extends System {
       passEncoder.setPipeline(pipeline.pipeline);
 
       // TODO: Bind materials
+
+      passEncoder.setBindGroup(1, this.defaultModelBindGroup);
 
       // Bind the geometry
       for (const vb of geometry.vertexBuffers) {

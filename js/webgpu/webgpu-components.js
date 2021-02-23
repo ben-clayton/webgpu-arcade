@@ -20,6 +20,12 @@ export class WebGPUSwapConfig extends Component {
   };
 }
 
+export class WebGPULayouts extends Component {
+  static schema = {
+    bindGroup: { type: Types.Ref },
+  };
+}
+
 export class WebGPURenderGeometry extends SystemStateComponent {
   static schema = {
     indexBuffer: { type: Types.Ref },
