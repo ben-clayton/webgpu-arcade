@@ -1,5 +1,5 @@
-import { Component, TagComponent } from '../../ecs/component.js';
-import { Types } from '../../ecs/types.js';
+import { Component, TagComponent } from '../ecs/component.js';
+import { Types } from '../ecs/types.js';
 
 export const AttributeLocation = {
   position: 0,

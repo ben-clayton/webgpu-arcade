@@ -1,8 +1,8 @@
 import { World } from '../ecs/world.js';
-import { Geometry, GeometryError, RenderGeometry } from './components/geometry.js';
+import { Geometry, GeometryError, RenderGeometry } from './geometry.js';
 import { Position, Rotation, Scale, TransformMatrix,
-         LocalTransform, WorldTransform, Parent } from './components/transform.js';
-import { TransformSystem } from './systems/transform-system.js';
+         LocalTransform, WorldTransform, Parent, TransformSystem } from './transform.js';
+import { PerspectiveCamera, OrthographicCamera, Projection, CameraSystem } from './camera.js';
 
 export class CoreWorld extends World {
   constructor(options = {}) {
@@ -22,5 +22,11 @@ export class CoreWorld extends World {
     this.registerComponent(WorldTransform);
     this.registerComponent(Parent);
     this.registerSystem(TransformSystem);
+
+    // Camera
+    this.registerComponent(PerspectiveCamera);
+    this.registerComponent(OrthographicCamera);
+    this.registerComponent(Projection);
+    this.registerSystem(CameraSystem);
   }
 }

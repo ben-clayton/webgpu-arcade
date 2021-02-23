@@ -1,6 +1,6 @@
 import { System, Not } from '../ecs/system.js';
 import { WebGPU, WebGPUSwapConfig, WebGPULayouts, WebGPURenderGeometry, WebGPUPipeline } from './webgpu-components.js';
-import { AttributeLocation } from '../core/components/geometry.js';
+import { AttributeLocation } from '../core/geometry.js';
 
 function getAttributeLayout(vertexState, location) {
   for (const vertexBuffer of vertexState.vertexBuffers) {

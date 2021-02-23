@@ -1,5 +1,5 @@
 import { System, Not } from '../ecs/system.js';
-import { Geometry, GeometryError, RenderGeometry } from '../core/components/geometry.js';
+import { Geometry, GeometryError, RenderGeometry } from '../core/geometry.js';
 import { WebGPU, WebGPURenderGeometry } from './webgpu-components.js';
 
 function typedArrayToBuffer(device, typedArray, usage, commandEncoder = null) {

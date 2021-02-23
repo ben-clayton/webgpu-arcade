@@ -1,7 +1,59 @@
-import { System, Not, Any } from '../../ecs/system.js';
-import { Position, Rotation, Scale, TransformMatrix,
-         LocalTransform, WorldTransform, Parent } from '../components/transform.js';
-import { mat4 } from '../../third-party/gl-matrix/dist/esm/index.js';
+import { Component, SystemStateComponent } from '../ecs/component.js';
+import { Types } from '../ecs/types.js';
+import { System, Not, Any } from '../ecs/system.js';
+import { mat4 } from '../third-party/gl-matrix/dist/esm/index.js';
+
+//
+// Components
+//
+
+export class Position extends Component {
+  static schema = {
+    value: { type: Types.Vec3 },
+  };
+}
+
+export class Rotation extends Component {
+  static schema = {
+    value: { type: Types.Quat },
+  };
+}
+
+export class Scale extends Component {
+  static schema = {
+    value: { type: Types.Vec3 },
+  };
+}
+
+export class TransformMatrix extends Component {
+  static schema = {
+    value: { type: Types.Mat4 },
+  };
+}
+
+export class Parent extends Component {
+  static schema = {
+    value: { type: Types.Ref }
+  }
+}
+
+export class LocalTransform extends SystemStateComponent {
+  static schema = {
+    value: { type: Types.Mat4 },
+    frameId: { type: Types.Number },
+  };
+}
+
+export class WorldTransform extends SystemStateComponent {
+  static schema = {
+    value: { type: Types.Mat4 },
+    frameId: { type: Types.Number },
+  };
+}
+
+//
+// Systems
+//
 
 const DEFAULT_POSITION = new Float32Array([0, 0, 0]);
 const DEFAULT_ROTATION = new Float32Array([0, 0, 0, 1]);
