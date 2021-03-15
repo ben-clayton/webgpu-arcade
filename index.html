@@ -77,7 +77,7 @@ OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
         new VertexAttribute('normal', normals),
           new VertexInterleavedAttributes(verts, 28)
             .addAttribute('color', 12)
-            .addAttribute('position', 0, 'float3'),
+            .addAttribute('position', 0, 'float32x3'),
         ],
         indices: new Uint32Array([0, 1, 2, 0, 2, 3]),
       };

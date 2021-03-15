@@ -4,7 +4,17 @@ import { Component } from "./component.js";
 import { wrapImmutableComponent } from "./wrap-immutable-component.js";
 import { IS_DEBUG } from "./config.js";
 
+const readonlyProxyHandler = {
+  set(target, prop) {
+    throw new Error(`Tried to modify a readonly property.`);
+  },
+};
+
 export class Entity {
+  #parentEntity = null;
+  #childEntities = [];
+  #readonlyChildren = null;
+
   constructor(entityManager) {
     this._entityManager = entityManager || null;
 
@@ -31,6 +41,51 @@ export class Entity {
     this.numStateComponents = 0;
   }
 
+  addChild(child) {
+    if (child.#parentEntity) {
+      child.#parentEntity.removeChild(child);
+    }
+    this.#childEntities.push(child);
+    child.#parentEntity = this;
+  }
+
+  removeChild(child) {
+    if (child.#parentEntity != this) return;
+
+    // Should always get back a valid index. If you don't that means
+    // #parentEntity was corrupted for this child.
+    const childIndex = this.#childEntities.find(child);
+    this.#childEntities.splice(childIndex, 1);
+    child.#parentEntity = null;
+  }
+
+  traverse(callback, T) {
+    if (!T || this.has(T)) { callback(this); }
+    for (const child of this.#childEntities) {
+      child.traverse(callback);
+    }
+  }
+
+  traverseParents(callback, T) {
+    if (this.#parentEntity) {
+      if (!T || this.#parentEntity.has(T)) { callback(this.#parentEntity); }
+      this.#parentEntity.traverseParents(callback);
+    }
+  }
+
+  get parent() {
+    return this.#parentEntity;
+  }
+
+  get children() {
+    if (!this.#readonlyChildren) {
+      this.#readonlyChildren = IS_DEBUG
+      ? new Proxy(this.#childEntities, readonlyProxyHandler)
+      : this.#childEntities;
+    }
+    return this.#readonlyChildren;
+  }
+
   // COMPONENTS
 
   read(T, includeRemoved) {
@@ -41,7 +96,7 @@ export class Entity {
     }
 
     return IS_DEBUG
-      ? wrapImmutableComponent(T, component)
+      ? wrapImmutableComponent(component)
       : component;
   }
 

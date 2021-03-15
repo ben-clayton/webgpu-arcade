@@ -3,14 +3,13 @@ const proxyMap = new WeakMap();
 const proxyHandler = {
   set(target, prop) {
     throw new Error(
-      `Tried to write to "${target.constructor.getName()}#${String(
-        prop
-      )}" on immutable component. Use .getMutableComponent() to modify a component.`
+      `Tried to write to "${target.constructor.getName()}#${String(prop)}" on an immutable component.
+      Use entity.modify(${target.constructor.getName()}) to get a mutable a component.`
     );
   },
 };
 
-export function wrapImmutableComponent(T, component) {
+export function wrapImmutableComponent(component) {
   if (component === undefined) {
     return undefined;
   }

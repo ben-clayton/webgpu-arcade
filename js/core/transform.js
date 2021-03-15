@@ -31,23 +31,16 @@ export class TransformMatrix extends Component {
   };
 }
 
-export class Parent extends Component {
-  static schema = {
-    value: { type: Types.Ref }
-  }
-}
-
 export class LocalTransform extends SystemStateComponent {
   static schema = {
-    value: { type: Types.Mat4 },
-    frameId: { type: Types.Number },
+    matrix: { type: Types.Mat4 },
   };
 }
 
 export class WorldTransform extends SystemStateComponent {
   static schema = {
-    value: { type: Types.Mat4 },
-    frameId: { type: Types.Number },
+    matrix: { type: Types.Mat4 },
+    dirty: { type: Types.Boolean, default: true },
   };
 }
 
@@ -72,27 +65,27 @@ function updateWorldTransform(entity) {
   let world = entity.modify(WorldTransform);
   if (world) {
     if (world.frameId == local.frameId) {
-      return world.value; // Don't update world transforms more than once per frame
+      return world.matrix; // Don't update world transforms more than once per frame
     }
   }
 
   let parentWorldTransform = DEFAULT_TRANSFORM;
-  let parent = entity.read(Parent);
-  if (parent) {
-    parentWorldTransform = updateWorldTransform(parent.value);
+  let parent = entity.parent;
+  if (entity.parent) {
+    parentWorldTransform = updateWorldTransform(entity.parent);
   }
 
-  mat4.multiply(world.value, parentWorldTransform, local.value);
+  mat4.multiply(world.matrix, parentWorldTransform, local.matrix);
 }
 
 // This system processes all of the transforms applied to any entities (whether done as separate
 // components or a single transform matrix) and computes all applicable world transforms
 export class TransformSystem extends System {
   static queries = {
-    addTransforms: { components: [Any(Position, Rotation, Scale, TransformMatrix, Parent), Not(LocalTransform)] },
+    addTransforms: { components: [Any(Position, Rotation, Scale, TransformMatrix), Not(LocalTransform)] },
     updateLocalTransforms: { components: [Any(Position, Rotation, Scale, TransformMatrix)], listen: { changed: true } },
-    updateWorldTransforms: { components: [Any(LocalTransform, Parent)], listen: { changed: true } },
-    removeTransforms: { components: [Not(Position, Rotation, Scale, TransformMatrix, Parent), LocalTransform] },
+    updateWorldTransforms: { components: [Any(LocalTransform)], listen: { changed: true } },
+    removeTransforms: { components: [Not(Position, Rotation, Scale, TransformMatrix), LocalTransform] },
   }
 
   init() {
@@ -128,12 +121,12 @@ export class TransformSystem extends System {
 
       const matrix = entity.read(TransformMatrix);
       if (matrix) {
-        mat4.copy(local.value, matrix.value);
+        mat4.copy(local.matrix, matrix.value);
       } else {
         const position = entity.read(Position);
         const rotation = entity.read(Rotation);
         const scale = entity.read(Scale);
-        mat4.fromRotationTranslationScale(local.value,
+        mat4.fromRotationTranslationScale(local.matrix,
           rotation ? rotation.value : DEFAULT_ROTATION,
           position ? pos.value : DEFAULT_POSITION,
           scale ? scale.value : DEFAULT_SCALE);
