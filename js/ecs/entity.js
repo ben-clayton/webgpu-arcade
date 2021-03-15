@@ -60,7 +60,13 @@ export class Entity {
   }
 
   traverse(callback, T) {
-    if (!T || this.has(T)) { callback(this); }
+    if (!T || this.has(T)) { 
+      if(callback(this) === false) {
+        // Returning false from the callback explicitly prevents further
+        // traversal down this branch of the tree.
+        return;
+      }
+    }
     for (const child of this.#childEntities) {
       child.traverse(callback);
     }
@@ -68,7 +74,13 @@ export class Entity {
 
   traverseParents(callback, T) {
     if (this.#parentEntity) {
-      if (!T || this.#parentEntity.has(T)) { callback(this.#parentEntity); }
+      if (!T || this.#parentEntity.has(T)) {
+        if(callback(this.#parentEntity) === false) {
+          // Returning false from the callback explicitly prevents further
+          // traversal up the tree.
+          return;
+        }
+      }
       this.#parentEntity.traverseParents(callback);
     }
   }

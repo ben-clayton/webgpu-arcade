@@ -25,22 +25,17 @@ export class Scale extends Component {
   };
 }
 
-export class TransformMatrix extends Component {
+export class Matrix extends Component {
   static schema = {
     value: { type: Types.Mat4 },
   };
 }
 
-export class LocalTransform extends SystemStateComponent {
+export class EntityTransform extends SystemStateComponent {
   static schema = {
-    matrix: { type: Types.Mat4 },
-  };
-}
-
-export class WorldTransform extends SystemStateComponent {
-  static schema = {
-    matrix: { type: Types.Mat4 },
-    dirty: { type: Types.Boolean, default: true },
+    localMatrix: { type: Types.Mat4 },
+    worldMatrix: { type: Types.Mat4 },
+    dirtyWorld: { type: Types.Boolean, default: true },
   };
 }
 
@@ -51,41 +46,54 @@ export class WorldTransform extends SystemStateComponent {
 const DEFAULT_POSITION = new Float32Array([0, 0, 0]);
 const DEFAULT_ROTATION = new Float32Array([0, 0, 0, 1]);
 const DEFAULT_SCALE = new Float32Array([1, 1, 1]);
-const DEFAULT_TRANSFORM = new Float32Array([1, 0, 0, 0,
-                                            0, 1, 0, 0,
-                                            0, 0, 1, 0,
-                                            0, 0, 0, 1]);
+const IDENTITY_MATRIX = new Float32Array([1, 0, 0, 0,
+                                          0, 1, 0, 0,
+                                          0, 0, 1, 0,
+                                          0, 0, 0, 1]);
 
-function updateWorldTransform(entity) {
-  let local = entity.read(LocalTransform);
-  if (!local) {
-    return DEFAULT_TRANSFORM;
+function getParentWorldMatrix(entity) {
+  let transform = entity.read(EntityTransform);
+  if (transform) {
+    return transform.worldMatrix;
   }
-
-  let world = entity.modify(WorldTransform);
-  if (world) {
-    if (world.frameId == local.frameId) {
-      return world.matrix; // Don't update world transforms more than once per frame
-    }
-  }
-
-  let parentWorldTransform = DEFAULT_TRANSFORM;
-  let parent = entity.parent;
   if (entity.parent) {
-    parentWorldTransform = updateWorldTransform(entity.parent);
+    return getParentWorldMatrix(entity.parent);
   }
+  return IDENTITY_MATRIX;
+}
 
-  mat4.multiply(world.matrix, parentWorldTransform, local.matrix);
+function updateWorldMatrix(entity, parentWorldMatrix) {
+  let transform = entity.read(EntityTransform);
+  if (transform) {
+    mat4.multiply(transform.worldMatrix, parentWorldMatrix, transform.localMatrix);
+    transform.dirtyWorld = false;
+    parentWorldMatrix = transform.worldMatrix;
+  }
+  
+  for (const child of entity) {
+    updateWorldMatrix(child, parentWorldMatrix);
+  }
+}
+
+const dirtyRoots = new Set();
+
+function markTreeDirty(entity) {
+  const transform = entity.modify(EntityTransform);
+  // If this transform is already marked as dirty then don't recurse further.
+  if (transform.dirtyWorld) {
+    dirtyRoots.delete(entity);
+    return false;
+  } 
+  transform.dirtyWorld = true;
 }
 
 // This system processes all of the transforms applied to any entities (whether done as separate
 // components or a single transform matrix) and computes all applicable world transforms
 export class TransformSystem extends System {
   static queries = {
-    addTransforms: { components: [Any(Position, Rotation, Scale, TransformMatrix), Not(LocalTransform)] },
-    updateLocalTransforms: { components: [Any(Position, Rotation, Scale, TransformMatrix)], listen: { changed: true } },
-    updateWorldTransforms: { components: [Any(LocalTransform)], listen: { changed: true } },
-    removeTransforms: { components: [Not(Position, Rotation, Scale, TransformMatrix), LocalTransform] },
+    addTransforms: { components: [Any(Position, Rotation, Scale, Matrix), Not(EntityTransform)] },
+    updateTransforms: { components: [Any(Position, Rotation, Scale, Matrix)], listen: { changed: true } },
+    removeTransforms: { components: [Not(Position, Rotation, Scale, Matrix), LocalTransform] },
   }
 
   init() {
@@ -95,30 +103,22 @@ export class TransformSystem extends System {
   execute(delta, time) {
     // Add local/world transforms to entities that need them
     this.queries.addTransforms.results.forEach((entity) => {
-      entity.add(LocalTransform);
-      entity.add(WorldTransform);
+      entity.add(EntityTransform);
     });
 
-    // Clean up local/world transforms from entities that no longer need them
+    // First do a pass that doesn't actually remove the transform, but sets it
+    // to the identity matrix and marks everything underneath it dirty
     this.queries.removeTransforms.results.forEach((entity) => {
-      entity.remove(LocalTransform);
-      entity.remove(WorldTransform);
+      const transform = entity.modify(EntityTransform);
+      transform.localMatrix = IDENTITY_MATRIX;
+      dirtyRoots.add(entity);
+      entity.traverse(markTreeDirty, EntityTransform);
     });
 
-    const currentFrame = this.frameId++;
-
-    // Dirty any local transforms that have changed components
-    this.queries.updateLocalTransforms.changed.forEach((entity) => {
-      let local = entity.modify(LocalTransform);
-      if (local) {
-        if (local.frameId == currentFrame) {
-          return; // Don't update local transforms more than once per frame
-        }
-      } else {
-        entity.add(LocalTransform);
-        local = entity.modify(LocalTransform);
-      }
-
+    // Update any local transforms that have changed components and dirty
+    // the corresponding world transforms
+    this.queries.updateTransforms.changed.forEach((entity) => {
+      const transform = entity.modify(EntityTransform);
       const matrix = entity.read(TransformMatrix);
       if (matrix) {
         mat4.copy(local.matrix, matrix.value);
@@ -131,10 +131,22 @@ export class TransformSystem extends System {
           position ? pos.value : DEFAULT_POSITION,
           scale ? scale.value : DEFAULT_SCALE);
       }
-      local.frameId == currentFrame;
+
+      if (!transform.dirtyWorld) {
+        dirtyRoots.add(entity);
+        entity.traverse(markTreeDirty, EntityTransform);
+      }
     });
 
-    // Update each of the world transforms as needed
-    this.queries.updateWorldTransforms.changed.forEach(updateWorldTransform);
+    for (const entity of dirtyRoots) {
+      updateWorldMatrix(entity, getParentWorldMatrix(entity));
+    }
+
+    dirtyRoots.clear();
+
+    // Finally clean up transforms from entities that no longer need them
+    this.queries.removeTransforms.results.forEach((entity) => {
+      entity.remove(EntityTransform);
+    });
   }
 }
