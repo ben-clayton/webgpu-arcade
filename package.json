@@ -1,0 +1,19 @@
+{
+    "name": "webgpu-ecs",
+    "version": "0.0.1",
+    "repository": "https://github.com/toji/webgpu-ecs",
+    "authors": [
+        "Brandon Jones <tojiro@gmail.com>"
+    ],
+    "description": "Just testing.",
+    "license": "MIT",
+    "dependencies": {
+        "dat.gui": "^0.7.7",
+        "gl-matrix": "github:toji/gl-matrix",
+        "stats.js": "^0.17.0",
+        "web-texture-tool": "github:toji/web-texture-tool"
+    },
+    "devDependencies": {
+        "ecsy": "^0.4.2"
+    }
+}

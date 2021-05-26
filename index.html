@@ -1,22 +1,5 @@
 <!doctype html>
 
-<!--
-Copyright 2021 Brandon Jones
-
-Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
-documentation files (the "Software"), to deal in the Software without restriction, including without limitation the
-rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to
-permit persons to whom the Software is furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all copies or substantial portions of the
-Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE
-WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
-COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
-OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
--->
-
 <html>
   <head>
     <meta charset='utf-8'>
@@ -24,7 +7,7 @@ OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
     <meta name='mobile-web-app-capable' content='yes'>
     <meta name='apple-mobile-web-app-capable' content='yes'>
 
-    <title>Toro</title>
+    <title>WebGPU Metaballs</title>
 
     <style>
       html, body {
@@ -45,51 +28,81 @@ OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
         margin: 0;
         touch-action: none;
       }
+
+      .dg.main {
+        position: absolute;
+        z-index: 100;
+        top: 1em;
+        right: 1em;
+      }
     </style>
   </head>
   <body>
+    <canvas></canvas>
+
+    <script type="importmap">
+    {
+        "imports": {
+            "gl-matrix": "./node_modules/gl-matrix/dist/esm/index.js",
+            "webgl-texture-loader": "./node_modules/web-texture-tool/build/webgl-texture-loader.js",
+            "webgpu-texture-loader": "./node_modules/web-texture-tool/build/webgpu-texture-loader.js",
+            "dat.gui": "./node_modules/dat.gui/build/dat.gui.module.js",
+            "stats.js": "./node_modules/stats.js/src/Stats.js",
+            "ecs": "./js/ecsy-cute/index.js"
+        }
+    }
+    </script>
     <script type="module">
-      import { WebGPUWorld } from './js/webgpu/webgpu-world.js';
+      import { World } from 'ecs';
 
-      import { Geometry, VertexAttribute, VertexInterleavedAttributes } from './js/core/geometry.js';
+      import { Keyboard, Mouse, InputSystem } from './js/input.js';
 
-      const canvas = document.createElement('canvas');
-      document.body.appendChild(canvas);
+      import { WebGPU } from './js/webgpu/components.js';
+      import { WebGPURenderer } from './js/webgpu/systems.js';
 
-      const world = new WebGPUWorld({ canvas });
+      import dat from 'dat.gui';
+      import Stats from 'stats.js';
 
-      const verts = new Float32Array([
-        0, 1, -1,   1, 0, 0, 1,
-        1, -.5, -1,  0, 1, 0, 1,
-        0, -.25, -1, 1, 0, 1, 1,
-        -1, -.5, -1, 0, 0, 1, 1,
-      ]);
-
-      const normals = new Float32Array([
-        0, 0, 1,
-        0, 0, 1,
-        0, 0, 1,
-        0, 0, 1,
-      ]);
-
-      const geometry = {
-        vertices: [
-        new VertexAttribute('normal', normals),
-          new VertexInterleavedAttributes(verts, 28)
-            .addAttribute('color', 12)
-            .addAttribute('position', 0, 'float32x3'),
-        ],
-        indices: new Uint32Array([0, 1, 2, 0, 2, 3]),
+      const appSettings = {
+        scene: './media/models/dungeon/dungeon.glb',
+        metaballMethod: 'stagingRing',
+        renderLightSprites: true,
+        sceneLights: true,
+        metaballLights: true,
+        metaballStyle: 'lava',
       };
 
-      world.create()
-        .add(Geometry, geometry);
+      let gui = new dat.GUI();
+
+      gui.add(appSettings, 'metaballMethod', {
+        'writeBuffer()': 'writeBuffer',
+        'New buffer each frame': 'newBuffer',
+        'New staging buffer each frame': 'newStaging',
+        'Single staging buffer re-mapped each frame': 'singleStaging',
+        'Ring of staging buffers': 'stagingRing',
+        'Compute shader': 'gpuGenerated',
+      }).onChange(() => {});
+
+      document.body.appendChild(gui.domElement);
+
+      const stats = new Stats();
+      document.body.appendChild(stats.dom);
+
+      const world = new World();
+      world.registerSingletonComponent(WebGPU, { canvas: document.querySelector('canvas') })
+        .registerSystem(WebGPURenderer)
+        .registerSingletonComponent(Keyboard)
+        .registerSingletonComponent(Mouse)
+        .registerSystem(InputSystem);
 
       function onFrame() {
         requestAnimationFrame(onFrame);
+
+        stats.begin();
         world.execute();
+        stats.end();
       }
-      onFrame();
+      requestAnimationFrame(onFrame);
     </script>
   </body>
 </html>
