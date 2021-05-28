@@ -7,10 +7,6 @@ const desiredFeatures = [
 ];
 
 export class WebGPURenderer extends System {
-  static queries = {
-    //canvas: { components: [WebGPUCanvas], listen: { added: true } },
-  };
-
   async init() {
     const gpu = this.modifySingleton(WebGPU);
 

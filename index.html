@@ -56,6 +56,9 @@
       import { World } from 'ecs';
 
       import { Keyboard, Mouse, InputSystem } from './js/input.js';
+      import { Transform, TransformMatrix, TransformSystem } from './js/transform.js';
+      import { Camera, CameraSystem } from './js/camera.js';
+      import { FlyingControls, FlyingControlsSystem } from './js/flying-controls.js';
 
       import { WebGPU } from './js/webgpu/components.js';
       import { WebGPURenderer } from './js/webgpu/systems.js';
@@ -93,7 +96,20 @@
         .registerSystem(WebGPURenderer)
         .registerSingletonComponent(Keyboard)
         .registerSingletonComponent(Mouse)
-        .registerSystem(InputSystem);
+        .registerSystem(InputSystem)
+        .registerComponent(Transform)
+        .registerComponent(TransformMatrix)
+        .registerSystem(TransformSystem)
+        .registerComponent(Camera)
+        .registerSystem(CameraSystem)
+        .registerComponent(FlyingControls)
+        .registerSystem(FlyingControlsSystem);
+
+      const e = world.create({
+        Transform: { position: [1, 2, 3]},
+        FlyingControls: {},
+        Camera: {}
+      });
 
       function onFrame() {
         requestAnimationFrame(onFrame);

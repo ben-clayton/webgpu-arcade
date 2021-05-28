@@ -21,6 +21,8 @@ export class Mouse extends Component {
 
 export class InputSystem extends System {
   eventCanvas = null;
+  lastMouseX = 0;
+  lastMouseY = 0;
   mouseDeltaX = 0;
   mouseDeltaY = 0;
 
@@ -40,13 +42,29 @@ export class InputSystem extends System {
       this.modifySingleton(Mouse).buttons = [];
     });
 
-    this.pointerEventCallback = (event) => {
+    this.pointerEnterCallback = (event) => {
+      this.lastMouseX = event.clientX;
+      this.lastMouseY = event.clientY;
+      this.mouseDeltaX = 0;
+      this.mouseDeltaY = 0;
+    };
+
+    this.pointerMoveCallback = (event) => {
       const mouse = this.modifySingleton(Mouse);
-      mouse.buttons = event.buttons;
-      mouse.position[0] = event.clientX;
-      mouse.position[1] = event.clientY;
-      this.mouseDeltaX += event.movementX;
-      this.mouseDeltaY += event.movementY;
+      this.mouseDeltaX += event.clientX - this.lastMouseX;
+      this.mouseDeltaY += event.clientY - this.lastMouseY;
+      this.lastMouseX = mouse.position[0] = event.clientX;
+      this.lastMouseY = mouse.position[1] = event.clientY;
+    };
+
+    this.pointerDownCallback = (event) => {
+      const mouse = this.modifySingleton(Mouse);
+      mouse.buttons[event.button] = true;
+    };
+
+    this.pointerUpCallback = (event) => {
+      const mouse = this.modifySingleton(Mouse);
+      mouse.buttons[event.button] = false;
     };
   }
 
@@ -55,15 +73,17 @@ export class InputSystem extends System {
     const gpu = this.readSingleton(WebGPU);
     if (gpu.canvas !== this.eventCanvas) {
       if (this.eventCanvas) {
-        this.eventCanvas.removeEventListener('pointerdown', this.pointerEventCallback);
-        this.eventCanvas.removeEventListener('pointermove', this.pointerEventCallback);
-        this.eventCanvas.removeEventListener('pointerup', this.pointerEventCallback);
+        this.eventCanvas.removeEventListener('pointerenter', this.pointerEnterCallback);
+        this.eventCanvas.removeEventListener('pointerdown', this.pointerDownCallback);
+        this.eventCanvas.removeEventListener('pointermove', this.pointerMoveCallback);
+        this.eventCanvas.removeEventListener('pointerup', this.pointerUpCallback);
       }
       this.eventCanvas = gpu.canvas;
       if (this.eventCanvas) {
-        this.eventCanvas.addEventListener('pointerdown', this.pointerEventCallback);
-        this.eventCanvas.addEventListener('pointermove', this.pointerEventCallback);
-        this.eventCanvas.addEventListener('pointerup', this.pointerEventCallback);
+        this.eventCanvas.addEventListener('pointerenter', this.pointerEnterCallback);
+        this.eventCanvas.addEventListener('pointerdown', this.pointerDownCallback);
+        this.eventCanvas.addEventListener('pointermove', this.pointerMoveCallback);
+        this.eventCanvas.addEventListener('pointerup', this.pointerUpCallback);
       }
     }
 

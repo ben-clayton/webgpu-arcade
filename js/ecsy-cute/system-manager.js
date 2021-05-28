@@ -31,6 +31,8 @@ export class SystemManager {
       } else {
         system.initialized = true;
       }
+    } else {
+      system.initialized = true;
     }
     system.order = this._systems.length;
     this._systems.push(system);
