@@ -9,7 +9,7 @@ export class WebGPU extends Component {
     context: { type: Types.Ref },
     format: { type: Types.String },
     depthFormat: { type: Types.String, default: 'depth24plus' },
-    sampleCount: { type: Types.Number, default: 4 },
+    sampleCount: { type: Types.Number, default: 1 },
     swapChain: { type: Types.Ref },
   };
 

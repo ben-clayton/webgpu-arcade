@@ -7,7 +7,7 @@
     <meta name='mobile-web-app-capable' content='yes'>
     <meta name='apple-mobile-web-app-capable' content='yes'>
 
-    <title>WebGPU Metaballs</title>
+    <title>Toro</title>
 
     <style>
       html, body {
@@ -92,9 +92,7 @@
       document.body.appendChild(stats.dom);
 
       const world = new World();
-      world.registerSingletonComponent(WebGPU, { canvas: document.querySelector('canvas') })
-        .registerSystem(WebGPURenderer)
-        .registerSingletonComponent(Keyboard)
+      world.registerSingletonComponent(Keyboard)
         .registerSingletonComponent(Mouse)
         .registerSystem(InputSystem)
         .registerComponent(Transform)
@@ -103,10 +101,12 @@
         .registerComponent(Camera)
         .registerSystem(CameraSystem)
         .registerComponent(FlyingControls)
-        .registerSystem(FlyingControlsSystem);
+        .registerSystem(FlyingControlsSystem)
+        .registerSingletonComponent(WebGPU, { canvas: document.querySelector('canvas') })
+        .registerSystem(WebGPURenderer);
 
-      const e = world.create({
-        Transform: { position: [1, 2, 3]},
+      const camera = world.create({
+        Transform: { position: [0, 0, 3]},
         FlyingControls: {},
         Camera: {}
       });

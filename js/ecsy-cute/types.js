@@ -22,6 +22,21 @@ export const copyArray = (src, dest) => {
 
 export const cloneArray = (src) => src && src.slice();
 
+export const copyTypedArray = (src, dest) => {
+  if (!src) {
+    return src;
+  }
+
+  if (!dest) {
+    return src.slice();
+  }
+
+  dest.set(src);
+  return dest;
+};
+
+export const cloneTypedArray = (src) => src && src.slice();
+
 export const copyJSON = (src) => JSON.parse(JSON.stringify(src));
 
 export const cloneJSON = (src) => JSON.parse(JSON.stringify(src));
@@ -108,48 +123,48 @@ export const Types = {
 
   Vec2: createType({
     name: "Vec2",
-    default: [0, 0],
-    copy: copyArray,
-    clone: cloneArray,
+    default: new Float32Array([0, 0]),
+    copy: copyTypedArray,
+    clone: cloneTypedArray,
   }),
 
   Vec3: createType({
     name: "Vec3",
-    default: [0, 0, 0],
-    copy: copyArray,
-    clone: cloneArray,
+    default: new Float32Array([0, 0, 0]),
+    copy: copyTypedArray,
+    clone: cloneTypedArray,
   }),
 
   Vec4: createType({
     name: "Vec4",
-    default: [0, 0, 0, 0],
-    copy: copyArray,
-    clone: cloneArray,
+    default: new Float32Array([0, 0, 0, 0]),
+    copy: copyTypedArray,
+    clone: cloneTypedArray,
   }),
 
   Quat: createType({
     name: "Quat",
-    default: [0, 0, 0, 0],
-    copy: copyArray,
-    clone: cloneArray,
+    default: new Float32Array([0, 0, 0, 1]),
+    copy: copyTypedArray,
+    clone: cloneTypedArray,
   }),
 
   Mat3: createType({
     name: "Mat3",
-    default: [1, 0, 0,
-              0, 1, 0,
-              0, 0, 1],
-    copy: copyArray,
-    clone: cloneArray,
+    default: new Float32Array([1, 0, 0,
+                               0, 1, 0,
+                               0, 0, 1]),
+    copy: copyTypedArray,
+    clone: cloneTypedArray,
   }),
 
   Mat4: createType({
     name: "Mat4",
-    default: [1, 0, 0, 0,
-              0, 1, 0, 0,
-              0, 0, 1, 0,
-              0, 0, 0, 1],
-    copy: copyArray,
-    clone: cloneArray,
+    default: new Float32Array([1, 0, 0, 0,
+                               0, 1, 0, 0,
+                               0, 0, 1, 0,
+                               0, 0, 0, 1]),
+    copy: copyTypedArray,
+    clone: cloneTypedArray,
   }),
 };

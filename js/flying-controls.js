@@ -26,7 +26,7 @@ export class FlyingControlsSystem extends System {
 
       // Handle Mouse state.
       if (mouse.buttons[0] && (mouse.delta[0] || mouse.delta[1])) {
-        control.angles[1] += mouse.delta[0];
+        control.angles[1] += mouse.delta[0] * 0.025;
         // Keep our rotation in the range of [0, 2*PI]
         // (Prevents numeric instability if you spin around a LOT.)
         while (control.angles[1] < 0) {
@@ -36,7 +36,7 @@ export class FlyingControlsSystem extends System {
           control.angles[1] -= Math.PI * 2.0;
         }
 
-        control.angles[0] += mouse.delta[1];
+        control.angles[0] += mouse.delta[1] * 0.025;
         // Clamp the up/down rotation to prevent us from flipping upside-down
         control.angles[0] = Math.min(Math.max(control.angles[0], -Math.PI*0.5), Math.PI*0.5);
 
@@ -73,7 +73,7 @@ export class FlyingControlsSystem extends System {
         const transform = entity.modify(Transform);
         vec3.transformQuat(TMP_DIR, TMP_DIR, transform.orientation);
         vec3.normalize(TMP_DIR, TMP_DIR);
-        vec3.scaleAndAdd(transform.position, transform.position, TMP_DIR, (control.speed / 1000.0) * delta);
+        vec3.scaleAndAdd(transform.position, transform.position, TMP_DIR, control.speed * delta);
       }
     });
   }
