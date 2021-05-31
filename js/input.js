@@ -1,5 +1,5 @@
 import { Component, System, Types } from 'ecs';
-import { WebGPU } from './webgpu/components.js';
+import { OutputCanvas } from './camera.js';
 
 export class Keyboard extends Component {
   static schema = {
@@ -20,6 +20,10 @@ export class Mouse extends Component {
 }
 
 export class InputSystem extends System {
+  static queries = {
+    outputCanvases: { components: [OutputCanvas], listen: { added: true, removed: true } },
+  };
+
   eventCanvas = null;
   lastMouseX = 0;
   lastMouseY = 0;
@@ -70,22 +74,21 @@ export class InputSystem extends System {
 
   execute() {
     // If the canvas that we're rendering to changes, update the mouse event listeners.
-    const gpu = this.readSingleton(WebGPU);
-    if (gpu.canvas !== this.eventCanvas) {
-      if (this.eventCanvas) {
-        this.eventCanvas.removeEventListener('pointerenter', this.pointerEnterCallback);
-        this.eventCanvas.removeEventListener('pointerdown', this.pointerDownCallback);
-        this.eventCanvas.removeEventListener('pointermove', this.pointerMoveCallback);
-        this.eventCanvas.removeEventListener('pointerup', this.pointerUpCallback);
-      }
-      this.eventCanvas = gpu.canvas;
-      if (this.eventCanvas) {
-        this.eventCanvas.addEventListener('pointerenter', this.pointerEnterCallback);
-        this.eventCanvas.addEventListener('pointerdown', this.pointerDownCallback);
-        this.eventCanvas.addEventListener('pointermove', this.pointerMoveCallback);
-        this.eventCanvas.addEventListener('pointerup', this.pointerUpCallback);
-      }
-    }
+    this.queries.outputCanvases.removed.forEach(entity => {
+      const output = entity.read(OutputCanvas);
+      output.canvas.removeEventListener('pointerenter', this.pointerEnterCallback);
+      output.canvas.removeEventListener('pointerdown', this.pointerDownCallback);
+      output.canvas.removeEventListener('pointermove', this.pointerMoveCallback);
+      output.canvas.removeEventListener('pointerup', this.pointerUpCallback);
+    });
+
+    this.queries.outputCanvases.added.forEach(entity => {
+      const output = entity.read(OutputCanvas);
+      output.canvas.addEventListener('pointerenter', this.pointerEnterCallback);
+      output.canvas.addEventListener('pointerdown', this.pointerDownCallback);
+      output.canvas.addEventListener('pointermove', this.pointerMoveCallback);
+      output.canvas.addEventListener('pointerup', this.pointerUpCallback);
+    });
 
     // Update the mouse singleton with the latest movement deltas since the last frame.
     const mouse = this.modifySingleton(Mouse);

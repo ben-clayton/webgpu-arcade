@@ -57,10 +57,10 @@
 
       import { Keyboard, Mouse, InputSystem } from './js/input.js';
       import { Transform, TransformMatrix, TransformSystem } from './js/transform.js';
-      import { Camera, CameraSystem } from './js/camera.js';
+      import { Camera, OutputCanvas, CameraSystem } from './js/camera.js';
       import { FlyingControls, FlyingControlsSystem } from './js/flying-controls.js';
 
-      import { WebGPU } from './js/webgpu/components.js';
+      import { WebGPU, WebGPUSwapChain } from './js/webgpu/components.js';
       import { WebGPURenderer } from './js/webgpu/systems.js';
 
       import dat from 'dat.gui';
@@ -92,23 +92,26 @@
       document.body.appendChild(stats.dom);
 
       const world = new World();
-      world.registerSingletonComponent(Keyboard)
+      world.registerComponent(Camera)
+        .registerComponent(OutputCanvas)
+        .registerSystem(CameraSystem)
+        .registerSingletonComponent(Keyboard)
         .registerSingletonComponent(Mouse)
         .registerSystem(InputSystem)
         .registerComponent(Transform)
         .registerComponent(TransformMatrix)
         .registerSystem(TransformSystem)
-        .registerComponent(Camera)
-        .registerSystem(CameraSystem)
         .registerComponent(FlyingControls)
         .registerSystem(FlyingControlsSystem)
-        .registerSingletonComponent(WebGPU, { canvas: document.querySelector('canvas') })
+        .registerSingletonComponent(WebGPU)
+        .registerComponent(WebGPUSwapChain)
         .registerSystem(WebGPURenderer);
 
       const camera = world.create({
         Transform: { position: [0, 0, 3]},
         FlyingControls: {},
-        Camera: {}
+        Camera: {},
+        OutputCanvas: { canvas: document.querySelector('canvas') }
       });
 
       function onFrame() {
