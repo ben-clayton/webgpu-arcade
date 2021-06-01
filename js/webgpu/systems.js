@@ -1,6 +1,7 @@
 import { System, Not } from 'ecs';
 import { WebGPU, WebGPUSwapChain } from './components.js';
-import { Camera, OutputCanvas } from '../camera.js';
+import { OutputCanvas } from '../output-canvas.js';
+import { Camera } from '../camera.js';
 import { Transform } from '../transform.js';
 
 import { RenderCube } from './cube.js';
@@ -56,6 +57,10 @@ export class WebGPURenderer extends System {
     });
 
     this.renderCube = new RenderCube(gpu, this.frameBindGroupLayout);
+  }
+
+  onCanvasResize(entity, pixelWidth, pixelHeight) {
+
   }
 
   execute(delta, time) {

@@ -57,7 +57,8 @@
 
       import { Keyboard, Mouse, InputSystem } from './js/input.js';
       import { Transform, TransformMatrix, TransformSystem } from './js/transform.js';
-      import { Camera, OutputCanvas, CameraSystem } from './js/camera.js';
+      import { OutputCanvas, OutputCanvasSystem } from './js/output-canvas.js';
+      import { Camera, CameraSystem } from './js/camera.js';
       import { FlyingControls, FlyingControlsSystem } from './js/flying-controls.js';
       import { OrbitControls, OrbitControlsSystem } from './js/orbit-controls.js';
 
@@ -87,6 +88,7 @@
         .registerComponent(OrbitControls)
         .registerComponent(Transform)
         .registerComponent(TransformMatrix)
+        .registerSystem(OutputCanvasSystem)
         .registerSystem(CameraSystem)
         .registerSystem(InputSystem)
         .registerSystem(FlyingControlsSystem)

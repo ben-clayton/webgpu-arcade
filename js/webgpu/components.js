@@ -17,6 +17,8 @@ export class WebGPUSwapChain extends Component {
   static schema = {
     context: { type: Types.Ref },
     swapChain: { type: Types.Ref },
+    multisampleColorTarget: { type: Types.Ref },
+    depthStencilTarget: { type: Types.Ref }
   };
 
   get canvas() {

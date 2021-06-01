@@ -1,5 +1,5 @@
 import { Component, System, Types } from 'ecs';
-import { OutputCanvas } from './camera.js';
+import { OutputCanvas } from './output-canvas.js';
 
 export class Keyboard extends Component {
   static schema = {
