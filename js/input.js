@@ -16,6 +16,7 @@ export class Mouse extends Component {
     buttons: { type: Types.Array },
     position: { type: Types.Vec2 },
     delta: { type: Types.Vec2 },
+    wheelDelta: { type: Types.Vec2 },
   };
 }
 
@@ -29,6 +30,8 @@ export class InputSystem extends System {
   lastMouseY = 0;
   mouseDeltaX = 0;
   mouseDeltaY = 0;
+  mouseWheelDeltaX = 0;
+  mouseWheelDeltaY = 0;
 
   init() {
     window.addEventListener('keydown', (event) => {
@@ -70,6 +73,12 @@ export class InputSystem extends System {
       const mouse = this.modifySingleton(Mouse);
       mouse.buttons[event.button] = false;
     };
+
+    this.mousewheelCallback = (event) => {
+      const mouse = this.modifySingleton(Mouse);
+      this.mouseWheelDeltaX += event.wheelDeltaX;
+      this.mouseWheelDeltaY += event.wheelDeltaY;
+    };
   }
 
   execute() {
@@ -80,6 +89,7 @@ export class InputSystem extends System {
       output.canvas.removeEventListener('pointerdown', this.pointerDownCallback);
       output.canvas.removeEventListener('pointermove', this.pointerMoveCallback);
       output.canvas.removeEventListener('pointerup', this.pointerUpCallback);
+      output.canvas.removeEventListener('mousewheel', this.mousewheelCallback);
     });
 
     this.queries.outputCanvases.added.forEach(entity => {
@@ -88,13 +98,18 @@ export class InputSystem extends System {
       output.canvas.addEventListener('pointerdown', this.pointerDownCallback);
       output.canvas.addEventListener('pointermove', this.pointerMoveCallback);
       output.canvas.addEventListener('pointerup', this.pointerUpCallback);
+      output.canvas.addEventListener('mousewheel', this.mousewheelCallback);
     });
 
     // Update the mouse singleton with the latest movement deltas since the last frame.
     const mouse = this.modifySingleton(Mouse);
     mouse.delta[0] = this.mouseDeltaX;
     mouse.delta[1] = this.mouseDeltaY;
+    mouse.wheelDelta[0] = this.mouseWheelDeltaX;
+    mouse.wheelDelta[1] = this.mouseWheelDeltaY;
     this.mouseDeltaX = 0;
     this.mouseDeltaY = 0;
+    this.mouseWheelDeltaX = 0;
+    this.mouseWheelDeltaY = 0;
   }
 }

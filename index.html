@@ -59,6 +59,7 @@
       import { Transform, TransformMatrix, TransformSystem } from './js/transform.js';
       import { Camera, OutputCanvas, CameraSystem } from './js/camera.js';
       import { FlyingControls, FlyingControlsSystem } from './js/flying-controls.js';
+      import { OrbitControls, OrbitControlsSystem } from './js/orbit-controls.js';
 
       import { WebGPU, WebGPUSwapChain } from './js/webgpu/components.js';
       import { WebGPURenderer } from './js/webgpu/systems.js';
@@ -67,24 +68,10 @@
       import Stats from 'stats.js';
 
       const appSettings = {
-        scene: './media/models/dungeon/dungeon.glb',
-        metaballMethod: 'stagingRing',
-        renderLightSprites: true,
-        sceneLights: true,
-        metaballLights: true,
-        metaballStyle: 'lava',
+        controls: 'orbit',
       };
 
       let gui = new dat.GUI();
-
-      gui.add(appSettings, 'metaballMethod', {
-        'writeBuffer()': 'writeBuffer',
-        'New buffer each frame': 'newBuffer',
-        'New staging buffer each frame': 'newStaging',
-        'Single staging buffer re-mapped each frame': 'singleStaging',
-        'Ring of staging buffers': 'stagingRing',
-        'Compute shader': 'gpuGenerated',
-      }).onChange(() => {});
 
       document.body.appendChild(gui.domElement);
 
@@ -94,24 +81,44 @@
       const world = new World();
       world.registerComponent(Camera)
         .registerComponent(OutputCanvas)
-        .registerSystem(CameraSystem)
         .registerSingletonComponent(Keyboard)
         .registerSingletonComponent(Mouse)
-        .registerSystem(InputSystem)
+        .registerComponent(FlyingControls)
+        .registerComponent(OrbitControls)
         .registerComponent(Transform)
         .registerComponent(TransformMatrix)
-        .registerSystem(TransformSystem)
-        .registerComponent(FlyingControls)
+        .registerSystem(CameraSystem)
+        .registerSystem(InputSystem)
         .registerSystem(FlyingControlsSystem)
+        .registerSystem(OrbitControlsSystem)
+        .registerSystem(TransformSystem)
         .registerSingletonComponent(WebGPU)
         .registerComponent(WebGPUSwapChain)
         .registerSystem(WebGPURenderer);
 
       const camera = world.create({
         Transform: { position: [0, 0, 3]},
-        FlyingControls: {},
+        OrbitControls: {},
         Camera: {},
         OutputCanvas: { canvas: document.querySelector('canvas') }
+      });
+
+      gui.add(appSettings, 'controls', {
+        'Orbit': 'orbit',
+        'Flying': 'flying',
+      }).onChange(() => {
+        switch (appSettings.controls) {
+          case 'orbit': {
+            camera.remove(FlyingControls);
+            camera.add(OrbitControls);
+            break;
+          }
+          case 'flying': {
+            camera.remove(OrbitControls);
+            camera.add(FlyingControls);
+            break;
+          }
+        }
       });
 
       function onFrame() {
