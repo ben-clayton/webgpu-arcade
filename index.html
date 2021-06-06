@@ -48,14 +48,14 @@
             "webgpu-texture-loader": "./node_modules/web-texture-tool/build/webgpu-texture-loader.js",
             "dat.gui": "./node_modules/dat.gui/build/dat.gui.module.js",
             "stats.js": "./node_modules/stats.js/src/Stats.js",
-            "ecs": "./js/ecsy-cute/index.js"
+            "ecs": "./js/ecs/ecs.js"
         }
     }
     </script>
     <script type="module">
       import { World } from 'ecs';
 
-      import { Keyboard, Mouse, InputSystem } from './js/input.js';
+      import { InputSystem } from './js/input.js';
       import { Transform, TransformMatrix, TransformSystem } from './js/transform.js';
       import { OutputCanvas, OutputCanvasSystem } from './js/output-canvas.js';
       import { Camera, CameraSystem } from './js/camera.js';
@@ -80,30 +80,21 @@
       document.body.appendChild(stats.dom);
 
       const world = new World();
-      world.registerComponent(Camera)
-        .registerComponent(OutputCanvas)
-        .registerSingletonComponent(Keyboard)
-        .registerSingletonComponent(Mouse)
-        .registerComponent(FlyingControls)
-        .registerComponent(OrbitControls)
-        .registerComponent(Transform)
-        .registerComponent(TransformMatrix)
+      world
         .registerSystem(OutputCanvasSystem)
         .registerSystem(CameraSystem)
         .registerSystem(InputSystem)
         .registerSystem(FlyingControlsSystem)
         .registerSystem(OrbitControlsSystem)
         .registerSystem(TransformSystem)
-        .registerSingletonComponent(WebGPU)
-        .registerComponent(WebGPUSwapChain)
         .registerSystem(WebGPURenderer);
 
-      const camera = world.create({
-        Transform: { position: [0, 0, 3]},
-        OrbitControls: {},
-        Camera: {},
-        OutputCanvas: { canvas: document.querySelector('canvas') }
-      });
+      const camera = world.create(
+        new Transform([0, 0, 3]),
+        new OrbitControls(),
+        new Camera(),
+        new OutputCanvas(document.querySelector('canvas'))
+      );
 
       gui.add(appSettings, 'controls', {
         'Orbit': 'orbit',
@@ -112,12 +103,12 @@
         switch (appSettings.controls) {
           case 'orbit': {
             camera.remove(FlyingControls);
-            camera.add(OrbitControls);
+            camera.add(new OrbitControls());
             break;
           }
           case 'flying': {
             camera.remove(OrbitControls);
-            camera.add(FlyingControls);
+            camera.add(new FlyingControls());
             break;
           }
         }

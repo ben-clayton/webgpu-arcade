@@ -1,42 +1,31 @@
-import { Component, System, Types, Not } from 'ecs';
+import { System } from 'ecs';
 import { TransformMatrix } from './transform.js';
 import { OutputCanvas } from './output-canvas.js';
 import { mat4 } from 'gl-matrix';
 
-export class Camera extends Component {
-  static schema = {
-    fieldOfView: { type: Types.Number, default: Math.PI * 0.5 },
-    zNear: { type: Types.Number, default: 0.01 },
-    zFar: { type: Types.Number, default: 1000.0 },
+export class Camera {
+  fieldOfView = Math.PI * 0.5;
+  zNear = 0.01;
+  zFar = 1000.0;
 
-    // "Private"
-    viewMatrix: { type: Types.Mat4 },
-    projectionMatrix: { type: Types.Mat4 },
-  };
+  viewMatrix = mat4.create();
+  projectionMatrix = mat4.create();
 }
 
 export class CameraSystem extends System {
-  static queries = {
-    identity: { components: [Camera, Not(TransformMatrix)], listen: { added: true } },
-    view: { components: [Camera, TransformMatrix], listen: { changed: [TransformMatrix] } },
-    perspective: { components: [Camera, OutputCanvas], listen: { changed: true } },
-  };
-
-  execute(delta) {
-    this.queries.identity.added.forEach(entity => {
-      const camera = entity.modify(Camera);
+  execute() {
+    // Set the camera's view matrix to the identity matrix if there's no transform
+    this.query(Camera).not(TransformMatrix).forEach((entity, camera) => {
       mat4.identity(camera.viewMatrix);
     });
 
-    this.queries.view.changed.forEach(entity => {
-      const camera = entity.modify(Camera);
-      const transformMatrix = entity.read(TransformMatrix);
+    // Set the camera's view matrix to the inverse of the transform if the camera has one
+    this.query(Camera, TransformMatrix).forEach((entity, camera, transformMatrix) => {
       mat4.invert(camera.viewMatrix, transformMatrix.value);
     });
 
-    this.queries.perspective.changed.forEach(entity => {
-      const camera = entity.modify(Camera);
-      const output = entity.read(OutputCanvas);
+    // Set the projection matrix up for any camera associated with an output canvas
+    this.query(Camera, OutputCanvas).forEach((entity, camera, output) => {
       mat4.perspectiveZO(camera.projectionMatrix, camera.fieldOfView, output.width / output.height,
                          camera.zNear, camera.zFar);
     });

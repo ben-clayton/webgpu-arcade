@@ -1,4 +1,4 @@
-import { System, Not } from 'ecs';
+import { System } from 'ecs';
 import { WebGPU, WebGPUSwapChain } from './components.js';
 import { OutputCanvas } from '../output-canvas.js';
 import { Camera } from '../camera.js';
@@ -12,14 +12,8 @@ const desiredFeatures = [
 ];
 
 export class WebGPURenderer extends System {
-  static queries = {
-    needsSwapChain: { components: [OutputCanvas, Not(WebGPUSwapChain)] },
-    removeSwapChain: { components: [WebGPUSwapChain, Not(OutputCanvas)] },
-    renderCameras: { components: [Camera, WebGPUSwapChain] }
-  };
-
   async init() {
-    const gpu = this.modifySingleton(WebGPU);
+    const gpu = new WebGPU();
 
     if (!gpu.device) {
       const adapter = await navigator.gpu.requestAdapter({
@@ -57,6 +51,8 @@ export class WebGPURenderer extends System {
     });
 
     this.renderCube = new RenderCube(gpu, this.frameBindGroupLayout);
+
+    this.singleton.add(gpu);
   }
 
   onCanvasResize(entity, pixelWidth, pixelHeight) {
@@ -64,11 +60,10 @@ export class WebGPURenderer extends System {
   }
 
   execute(delta, time) {
-    const gpu = this.readSingleton(WebGPU);
+    const gpu = this.singleton.get(WebGPU);
+    if (!gpu) { return; }
 
-    this.queries.needsSwapChain.results.forEach(entity => {
-      const output = entity.read(OutputCanvas);
-
+    this.query(OutputCanvas).not(WebGPUSwapChain).forEach((entity, output) => {
       const context = output.canvas.getContext('gpupresent');
 
       if (!context) {
@@ -81,21 +76,16 @@ export class WebGPURenderer extends System {
         format: gpu.format
       });
 
-      entity.add(WebGPUSwapChain, {
-        context,
-        swapChain,
-      });
+      entity.add(new WebGPUSwapChain(context, swapChain));
     });
 
-    this.queries.removeSwapChain.results.forEach(entity => {
+    this.query(WebGPUSwapChain).not(OutputCanvas).forEach(entity => {
       entity.remove(WebGPUSwapChain);
     });
 
-    this.queries.renderCameras.results.forEach(entity => {
-      const camera = entity.read(Camera);
-      const swapChain = entity.read(WebGPUSwapChain);
-      const transform = entity.read(Transform);
-
+    this.query(Camera, WebGPUSwapChain).forEach((entity, camera, swapChain) => {
+      // TODO: Camera may not have a transform
+      const transform = entity.get(Transform);
       gpu.device.queue.writeBuffer(this.frameUniformBuffer, 0, camera.projectionMatrix);
       gpu.device.queue.writeBuffer(this.frameUniformBuffer, 4 * 16, camera.viewMatrix);
       gpu.device.queue.writeBuffer(this.frameUniformBuffer, 4 * 32, transform.position);

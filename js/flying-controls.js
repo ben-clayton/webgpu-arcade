@@ -1,13 +1,11 @@
-import { Component, System, Types, Not } from 'ecs';
-import { Keyboard, Mouse } from './input.js';
+import { System } from 'ecs';
+import { KeyboardState, MouseState } from './input.js';
 import { Transform } from './transform.js';
-import { vec3, quat } from 'gl-matrix';
+import { vec3, vec2, quat } from 'gl-matrix';
 
-export class FlyingControls extends Component {
-  static schema = {
-    speed: { type: Types.Number, default: 3 },
-    angles: { type: Types.Vec2 },
-  };
+export class FlyingControls {
+  speed = 3;
+  angles = vec2.create();
 }
 
 const TMP_DIR = vec3.create();
@@ -18,12 +16,10 @@ export class FlyingControlsSystem extends System {
   };
 
   execute(delta) {
-    const keyboard = this.readSingleton(Keyboard);
-    const mouse = this.readSingleton(Mouse);
+    const keyboard = this.singleton.get(KeyboardState);
+    const mouse = this.singleton.get(MouseState);
 
-    this.queries.flyingControls.results.forEach(entity => {
-      const control = entity.modify(FlyingControls);
-
+    this.query(FlyingControls, Transform).forEach((entity, control, transform) => {
       // Handle Mouse state.
       if (mouse.buttons[0] && (mouse.delta[0] || mouse.delta[1])) {
         control.angles[1] += mouse.delta[0] * 0.025;
@@ -40,12 +36,11 @@ export class FlyingControlsSystem extends System {
         // Clamp the up/down rotation to prevent us from flipping upside-down
         control.angles[0] = Math.min(Math.max(control.angles[0], -Math.PI*0.5), Math.PI*0.5);
 
-        // Update the rotation matrix
-        const q = entity.modify(Transform).orientation;
+        // Update the tranform rotation
+        const q = transform.orientation;
         quat.identity(q);
         quat.rotateY(q, q, -control.angles[1]);
         quat.rotateX(q, q, -control.angles[0]);
-        //quat.fromEuler(q, -control.angles[0], -control.angles[1], 0); // ?
       }
 
       // Handle keyboard state.
@@ -70,7 +65,6 @@ export class FlyingControlsSystem extends System {
       }
 
       if (TMP_DIR[0] !== 0 || TMP_DIR[1] !== 0 || TMP_DIR[2] !== 0) {
-        const transform = entity.modify(Transform);
         vec3.transformQuat(TMP_DIR, TMP_DIR, transform.orientation);
         vec3.normalize(TMP_DIR, TMP_DIR);
         vec3.scaleAndAdd(transform.position, transform.position, TMP_DIR, control.speed * delta);

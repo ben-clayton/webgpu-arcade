@@ -1,23 +1,18 @@
-import { Component, System, Types, Not } from 'ecs';
-import { mat4 } from 'gl-matrix';
+import { System } from 'ecs';
+import { mat4, vec3, quat } from 'gl-matrix';
 
-export class Transform extends Component {
-  static schema = {
-    position: { type: Types.Vec3 },
-    orientation: { type: Types.Quat, default: [0, 0, 0, 1]  },
-    scale: { type: Types.Vec3, default: [1, 1, 1] },
-  };
+export class Transform {
+  position = vec3.create();
+  orientation = quat.create();
+  scale = vec3.fromValues(1, 1, 1);
 }
 
-export class TransformMatrix extends Component {
-  static schema = {
-    value: { type: Types.Mat4 },
-  };
+export class TransformMatrix {
+  value = mat4.create();
 }
 
-function updateTransformMatrix(entity) {
-  const transform = entity.read(Transform);
-  const matrix = entity.modify(TransformMatrix);
+function updateTransformMatrix(entity, transform) {
+  const matrix = entity.get(TransformMatrix);
   mat4.fromRotationTranslationScale(matrix.value,
     transform.orientation,
     transform.position,
@@ -25,17 +20,12 @@ function updateTransformMatrix(entity) {
 }
 
 export class TransformSystem extends System {
-  static queries = {
-    needsMatrix: { components: [Transform, Not(TransformMatrix)] },
-    updateMatrix: { components: [Transform], listen: { changed: true } },
-  };
-
   execute(delta) {
-    this.queries.needsMatrix.results.forEach(entity => {
-      entity.add(TransformMatrix);
-      updateTransformMatrix(entity);
+    this.query(Transform).not(TransformMatrix).forEach((entity, transform) => {
+      entity.add(new TransformMatrix());
+      updateTransformMatrix(entity, transform);
     });
 
-    this.queries.updateMatrix.changed.forEach(updateTransformMatrix);
+    this.query(Transform).forEach(updateTransformMatrix);
   }
 }

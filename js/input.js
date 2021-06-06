@@ -1,29 +1,25 @@
-import { Component, System, Types } from 'ecs';
-import { OutputCanvas } from './output-canvas.js';
+import { System } from 'ecs';
+import { vec2 } from 'gl-matrix';
 
-export class Keyboard extends Component {
-  static schema = {
-    pressed: { type: Types.JSON, default: {} },
-  };
+export class KeyboardState {
+  pressed = {};
 
   keyPressed(keycode) {
     return !!this.pressed[keycode];
   }
 }
 
-export class Mouse extends Component {
-  static schema = {
-    buttons: { type: Types.Array },
-    position: { type: Types.Vec2 },
-    delta: { type: Types.Vec2 },
-    wheelDelta: { type: Types.Vec2 },
-  };
+export class MouseState {
+  buttons = [];
+  position = vec2.create();
+  delta = vec2.create();
+  wheelDelta = vec2.create();
 }
 
 export class InputSystem extends System {
-  static queries = {
+  /*static queries = {
     outputCanvases: { components: [OutputCanvas], listen: { added: true, removed: true } },
-  };
+  };*/
 
   eventCanvas = null;
   lastMouseX = 0;
@@ -34,19 +30,24 @@ export class InputSystem extends System {
   mouseWheelDeltaY = 0;
 
   init() {
+    const keyboard = new KeyboardState();
+    const mouse = new MouseState();
+
+    this.singleton.add(keyboard, mouse);
+
     window.addEventListener('keydown', (event) => {
       // Do nothing if event already handled
       if (event.defaultPrevented) { return; }
-      this.modifySingleton(Keyboard).pressed[event.code] = true;
+      keyboard.pressed[event.code] = true;
     });
     window.addEventListener('keyup', (event) => {
-      this.modifySingleton(Keyboard).pressed[event.code] = false;
+      keyboard.pressed[event.code] = false;
     });
     window.addEventListener('blur', (event) => {
       // Clear the pressed keys on blur so that we don't have inadvertent inputs
       // after we've shifted focus to another window.
-      this.modifySingleton(Keyboard).pressed = {};
-      this.modifySingleton(Mouse).buttons = [];
+      keyboard.pressed = {};
+      mouse.buttons = [];
     });
 
     this.pointerEnterCallback = (event) => {
@@ -57,7 +58,6 @@ export class InputSystem extends System {
     };
 
     this.pointerMoveCallback = (event) => {
-      const mouse = this.modifySingleton(Mouse);
       this.mouseDeltaX += event.clientX - this.lastMouseX;
       this.mouseDeltaY += event.clientY - this.lastMouseY;
       this.lastMouseX = mouse.position[0] = event.clientX;
@@ -65,44 +65,29 @@ export class InputSystem extends System {
     };
 
     this.pointerDownCallback = (event) => {
-      const mouse = this.modifySingleton(Mouse);
       mouse.buttons[event.button] = true;
     };
 
     this.pointerUpCallback = (event) => {
-      const mouse = this.modifySingleton(Mouse);
       mouse.buttons[event.button] = false;
     };
 
     this.mousewheelCallback = (event) => {
-      const mouse = this.modifySingleton(Mouse);
       this.mouseWheelDeltaX += event.wheelDeltaX;
       this.mouseWheelDeltaY += event.wheelDeltaY;
     };
+
+    // TODO: These listeners should be attached to the canvases in question
+    window.addEventListener('pointerenter', this.pointerEnterCallback);
+    window.addEventListener('pointerdown', this.pointerDownCallback);
+    window.addEventListener('pointermove', this.pointerMoveCallback);
+    window.addEventListener('pointerup', this.pointerUpCallback);
+    window.addEventListener('mousewheel', this.mousewheelCallback);
   }
 
   execute() {
-    // If the canvas that we're rendering to changes, update the mouse event listeners.
-    this.queries.outputCanvases.removed.forEach(entity => {
-      const output = entity.read(OutputCanvas);
-      output.canvas.removeEventListener('pointerenter', this.pointerEnterCallback);
-      output.canvas.removeEventListener('pointerdown', this.pointerDownCallback);
-      output.canvas.removeEventListener('pointermove', this.pointerMoveCallback);
-      output.canvas.removeEventListener('pointerup', this.pointerUpCallback);
-      output.canvas.removeEventListener('mousewheel', this.mousewheelCallback);
-    });
-
-    this.queries.outputCanvases.added.forEach(entity => {
-      const output = entity.read(OutputCanvas);
-      output.canvas.addEventListener('pointerenter', this.pointerEnterCallback);
-      output.canvas.addEventListener('pointerdown', this.pointerDownCallback);
-      output.canvas.addEventListener('pointermove', this.pointerMoveCallback);
-      output.canvas.addEventListener('pointerup', this.pointerUpCallback);
-      output.canvas.addEventListener('mousewheel', this.mousewheelCallback);
-    });
-
     // Update the mouse singleton with the latest movement deltas since the last frame.
-    const mouse = this.modifySingleton(Mouse);
+    const mouse = this.singleton.get(MouseState);
     mouse.delta[0] = this.mouseDeltaX;
     mouse.delta[1] = this.mouseDeltaY;
     mouse.wheelDelta[0] = this.mouseWheelDeltaX;

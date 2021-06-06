@@ -1,11 +1,11 @@
-import { Component, System, Types } from 'ecs';
+import { System } from 'ecs';
 
-export class OutputCanvas extends Component {
-  static schema = {
-    canvas: { type: Types.Ref },
-    width: { type: Types.Number },
-    height: { type: Types.Number },
-  };
+export class OutputCanvas {
+  constructor(canvas) {
+    this.canvas = canvas;
+    this.width = canvas.width = canvas.offsetWidth * devicePixelRatio;
+    this.height = canvas.height = canvas.offsetHeight * devicePixelRatio;
+  }
 }
 
 export class OutputCanvasSystem extends System {
@@ -39,24 +39,19 @@ export class OutputCanvasSystem extends System {
   }
 
   canvasResized(entity, pixelWidth, pixelHeight) {
-    const output = entity.modify(OutputCanvas);
-    output.canvas.width = pixelWidth;
-    output.canvas.height = pixelHeight;
-    output.width = pixelWidth;
-    output.height = pixelHeight;
+    const output = entity.get(OutputCanvas);
+    output.width = output.canvas.width = pixelWidth;
+    output.height = output.canvas.height = pixelHeight;
   }
 
   execute() {
-    this.queries.canvases.added.forEach(entity => {
-      const output = entity.read(OutputCanvas);
-      this.resizeObserver.observe(output.canvas);
-      this.resizeEntities.set(output.canvas, entity);
+    this.query(OutputCanvas).forEach((entity, output) => {
+      if (!this.resizeEntities.has(entity)) {
+        this.resizeObserver.observe(output.canvas);
+        this.resizeEntities.set(output.canvas, entity);
+      }
     });
 
-    this.queries.canvases.removed.forEach(entity => {
-      const output = entity.read(OutputCanvas);
-      this.resizeObserver.unobserve(output.canvas);
-      this.resizeEntities.delete(output.canvas);
-    });
+    // TODO: Handle removing canvases from the observer
   }
 }

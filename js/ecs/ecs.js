@@ -1,10 +1,10 @@
 class Entity {
-  constructor(worldData, entityId) {
-    this.#worldData = worldData;
-    this.#destroyed = false;
-    this.id = entityId;
+  #worldData;
+  #destroyed = false;
 
-    this.#worldData.entities.set(this.id, this);
+  constructor(worldData, entityId) {
+    this.id = entityId;
+    this.#worldData = worldData;
   }
 
   add(...components) {
@@ -19,6 +19,8 @@ class Entity {
       }
       componentSet[this.id] = component;
     }
+
+    return this;
   }
 
   remove(componentType, destroyComponent = true) {
@@ -33,7 +35,7 @@ class Entity {
   }
 
   has(compomentType) {
-    const componentSet = this.#worldData.components[compnentType];
+    const componentSet = this.#worldData.components[compomentType];
     return componentSet !== undefined && componentSet[this.id] !== undefined;
   }
 
@@ -55,29 +57,68 @@ class Entity {
   }
 }
 
+class SingletonEntity extends Entity {
+  destroy() {
+    throw new Error('The singleton entity cannot be destroyed');
+  }
+}
+
 function getComponentName(component) {
-  return component.constructor.name ?? component.name;
+  return component.name ?? component.constructor.name;
 }
 
 class WorldData {
-  nextEntityId = 1;
   entities = new Map();
   components = new Map();
   queries = new Map();
+  systems = new Map();
+
+  getQuery(componentTypes) {
+    let componentNames = [];
+    for(const type of componentTypes) {
+      componentNames.push(getComponentName(type));
+    }
+    const queryName = componentNames.join(':');
+    const cachedQuery = this.queries[queryName];
+    if (cachedQuery !== undefined) { return cachedQuery; }
+    return new Query(this, queryName, componentTypes);
+  }
 }
 
 export class World {
-  #data = new WorldData();
+  #worldData = new WorldData();
+  #nextEntityId = 1;
+  #singletonEntity;
+  #lastTime = performance.now() / 1000;
+
+  constructor() {
+    // Singleton entity is not added to the global list of entities.
+    this.#singletonEntity = new SingletonEntity(this.#worldData, 0);
+  }
 
   get entities() {
-    return this.#data.entities.values();
+    return this.#worldData.entities.values();
+  }
+
+  get singleton() {
+    return this.#singletonEntity;
   }
 
   create(...components) {
-    const id = this.#data.nextEntityId++;
-    const entity = new Entity(this.#data, id);
+    const id = this.#nextEntityId++;
+    const entity = new Entity(this.#worldData, id);
     entity.add(...components);
+    this.#worldData.entities.set(id, entity);
     return entity;
+  }
+
+  registerSystem(systemType) {
+    const system = new systemType(this, this.#worldData);
+    this.#worldData.systems.set(systemType, system);
+    if (system.init !== undefined) {
+      system.init();
+    }
+    return this;
   }
 
   clear() {
@@ -87,18 +128,44 @@ export class World {
   }
 
   query(...componentTypes) {
-    let componentNames = [];
-    for(const type of componentTypes) {
-      componentNames.push(getComponentName(type));
+    return this.#worldData.getQuery(componentTypes);
+  }
+
+  execute(delta, time) {
+    if (!delta) {
+      time = performance.now() / 1000;
+      delta = time - this.#lastTime;
+      this.#lastTime = time;
     }
-    const queryName = componentNames.join(':');
-    const cachedQuery = this.#worldData.queries[queryName];
-    if (cachedQuery !== undefined) { return cachedQuery; }
-    return new WorldQueryResult(this.#worldData, queryName, componentTypes);
+
+    for (const system of this.#worldData.systems.values()) {
+      system.execute(delta, time);
+    }
   }
 }
 
-class WorldQueryResult {
+export class System {
+  #worldData;
+
+  constructor(world, worldData) {
+    this.world = world;
+    this.#worldData = worldData;
+  }
+
+  query(...componentTypes) {
+    return this.#worldData.getQuery(componentTypes);
+  }
+
+  get singleton() {
+    return this.world.singleton;
+  }
+
+  execute(delta, time) {}
+}
+
+class Query {
+  #worldData;
+
   constructor(worldData, queryName, includedTypes, excludedTypes = []) {
     this.#worldData = worldData;
     this.queryName = queryName;
@@ -123,12 +190,12 @@ class WorldQueryResult {
     const queryName = this.queryName + '!' + componentNames.join(':!');
     const cachedQuery = this.#worldData.queries[queryName];
     if (cachedQuery !== undefined) { return cachedQuery; }
-    return new WorldQueryResult(this.#worldData, queryName, this.include, this.exclude.concat(componentTypes));
+    return new Query(this.#worldData, queryName, this.include, this.exclude.concat(componentTypes));
   }
 
   forEach(callback) {
     const args = new Array(this.include.length);
-    for (const entity of this.world.entities) {
+    for (const entity of this.#worldData.entities.values()) {
       let excluded = false;
       for (const componentId of this.exclude) {
         if (entity.has(componentId)) {
