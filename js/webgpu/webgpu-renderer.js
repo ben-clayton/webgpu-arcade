@@ -1,10 +1,41 @@
 import { System } from 'ecs';
-import { WebGPU, WebGPUSwapChain } from './components.js';
 import { OutputCanvas } from '../output-canvas.js';
 import { Camera } from '../camera.js';
 import { Transform } from '../transform.js';
 
 import { RenderCube } from './cube.js';
+import { mat4, vec3 } from 'gl-matrix';
+
+export class WebGPU {
+  device = null;
+  format = 'bgra8unorm';
+  depthFormat = 'depth24plus';
+  sampleCount = 1;
+
+  get adapter() {
+    return this.device?.adapter;
+  }
+}
+
+export class WebGPUSwapChain {
+  constructor(context, swapChain) {
+    this.context = context;
+    this.swapChain = swapChain;
+  }
+
+  get canvas() {
+    return this.context.canvas;
+  }
+}
+
+export class WebGPUCamera {
+  constructor() {
+    this.array = new Float32Array(16 + 16 + 3);
+    this.projectionMatrix = new Float32Array(this.array.buffer, 0, 16);
+    this.viewMatrix = new Float32Array(this.array.buffer, 16 * Float32Array.BYTES_PER_ELEMENT, 16);
+    this.position = new Float32Array(this.array.buffer, 32 * Float32Array.BYTES_PER_ELEMENT, 3);
+  }
+}
 
 // These are features that we want to enable on the GPUDevice if they are available
 const desiredFeatures = [
@@ -55,14 +86,7 @@ export class WebGPURenderer extends System {
     this.singleton.add(gpu);
   }
 
-  onCanvasResize(entity, pixelWidth, pixelHeight) {
-
-  }
-
-  execute(delta, time) {
-    const gpu = this.singleton.get(WebGPU);
-    if (!gpu) { return; }
-
+  updateSwapChains() {
     this.query(OutputCanvas).not(WebGPUSwapChain).forEach((entity, output) => {
       const context = output.canvas.getContext('gpupresent');
 
@@ -82,13 +106,48 @@ export class WebGPURenderer extends System {
     this.query(WebGPUSwapChain).not(OutputCanvas).forEach(entity => {
       entity.remove(WebGPUSwapChain);
     });
+  }
 
-    this.query(Camera, WebGPUSwapChain).forEach((entity, camera, swapChain) => {
-      // TODO: Camera may not have a transform
+  updateCameras() {
+    this.query(Camera).not(WebGPUCamera).forEach((entity) => {
+      entity.add(new WebGPUCamera);
+    });
+
+    this.query(WebGPUCamera).not(Camera).forEach((entity) => {
+      entity.remove(WebGPUCamera);
+    });
+
+    // Update the camera matrix
+    this.query(Camera, WebGPUCamera).forEach((entity, camera, gpuCamera) => {
       const transform = entity.get(Transform);
-      gpu.device.queue.writeBuffer(this.frameUniformBuffer, 0, camera.projectionMatrix);
-      gpu.device.queue.writeBuffer(this.frameUniformBuffer, 4 * 16, camera.viewMatrix);
-      gpu.device.queue.writeBuffer(this.frameUniformBuffer, 4 * 32, transform.position);
+      if (transform) {
+        mat4.invert(gpuCamera.viewMatrix, transform.matrix);
+        vec3.copy(gpuCamera.position, transform.position);
+      } else {
+        // If the camera doesn't have a transform position it at the origin.
+        mat4.identity(gpuCamera.viewMatrix);
+        vec3.set(gpuCamera.position, 0, 0, 0);
+      }
+      
+      let aspect = 1.0;
+      const output = entity.get(OutputCanvas);
+      if (output) {
+        aspect = output.width / output.height;
+      }
+      mat4.perspectiveZO(gpuCamera.projectionMatrix, camera.fieldOfView, aspect,
+        camera.zNear, camera.zFar);
+    });
+  }
+
+  execute(delta, time) {
+    const gpu = this.singleton.get(WebGPU);
+    if (!gpu) { return; }
+
+    this.updateSwapChains(gpu);
+    this.updateCameras();
+
+    this.query(WebGPUCamera, WebGPUSwapChain).forEach((entity, camera, swapChain) => {
+      gpu.device.queue.writeBuffer(this.frameUniformBuffer, 0, camera.array);
 
       const commandEncoder = gpu.device.createCommandEncoder({});
 

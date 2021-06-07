@@ -56,14 +56,13 @@
       import { World } from 'ecs';
 
       import { InputSystem } from './js/input.js';
-      import { Transform, TransformMatrix, TransformSystem } from './js/transform.js';
+      import { Transform } from './js/transform.js';
       import { OutputCanvas, OutputCanvasSystem } from './js/output-canvas.js';
-      import { Camera, CameraSystem } from './js/camera.js';
+      import { Camera } from './js/camera.js';
       import { FlyingControls, FlyingControlsSystem } from './js/flying-controls.js';
       import { OrbitControls, OrbitControlsSystem } from './js/orbit-controls.js';
 
-      import { WebGPU, WebGPUSwapChain } from './js/webgpu/components.js';
-      import { WebGPURenderer } from './js/webgpu/systems.js';
+      import { WebGPURenderer } from './js/webgpu/webgpu-renderer.js';
 
       import dat from 'dat.gui';
       import Stats from 'stats.js';
@@ -82,11 +81,9 @@
       const world = new World();
       world
         .registerSystem(OutputCanvasSystem)
-        .registerSystem(CameraSystem)
         .registerSystem(InputSystem)
         .registerSystem(FlyingControlsSystem)
         .registerSystem(OrbitControlsSystem)
-        .registerSystem(TransformSystem)
         .registerSystem(WebGPURenderer);
 
       const camera = world.create(
