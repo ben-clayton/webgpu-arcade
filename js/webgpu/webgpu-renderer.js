@@ -86,7 +86,7 @@ export class WebGPURenderer extends System {
     this.singleton.add(gpu);
   }
 
-  updateSwapChains() {
+  updateSwapChains(gpu) {
     this.query(OutputCanvas).not(WebGPUSwapChain).forEach((entity, output) => {
       const context = output.canvas.getContext('gpupresent');
 
@@ -108,7 +108,7 @@ export class WebGPURenderer extends System {
     });
   }
 
-  updateCameras() {
+  updateCameras(gpu) {
     this.query(Camera).not(WebGPUCamera).forEach((entity) => {
       entity.add(new WebGPUCamera);
     });
