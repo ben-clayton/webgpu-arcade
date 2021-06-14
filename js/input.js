@@ -17,10 +17,6 @@ export class MouseState {
 }
 
 export class InputSystem extends System {
-  /*static queries = {
-    outputCanvases: { components: [OutputCanvas], listen: { added: true, removed: true } },
-  };*/
-
   eventCanvas = null;
   lastMouseX = 0;
   lastMouseY = 0;

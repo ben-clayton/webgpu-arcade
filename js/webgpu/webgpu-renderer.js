@@ -3,7 +3,9 @@ import { OutputCanvas } from '../output-canvas.js';
 import { Camera } from '../camera.js';
 import { Transform } from '../transform.js';
 
-import { RenderCube } from './cube.js';
+import { WebGPURenderable } from './webgpu-renderable.js';
+import { CubeRenderableFactory } from './cube.js';
+
 import { mat4, vec3 } from 'gl-matrix';
 
 export class WebGPU {
@@ -18,9 +20,9 @@ export class WebGPU {
 }
 
 export class WebGPUSwapChain {
-  constructor(context, swapChain) {
+  constructor(context) {
     this.context = context;
-    this.swapChain = swapChain;
+    this.size = {width: 0, height: 0};
   }
 
   get canvas() {
@@ -81,9 +83,22 @@ export class WebGPURenderer extends System {
       }],
     });
 
-    this.renderCube = new RenderCube(gpu, this.frameBindGroupLayout);
+    const cubeFactory = new CubeRenderableFactory(gpu, this.frameBindGroupLayout);
+
+    this.world.create(
+      new Transform(),
+      cubeFactory.createRenderable()
+    );
 
     this.singleton.add(gpu);
+  }
+
+  onSwapChainResized(gpu, swapChain) {
+    swapChain.context.configure({
+      device: gpu.device,
+      format: gpu.format,
+      size: swapChain.size,
+    });
   }
 
   updateSwapChains(gpu) {
@@ -95,12 +110,16 @@ export class WebGPURenderer extends System {
         return;
       }
 
-      const swapChain = context.configureSwapChain({
-        device: gpu.device,
-        format: gpu.format
-      });
+      entity.add(new WebGPUSwapChain(context));
+    });
 
-      entity.add(new WebGPUSwapChain(context, swapChain));
+    this.query(OutputCanvas, WebGPUSwapChain).forEach((entity, output, swapChain) => {
+      if (output.width != swapChain.size.width ||
+          output.height != swapChain.size.height) {
+        swapChain.size.width = output.width;
+        swapChain.size.height = output.height;
+        this.onSwapChainResized(gpu, swapChain);
+      }
     });
 
     this.query(WebGPUSwapChain).not(OutputCanvas).forEach(entity => {
@@ -153,7 +172,7 @@ export class WebGPURenderer extends System {
 
       const renderPassDescriptor = {
         colorAttachments: [{
-          view: swapChain.swapChain.getCurrentTexture().createView(),
+          view: swapChain.context.getCurrentTexture().createView(),
           loadValue: { r: 0.0, g: 0.0, b: 0.3, a: 1.0 },
           storeOp: 'store',
         }]
@@ -163,7 +182,25 @@ export class WebGPURenderer extends System {
 
       passEncoder.setBindGroup(0, this.frameBindGroup);
 
-      this.renderCube.draw(passEncoder);
+      this.query(WebGPURenderable).forEach((entity, renderable) => {
+        const transform = entity.get(Transform);
+        if (transform) {
+          // Apply model transform
+        }
+
+        passEncoder.setPipeline(renderable.pipeline);
+
+        for (const vb of renderable.vertexBuffers) {
+          passEncoder.setVertexBuffer(vb.slot, vb.buffer, vb.offset, vb.size);
+        }
+        const ib = renderable.indexBuffer;
+        if (ib) {
+          passEncoder.setIndexBuffer(ib.buffer, ib.format, ib.offset, ib.size);
+          passEncoder.drawIndexed(renderable.drawCount);
+        } else {
+          passEncoder.draw(renderable.drawCount);
+        }
+      });
 
       passEncoder.endPass();
 

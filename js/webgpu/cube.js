@@ -1,3 +1,5 @@
+import { WebGPURenderable } from './webgpu-renderable.js';
+
 const Cube = {
   vertexShader: `
     [[block]] struct FrameUniforms {
@@ -97,9 +99,10 @@ const Cube = {
   ])
 };
 
-export class RenderCube {
+export class CubeRenderableFactory {
   constructor(gpu, frameBGL) {
     this.gpu = gpu;
+    this.drawCount = Cube.vertexCount;
 
     this.vertexBuffer = gpu.device.createBuffer({
       size: Cube.vertexArray.byteLength,
@@ -137,9 +140,11 @@ export class RenderCube {
     });
   }
 
-  draw(passEncoder) {
-    passEncoder.setPipeline(this.pipeline);
-    passEncoder.setVertexBuffer(0, this.vertexBuffer);
-    passEncoder.draw(Cube.vertexCount);
+  createRenderable() {
+    const renderable = new WebGPURenderable();
+    renderable.pipeline = this.pipeline;
+    renderable.drawCount = Cube.vertexCount;
+    renderable.setVertexBuffer(0, this.vertexBuffer);
+    return renderable;
   }
 }
