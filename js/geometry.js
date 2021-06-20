@@ -6,7 +6,7 @@ export const Attribute = {
   color: 4,
 };
 
-const DefaultAttributeType = {
+const DefaultAttributeFormat = {
   position: 'float32x3',
   normal: 'float32x3',
   tangent: 'float32x3',
@@ -47,53 +47,57 @@ const DefaultStride = {
   sint32x4: 16,
 };
 
-export class VertexInterleavedAttributes {
-  constructor(values, stride) {
-    this.values = values;
-    this.stride = stride;
+export class InterleavedBuffer {
+  constructor(array, arrayStride) {
+    this.array = array;
+    this.arrayStride = arrayStride;
     this.attributes = [];
     this.maxVertexCount = Math.floor(values.length * values.BYTES_PER_ELEMENT) / stride;
-    this.minAttributeLocation = Number.MAX_SAFE_INTEGER;
+    this.minOffset = Number.MAX_SAFE_INTEGER;
   }
 
-  addAttribute(location, offset = 0, format) {
+  addAttribute(attribute, offset = 0, format) {
     if (!format) {
-      format = DefaultAttributeType[location];
+      format = DefaultAttributeFormat[attribute];
     }
-    if (typeof location == 'string') {
-      location = Attribute[location];
+    if (typeof attribute == 'string') {
+      attribute = Attribute[attribute];
     }
-    this.minAttributeLocation = Math.min(this.minAttributeLocation, location);
-    this.attributes.push({location, offset, format});
+    this.minOffset = Math.min(this.minOffset, offset);
+    this.attributes.push({shaderLocation: attribute, offset, format});
     return this;
   }
 };
 
-export class VertexAttribute extends VertexInterleavedAttributes {
-  constructor(location, values, format, stride) {
+export class AttributeBuffer extends InterleavedBuffer {
+  constructor(attribute, array, format, arrayStride) {
     if (!format) {
-      format = DefaultAttributeType[location];
+      format = DefaultAttributeFormat[attribute];
     }
-    if (!stride) {
-      stride = DefaultStride[format];
+    if (!arrayStride) {
+      arrayStride = DefaultStride[format];
     }
-    super(values, stride);
+    super(array, arrayStride);
     super.addAttribute(location, 0, format);
   }
 
   addAttribute() {
-    throw new Error('Cannot add attributes to a VertexAttribute. Use VertexInterleavedAttributes instead.');
+    throw new Error('Cannot add attributes to a AttributeBuffer. Use InterleavedBuffer instead.');
   }
 };
 
 export class StaticGeometry {
-  indices = null;
-  vertexAttributes = [];
+  indexArray = null;
+  buffers = [];
   drawCount = 0;
   topology = 'triangle-list';
 
-  constructor(drawCount = 0, ...attributes) {
+  constructor(drawCount = 0, ...buffers) {
     this.drawCount = 0;
-    this.vertexAttributes.push(...attributes);
+    this.buffers.push(...buffers);
+  }
+
+  get indexFormat() {
+    return this.indexBuffer?.BYTES_PER_ELEMENT == 2 ? 'uint16' : 'uint32';
   }
 }

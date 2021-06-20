@@ -4,6 +4,14 @@ export const RenderOrder = {
   Transparent: 3,
 };
 
+export class WebGPURenderGeometry {
+  layoutId = 0;
+  layout = null;
+  drawCount = 0;
+  indexBuffer = null;
+  vertexBuffers = [];
+}
+
 export class WebGPURenderable {
   pipeline = null;
   renderOrder = RenderOrder.Default;

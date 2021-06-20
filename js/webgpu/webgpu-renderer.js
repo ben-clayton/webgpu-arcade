@@ -2,9 +2,11 @@ import { System } from 'ecs';
 import { OutputCanvas } from '../output-canvas.js';
 import { Camera } from '../camera.js';
 import { Transform } from '../transform.js';
+import { StaticGeometry } from '../geometry.js';
 
-import { WebGPURenderable } from './webgpu-renderable.js';
+import { WebGPURenderGeometry, WebGPURenderable } from './webgpu-renderable.js';
 import { CubeRenderableFactory } from './cube.js';
+import { GeometryLayoutCache } from './resource-cache.js';
 
 import { mat4, vec3 } from 'gl-matrix';
 
@@ -47,6 +49,8 @@ const desiredFeatures = [
 export class WebGPURenderer extends System {
   async init() {
     const gpu = new WebGPU();
+
+    this.geometryLayoutCache = new GeometryLayoutCache();
 
     if (!gpu.device) {
       const adapter = await navigator.gpu.requestAdapter({
@@ -127,6 +131,51 @@ export class WebGPURenderer extends System {
     });
   }
 
+  updateGeometry(gpu) {
+    // For any entities with StaticGeometry but no WebGPURenderable, create the WebGPU buffers for
+    // the geometry, fill it from the StaticGeometry attributes, then clear the StaticGeometry's
+    // attributes so the memory can be GCed if needed.
+    this.query(StaticGeometry).not(WebGPURenderGeometry).forEach((entity, geometry) => {
+      const renderGeometry = new WebGPURenderGeometry();
+      //renderable.pipeline = this.pipeline;
+      renderGeometry.drawCount = drawCount.drawCount;
+
+      const [id, layout] = this.geometryLayoutCache.getFor(geometry);
+      renderGeometry.layoutId = id;
+      renderGeometry.layout = layout;
+
+      let i = 0;
+      for (const buffer of geometry.buffers) {
+        const vertexBuffer = gpu.device.createBuffer({
+          size: attrib.values.byteLength,
+          usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST
+        });
+        gpu.device.queue.writeBuffer(vertexBuffer, 0, attrib.values);
+        renderGeometry.vertexBuffers.push({
+          slot: i++,
+          buffer: vertexBuffer,
+          offset: buffer.minOffset,
+        });
+      }
+
+      if (geometry.indexArray) {
+        const indexBuffer = gpu.device.createBuffer({
+          size: geometry.indexArray.byteLength,
+          usage: GPUBufferUsage.INDEX | GPUBufferUsage.COPY_DST
+        });
+        gpu.device.queue.writeBuffer(indexBuffer, 0, geometry.indexArray);
+        renderGeometry.indexBuffer = {
+          buffer: indexBuffer,
+          format: geometry.indexFormat
+        };
+      }
+
+      // TODO: Allow StaticGeometry to GC?
+
+      entity.add(renderGeometry);
+    });
+  }
+
   updateCameras(gpu) {
     this.query(Camera).not(WebGPUCamera).forEach((entity) => {
       entity.add(new WebGPUCamera);
@@ -163,7 +212,8 @@ export class WebGPURenderer extends System {
     if (!gpu) { return; }
 
     this.updateSwapChains(gpu);
-    this.updateCameras();
+    this.updateGeometry(gpu);
+    this.updateCameras(gpu);
 
     this.query(WebGPUCamera, WebGPUSwapChain).forEach((entity, camera, swapChain) => {
       gpu.device.queue.writeBuffer(this.frameUniformBuffer, 0, camera.array);
