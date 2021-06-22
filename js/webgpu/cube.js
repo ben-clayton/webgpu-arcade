@@ -131,11 +131,11 @@ export class CubeRenderableFactory {
         topology: 'triangle-list',
         cullMode: 'back',
       },
-      /*depthStencil: {
+      depthStencil: {
         format: gpu.depthFormat,
         depthWriteEnabled: true,
         depthCompare: 'less',
-      },*/
+      },
       multisample: { count: gpu.sampleCount, },
     });
   }

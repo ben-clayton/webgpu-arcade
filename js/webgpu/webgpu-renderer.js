@@ -14,21 +14,14 @@ export class WebGPU {
   device = null;
   format = 'bgra8unorm';
   depthFormat = 'depth24plus';
-  sampleCount = 1;
+  sampleCount = 4;
+
+  canvas = null;
+  context = null;
+  size = {width: 0, height: 0};
 
   get adapter() {
     return this.device?.adapter;
-  }
-}
-
-export class WebGPUSwapChain {
-  constructor(context) {
-    this.context = context;
-    this.size = {width: 0, height: 0};
-  }
-
-  get canvas() {
-    return this.context.canvas;
   }
 }
 
@@ -47,10 +40,8 @@ const desiredFeatures = [
 ];
 
 export class WebGPURenderer extends System {
-  async init() {
+  async init(canvas) {
     const gpu = new WebGPU();
-
-    this.geometryLayoutCache = new GeometryLayoutCache();
 
     if (!gpu.device) {
       const adapter = await navigator.gpu.requestAdapter({
@@ -58,9 +49,57 @@ export class WebGPURenderer extends System {
       });
 
       // Determine which of the desired features can be enabled for this device.
-      const nonGuaranteedFeatures = desiredFeatures.filter(feature => adapter.features.has(feature));
-      gpu.device = await adapter.requestDevice({nonGuaranteedFeatures});
+      const requiredFeatures = desiredFeatures.filter(feature => adapter.features.has(feature));
+      gpu.device = await adapter.requestDevice({requiredFeatures});
     }
+
+    gpu.canvas = canvas || document.createElement('canvas');
+    gpu.context = gpu.canvas.getContext('gpupresent');
+    gpu.format = gpu.context.getPreferredFormat(gpu.adapter);
+
+    this.resizeObserver = new ResizeObserver(entries => {
+      for (let entry of entries) {
+        if (entry.target != gpu.canvas) { continue; }
+
+        if (entry.devicePixelContentBoxSize) {
+          // Should give exact pixel dimensions, but only works on Chrome.
+          const devicePixelSize = entry.devicePixelContentBoxSize[0];
+          this.onCanvasResized(gpu, devicePixelSize.inlineSize, devicePixelSize.blockSize);
+        } else if (entry.contentBoxSize) {
+          // Firefox implements `contentBoxSize` as a single content rect, rather than an array
+          const contentBoxSize = Array.isArray(entry.contentBoxSize) ? entry.contentBoxSize[0] : entry.contentBoxSize;
+          this.onCanvasResized(gpu, contentBoxSize.inlineSize, contentBoxSize.blockSize);
+        } else {
+          this.onCanvasResized(gpu, entry.contentRect.width, entry.contentRect.height);
+        }
+      }
+    });
+    this.resizeObserver.observe(gpu.canvas);
+
+    this.colorAttachment = {
+      // attachment is acquired and set in onResize.
+      attachment: undefined,
+      // attachment is acquired and set in onFrame.
+      resolveTarget: undefined,
+      loadValue: { r: 0.0, g: 0.0, b: 0.0, a: 1.0 },
+      storeOp: gpu.sampleCount > 1 ? 'clear' : 'store',
+    };
+
+    this.depthAttachment = {
+      // attachment is acquired and set in onResize.
+      attachment: undefined,
+      depthLoadValue: 1.0,
+      depthStoreOp: 'store',
+      stencilLoadValue: 0,
+      stencilStoreOp: 'store',
+    };
+
+    this.renderPassDescriptor = {
+      colorAttachments: [this.colorAttachment],
+      depthStencilAttachment: this.depthAttachment
+    };
+
+    this.geometryLayoutCache = new GeometryLayoutCache();
 
     // Frame uniforms
     const frameUniformBufferSize = 4 * 36; // 2 mat4 + 1 vec3
@@ -97,38 +136,30 @@ export class WebGPURenderer extends System {
     this.singleton.add(gpu);
   }
 
-  onSwapChainResized(gpu, swapChain) {
-    swapChain.context.configure({
-      device: gpu.device,
-      format: gpu.format,
-      size: swapChain.size,
-    });
-  }
+  onCanvasResized(gpu, pixelWidth, pixelHeight) {
+    gpu.size.width = pixelWidth;
+    gpu.size.height = pixelHeight;
+    gpu.context.configure(gpu);
 
-  updateSwapChains(gpu) {
-    this.query(OutputCanvas).not(WebGPUSwapChain).forEach((entity, output) => {
-      const context = output.canvas.getContext('gpupresent');
+    if (gpu.sampleCount > 1) {
+      const msaaColorTexture = gpu.device.createTexture({
+        size: gpu.size,
+        sampleCount: gpu.sampleCount,
+        format: gpu.format,
+        usage: GPUTextureUsage.RENDER_ATTACHMENT,
+      });
+      this.colorAttachment.view = msaaColorTexture.createView();
+    }
 
-      if (!context) {
-        console.error('Unable to acquire "gpupresent" context from the given canvas.');
-        return;
-      }
-
-      entity.add(new WebGPUSwapChain(context));
-    });
-
-    this.query(OutputCanvas, WebGPUSwapChain).forEach((entity, output, swapChain) => {
-      if (output.width != swapChain.size.width ||
-          output.height != swapChain.size.height) {
-        swapChain.size.width = output.width;
-        swapChain.size.height = output.height;
-        this.onSwapChainResized(gpu, swapChain);
-      }
-    });
-
-    this.query(WebGPUSwapChain).not(OutputCanvas).forEach(entity => {
-      entity.remove(WebGPUSwapChain);
-    });
+    if (gpu.depthFormat) {
+      const depthTexture = gpu.device.createTexture({
+        size: gpu.size,
+        sampleCount: gpu.sampleCount,
+        format: gpu.depthFormat,
+        usage: GPUTextureUsage.RENDER_ATTACHMENT
+      });
+      this.depthAttachment.view = depthTexture.createView();
+    }
   }
 
   updateGeometry(gpu) {
@@ -197,11 +228,7 @@ export class WebGPURenderer extends System {
         vec3.set(gpuCamera.position, 0, 0, 0);
       }
       
-      let aspect = 1.0;
-      const output = entity.get(OutputCanvas);
-      if (output) {
-        aspect = output.width / output.height;
-      }
+      const aspect = gpu.size.width / gpu.size.height;
       mat4.perspectiveZO(gpuCamera.projectionMatrix, camera.fieldOfView, aspect,
         camera.zNear, camera.zFar);
     });
@@ -211,24 +238,23 @@ export class WebGPURenderer extends System {
     const gpu = this.singleton.get(WebGPU);
     if (!gpu) { return; }
 
-    this.updateSwapChains(gpu);
     this.updateGeometry(gpu);
     this.updateCameras(gpu);
 
-    this.query(WebGPUCamera, WebGPUSwapChain).forEach((entity, camera, swapChain) => {
+    // TODO: This is a little silly. How do we handle multiple cameras?
+    this.query(WebGPUCamera).forEach((entity, camera) => {
       gpu.device.queue.writeBuffer(this.frameUniformBuffer, 0, camera.array);
 
       const commandEncoder = gpu.device.createCommandEncoder({});
 
-      const renderPassDescriptor = {
-        colorAttachments: [{
-          view: swapChain.context.getCurrentTexture().createView(),
-          loadValue: { r: 0.0, g: 0.0, b: 0.3, a: 1.0 },
-          storeOp: 'store',
-        }]
-      };
+      const outputTexture = gpu.context.getCurrentTexture().createView();
+      if (gpu.sampleCount > 1) {
+        this.colorAttachment.resolveTarget = outputTexture;
+      } else {
+        this.colorAttachment.view = outputTexture;
+      }
 
-      const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
+      const passEncoder = commandEncoder.beginRenderPass(this.renderPassDescriptor);
 
       passEncoder.setBindGroup(0, this.frameBindGroup);
 

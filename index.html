@@ -86,13 +86,12 @@
         .registerSystem(InputSystem)
         .registerSystem(FlyingControlsSystem)
         .registerSystem(OrbitControlsSystem)
-        .registerSystem(WebGPURenderer);
+        .registerSystem(WebGPURenderer, document.querySelector('canvas'));
 
       const camera = world.create(
         new Transform([0, 0, 3]),
         new OrbitControls(),
-        new Camera(),
-        new OutputCanvas(document.querySelector('canvas'))
+        new Camera()
       );
 
       gui.add(appSettings, 'controls', {

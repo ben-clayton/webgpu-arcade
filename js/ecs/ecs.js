@@ -112,11 +112,11 @@ export class World {
     return entity;
   }
 
-  registerSystem(systemType) {
+  registerSystem(systemType, ...initArgs) {
     const system = new systemType(this, this.#worldData);
     this.#worldData.systems.set(systemType, system);
     if (system.init !== undefined) {
-      system.init();
+      system.init(...initArgs);
     }
     return this;
   }
