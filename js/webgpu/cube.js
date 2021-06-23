@@ -1,12 +1,9 @@
-import { WebGPURenderable } from './webgpu-renderable.js';
+import { WebGPURenderable } from './webgpu-components.js';
+import { CameraUniforms } from './webgpu-camera.js';
 
 const Cube = {
   vertexShader: `
-    [[block]] struct FrameUniforms {
-      projectionMatrix : mat4x4<f32>;
-      viewMatrix : mat4x4<f32>;
-    };
-    [[set(0), binding(0)]] var<uniform> frame : FrameUniforms;
+    ${CameraUniforms}
     
     struct VertexInput {
       [[location(0)]] position : vec4<f32>;
@@ -22,7 +19,7 @@ const Cube = {
     fn vertexMain(input : VertexInput) -> VertexOutput {
       var output : VertexOutput;
       output.color = input.color;
-      output.position = frame.projectionMatrix * frame.viewMatrix * input.position;
+      output.position = camera.projection * camera.view * input.position;
       return output;
     }
   `,

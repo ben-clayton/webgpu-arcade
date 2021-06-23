@@ -59,11 +59,11 @@
 
       import { InputSystem } from './js/input.js';
       import { Transform } from './js/transform.js';
-      import { OutputCanvas, OutputCanvasSystem } from './js/output-canvas.js';
       import { Camera } from './js/camera.js';
       import { FlyingControls, FlyingControlsSystem } from './js/flying-controls.js';
       import { OrbitControls, OrbitControlsSystem } from './js/orbit-controls.js';
 
+      import { WebGPUCameraSystem } from './js/webgpu/webgpu-camera.js';
       import { WebGPURenderer } from './js/webgpu/webgpu-renderer.js';
 
       import dat from 'dat.gui';
@@ -82,10 +82,10 @@
 
       const world = new World();
       world
-        .registerSystem(OutputCanvasSystem)
         .registerSystem(InputSystem)
         .registerSystem(FlyingControlsSystem)
         .registerSystem(OrbitControlsSystem)
+        .registerSystem(WebGPUCameraSystem)
         .registerSystem(WebGPURenderer, document.querySelector('canvas'));
 
       const camera = world.create(
