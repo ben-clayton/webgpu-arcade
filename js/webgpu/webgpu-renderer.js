@@ -7,29 +7,9 @@ import { WebGPUCamera } from './webgpu-camera.js';
 import { CubeRenderableFactory } from './cube.js';
 import { GeometryLayoutCache } from './resource-cache.js';
 
-// These are features that we want to enable on the GPUDevice if they are available
-const desiredFeatures = [
-  'texture-compression-bc'
-];
-
 export class WebGPURenderer extends System {
-  async init(canvas) {
-    const gpu = new WebGPU();
-
-    if (!gpu.device) {
-      const adapter = await navigator.gpu.requestAdapter({
-        powerPreference: "high-performance"
-      });
-
-      // Determine which of the desired features can be enabled for this device.
-      const requiredFeatures = desiredFeatures.filter(feature => adapter.features.has(feature));
-      gpu.device = await adapter.requestDevice({requiredFeatures});
-    }
-
-    gpu.canvas = canvas || document.createElement('canvas');
-    gpu.context = gpu.canvas.getContext('gpupresent');
-    gpu.format = gpu.context.getPreferredFormat(gpu.adapter);
-
+  async init() {
+    const gpu = this.singleton.get(WebGPU);
     this.colorAttachment = {
       // attachment is acquired and set in onResize.
       attachment: undefined,
@@ -106,8 +86,6 @@ export class WebGPURenderer extends System {
       new Transform(),
       cubeFactory.createRenderable()
     );
-
-    this.singleton.add(gpu);
   }
 
   onCanvasResized(gpu, pixelWidth, pixelHeight) {

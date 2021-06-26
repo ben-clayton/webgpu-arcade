@@ -65,6 +65,7 @@
 
       import { WebGPUCameraSystem } from './js/webgpu/webgpu-camera.js';
       import { WebGPURenderer } from './js/webgpu/webgpu-renderer.js';
+      import { WebGPUWorld } from './js/webgpu/webgpu-world.js';
 
       import dat from 'dat.gui';
       import Stats from 'stats.js';
@@ -80,13 +81,13 @@
       const stats = new Stats();
       document.body.appendChild(stats.dom);
 
-      const world = new World();
+      const world = new WebGPUWorld(document.querySelector('canvas'));
       world
         .registerSystem(InputSystem)
         .registerSystem(FlyingControlsSystem)
         .registerSystem(OrbitControlsSystem)
-        .registerSystem(WebGPUCameraSystem)
-        .registerSystem(WebGPURenderer, document.querySelector('canvas'));
+        .registerGPUSystem(WebGPUCameraSystem)
+        .registerGPUSystem(WebGPURenderer);
 
       const camera = world.create(
         new Transform([0, 0, 3]),
