@@ -3,7 +3,7 @@ import { CameraUniforms } from './webgpu-camera.js';
 
 const Cube = {
   vertexShader: `
-    ${CameraUniforms}
+    ${CameraUniforms(0, 0)}
     
     struct VertexInput {
       [[location(0)]] position : vec4<f32>;

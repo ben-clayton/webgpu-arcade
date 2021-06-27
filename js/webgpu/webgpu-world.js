@@ -12,10 +12,7 @@ export class WebGPUWorld extends World {
 
   constructor(canvas) {
     super();
-
-    this.#gpuInitialized = this.init(canvas).then((gpu) => {
-      this.singleton.add(gpu);
-    });
+    this.#gpuInitialized = this.init(canvas);
   }
 
   async init(canvas) {
@@ -33,12 +30,32 @@ export class WebGPUWorld extends World {
     gpu.canvas = canvas || document.createElement('canvas');
     gpu.context = gpu.canvas.getContext('gpupresent');
     gpu.format = gpu.context.getPreferredFormat(gpu.adapter);
+
+    gpu.bindGroupLayouts.frame = gpu.device.createBindGroupLayout({
+      label: `Frame BindGroupLayout`,
+      entries: [{
+        binding: 0, // Camera uniforms
+        visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT | GPUShaderStage.COMPUTE,
+        buffer: {},
+      }, /*{
+        binding: 1, // Light uniforms
+        visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT | GPUShaderStage.COMPUTE,
+        buffer: { type: 'read-only-storage' }
+      }, {
+        binding: 2, // Cluster Lights storage
+        visibility: GPUShaderStage.FRAGMENT | GPUShaderStage.COMPUTE,
+        buffer: { type: 'read-only-storage' }
+      }*/]
+    });
+
+    this.singleton.add(gpu);
+
     return gpu;
   }
 
   registerGPUSystem(systemType, ...initArgs) {
-    this.#gpuInitialized.then(() => {
-      this.registerSystem(systemType, ...initArgs);
+    this.#gpuInitialized.then((gpu) => {
+      this.registerSystem(systemType, gpu, ...initArgs);
     });
     return this;
   }

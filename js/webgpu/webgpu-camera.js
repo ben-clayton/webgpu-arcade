@@ -5,8 +5,7 @@ import { WebGPU } from './webgpu-components.js';
 import { Camera } from '../camera.js';
 import { Transform } from '../transform.js';
 
-export const CameraUniformsSize = 224;
-export const CameraUniforms = `
+export function CameraUniforms(group = 0, binding = 0) { return `
   [[block]] struct CameraUniforms {
     projection : mat4x4<f32>;
     inverseProjection : mat4x4<f32>;
@@ -17,26 +16,48 @@ export const CameraUniforms = `
     zNear : f32;
     zFar : f32;
   };
-  [[group(0), binding(0)]] var<uniform> camera : CameraUniforms;
+  [[group(${group}), binding(${binding})]] var<uniform> camera : CameraUniforms;
 `;
+}
+const CAMERA_UNIFORMS_SIZE = 224;
 
 export class WebGPUCamera {
-  constructor(device) {
-    this.array = new Float32Array(CameraUniformsSize / Float32Array.BYTES_PER_ELEMENT);
-    this.projection = new Float32Array(this.array.buffer, 0, 16);
-    this.inverseProjection = new Float32Array(this.array.buffer, 16 * Float32Array.BYTES_PER_ELEMENT, 16);
-    this.view = new Float32Array(this.array.buffer, 32 * Float32Array.BYTES_PER_ELEMENT, 16);
-    this.position = new Float32Array(this.array.buffer, 48 * Float32Array.BYTES_PER_ELEMENT, 3);
-    this.time = new Float32Array(this.array.buffer, 51 * Float32Array.BYTES_PER_ELEMENT, 1);
-    this.outputSize = new Float32Array(this.array.buffer, 52 * Float32Array.BYTES_PER_ELEMENT, 2);
-    this.zRange = new Float32Array(this.array.buffer, 54 * Float32Array.BYTES_PER_ELEMENT, 2);
+  constructor(gpu) {
+    const device = gpu.device;
+    this.array = new Float32Array(CAMERA_UNIFORMS_SIZE / Float32Array.BYTES_PER_ELEMENT);
+    const buffer = this.array.buffer;
+    this.projection = new Float32Array(buffer, 0, 16);
+    this.inverseProjection = new Float32Array(buffer, 16 * Float32Array.BYTES_PER_ELEMENT, 16);
+    this.view = new Float32Array(buffer, 32 * Float32Array.BYTES_PER_ELEMENT, 16);
+    this.position = new Float32Array(buffer, 48 * Float32Array.BYTES_PER_ELEMENT, 3);
+    this.time = new Float32Array(buffer, 51 * Float32Array.BYTES_PER_ELEMENT, 1);
+    this.outputSize = new Float32Array(buffer, 52 * Float32Array.BYTES_PER_ELEMENT, 2);
+    this.zRange = new Float32Array(buffer, 54 * Float32Array.BYTES_PER_ELEMENT, 2);
 
     this.buffer = device.createBuffer({
       size: this.array.byteLength,
       usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.UNIFORM,
     });
 
-    this.bindGroup = null; 
+    this.bindGroup = device.createBindGroup({
+      layout: gpu.bindGroupLayouts.frame,
+      entries: [{
+        binding: 0,
+        resource: { buffer: this.buffer, },
+      }],
+    });
+  }
+}
+
+export class WebGPUFrameResources {
+  constructor(gpu) {
+    this.bindGroup = device.createBindGroup({
+      layout: gpu.bindGroupLayouts.frame,
+      entries: [{
+        binding: 0,
+        resource: { buffer: this.camera.buffer, },
+      }],
+    });
   }
 }
 
@@ -57,56 +78,15 @@ export class WebGPUCamera {
 `;*/
 
 export class WebGPUCameraSystem extends System {
-  createFrameBindGroup() {
-    this.frameBindGroupLayout = gpu.device.createBindGroupLayout({
-      label: 'Frame BindGroupLayout',
-      entries: [{
-        binding: 0, // Camera uniforms (Projection, View, etc.)
-        visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT | GPUShaderStage.COMPUTE,
-        buffer: {},
-      }, /*{
-        binding: 1, // Light uniforms
-        visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT | GPUShaderStage.COMPUTE,
-        buffer: { type: 'read-only-storage' }
-      }, {
-        binding: 2, // Cluster Lights storage
-        visibility: GPUShaderStage.FRAGMENT | GPUShaderStage.COMPUTE,
-        buffer: { type: 'storage' }
-      }*/]
-    });
-
-    this.frameBindGroupLayout = gpu.device.createBindGroup({
-      label: 'Frame BindGroup',
-      layout: this.frameBindGroupLayout,
-      entries: [{
-        binding: 0,
-        resource: {
-          buffer: this.cameraBuffer,
-        },
-      }, /*{
-        binding: 1,
-        resource: {
-          buffer: this.lightsBuffer,
-        },
-      }, {
-        binding: 2,
-        resource: {
-          buffer: this.clusterLightsBuffer
-        }
-      }*/],
-    });
-  }
-
   execute(delta, time) {
     const gpu = this.singleton.get(WebGPU);
-    if (!gpu) { return; }
 
     // If a Camera does not have an associated WebGPUCamera add one.
     this.query(Camera).not(WebGPUCamera).forEach((entity) => {
-      entity.add(new WebGPUCamera(gpu.device));
+      entity.add(new WebGPUCamera(gpu));
     });
 
-    // If a WebGPUCamera has had it's Camera removed, also remove the WebGPU camera.
+    // If a WebGPUCamera has had it's Camera removed, also remove the WebGPUCamera.
     this.query(WebGPUCamera).not(Camera).forEach((entity) => {
       entity.remove(WebGPUCamera);
     });

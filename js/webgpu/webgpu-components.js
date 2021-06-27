@@ -1,3 +1,7 @@
+export class WebGPUBindGroupLayouts {
+  frame = null;
+}
+
 export class WebGPU {
   device = null;
   format = 'bgra8unorm';
@@ -7,6 +11,8 @@ export class WebGPU {
   canvas = null;
   context = null;
   size = {width: 0, height: 0};
+
+  bindGroupLayouts = new WebGPUBindGroupLayouts();
 
   get adapter() {
     return this.device?.adapter;

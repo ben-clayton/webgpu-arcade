@@ -3,13 +3,12 @@ import { Transform } from '../transform.js';
 import { StaticGeometry } from '../geometry.js';
 
 import { WebGPU, WebGPURenderGeometry, WebGPURenderable } from './webgpu-components.js';
-import { WebGPUCamera } from './webgpu-camera.js';
+import { WebGPUFrameResources, WebGPUCamera } from './webgpu-camera.js';
 import { CubeRenderableFactory } from './cube.js';
 import { GeometryLayoutCache } from './resource-cache.js';
 
 export class WebGPURenderer extends System {
-  async init() {
-    const gpu = this.singleton.get(WebGPU);
+  async init(gpu) {
     this.colorAttachment = {
       // attachment is acquired and set in onResize.
       attachment: undefined,
@@ -56,31 +55,7 @@ export class WebGPURenderer extends System {
     this.geometryLayoutCache = new GeometryLayoutCache();
 
     // Frame uniforms
-    const frameUniformBufferSize = 4 * 36; // 2 mat4 + 1 vec3
-    this.frameUniformBuffer = gpu.device.createBuffer({
-      size: frameUniformBufferSize,
-      usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
-    });
-
-    this.frameBindGroupLayout = gpu.device.createBindGroupLayout({
-      entries: [{
-        binding: 0,
-        visibility: GPUShaderStage.VERTEX,
-        buffer: {}
-      }],
-    });
-
-    this.frameBindGroup = gpu.device.createBindGroup({
-      layout: this.frameBindGroupLayout,
-      entries: [{
-        binding: 0,
-        resource: {
-          buffer: this.frameUniformBuffer,
-        },
-      }],
-    });
-
-    const cubeFactory = new CubeRenderableFactory(gpu, this.frameBindGroupLayout);
+    const cubeFactory = new CubeRenderableFactory(gpu, gpu.bindGroupLayouts.frame);
 
     this.world.create(
       new Transform(),
@@ -167,17 +142,6 @@ export class WebGPURenderer extends System {
 
     // TODO: This is a little silly. How do we handle multiple cameras?
     this.query(WebGPUCamera).forEach((entity, camera) => {
-      // TODO: This feels like a somewhat awkward place for this.
-      if (camera.bindGroup === null) {
-        camera.bindGroup = gpu.device.createBindGroup({
-          layout: this.frameBindGroupLayout,
-          entries: [{
-            binding: 0,
-            resource: { buffer: camera.buffer, },
-          }],
-        });
-      }
-
       const commandEncoder = gpu.device.createCommandEncoder({});
 
       const outputTexture = gpu.context.getCurrentTexture().createView();
