@@ -3,7 +3,7 @@ import { Transform } from '../transform.js';
 import { StaticGeometry } from '../geometry.js';
 
 import { WebGPU, WebGPURenderGeometry, WebGPURenderable } from './webgpu-components.js';
-import { WebGPUFrameResources, WebGPUCamera } from './webgpu-camera.js';
+import { WebGPUFrameBindings } from './webgpu-frame.js';
 import { CubeRenderableFactory } from './cube.js';
 import { GeometryLayoutCache } from './resource-cache.js';
 
@@ -140,8 +140,7 @@ export class WebGPURenderer extends System {
 
     this.updateGeometry(gpu);
 
-    // TODO: This is a little silly. How do we handle multiple cameras?
-    this.query(WebGPUCamera).forEach((entity, camera) => {
+    this.query(WebGPUFrameBindings).forEach((entity, frameBindings) => {
       const commandEncoder = gpu.device.createCommandEncoder({});
 
       const outputTexture = gpu.context.getCurrentTexture().createView();
@@ -153,7 +152,7 @@ export class WebGPURenderer extends System {
 
       const passEncoder = commandEncoder.beginRenderPass(this.renderPassDescriptor);
 
-      passEncoder.setBindGroup(0, camera.bindGroup);
+      passEncoder.setBindGroup(0, frameBindings.bindGroup);
 
       this.query(WebGPURenderable).forEach((entity, renderable) => {
         const transform = entity.get(Transform);

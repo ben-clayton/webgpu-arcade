@@ -64,11 +64,11 @@
       import { FlyingControls, FlyingControlsSystem } from './js/flying-controls.js';
       import { OrbitControls, OrbitControlsSystem } from './js/orbit-controls.js';
 
-      import { WebGPUCameraSystem } from './js/webgpu/webgpu-camera.js';
-      import { WebGPURenderer } from './js/webgpu/webgpu-renderer.js';
       import { WebGPUWorld } from './js/webgpu/webgpu-world.js';
       import { WebGPULightSystem } from './js/webgpu/webgpu-light.js';
-      import { ClusteredLightSystem } from './js/webgpu/clustered-light.js';
+      import { WebGPUFrameSystem } from './js/webgpu/webgpu-frame.js';
+      import { WebGPUClusteredLights } from './js/webgpu/webgpu-clustered-light.js';
+      import { WebGPURenderer } from './js/webgpu/webgpu-renderer.js';
 
       import dat from 'dat.gui';
       import Stats from 'stats.js';
@@ -89,9 +89,10 @@
         .registerSystem(InputSystem)
         .registerSystem(FlyingControlsSystem)
         .registerSystem(OrbitControlsSystem)
-        .registerGPUSystem(WebGPUCameraSystem)
+        // Unfortunately the order of these systems is kind of delicate.
         .registerGPUSystem(WebGPULightSystem)
-        .registerGPUSystem(ClusteredLightSystem)
+        .registerGPUSystem(WebGPUFrameSystem)
+        .registerGPUSystem(WebGPUClusteredLights)
         .registerGPUSystem(WebGPURenderer);
 
       const camera = world.create(

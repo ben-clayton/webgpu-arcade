@@ -3,16 +3,16 @@
 
 import { System } from 'ecs';
 import { WebGPU } from './webgpu-components.js';
-import { WebGPUCamera, CameraUniforms } from './webgpu-camera.js';
-
-export const TILE_COUNT = [32, 18, 48];
-export const TOTAL_TILES = TILE_COUNT[0] * TILE_COUNT[1] * TILE_COUNT[2];
-
-// Each cluster tracks up to MAX_LIGHTS_PER_CLUSTER light indices (ints) and one light count.
-// This limitation should be able to go away when we have atomic methods in WGSL.
-export const MAX_LIGHTS_PER_CLUSTER = 256;
-export const MAX_CLUSTERED_LIGHTS = TOTAL_TILES * 64;
-export const CLUSTER_LIGHTS_SIZE = (8 * TOTAL_TILES) + (4 * MAX_CLUSTERED_LIGHTS) + 4;
+import { LightStruct } from './webgpu-light.js';
+import {
+  TILE_COUNT,
+  MAX_LIGHTS_PER_CLUSTER,
+  MAX_CLUSTERED_LIGHTS,
+  CameraStruct,
+  ClusterStruct,
+  ClusterLightsStruct,
+} from './webgpu-frame-components.js';
+import { WebGPUFrameBindings } from './webgpu-frame.js';
 
 export const TileFunctions = `
 let tileCount : vec3<u32> = vec3<u32>(${TILE_COUNT[0]}u, ${TILE_COUNT[1]}u, ${TILE_COUNT[2]}u);
@@ -41,52 +41,9 @@ fn getClusterIndex(fragCoord : vec4<f32>) -> u32 {
 }
 `;
 
-export function ClusterStorage(group, binding, access = 'read') { return `
-  struct ClusterBounds {
-    minAABB : vec3<f32>;
-    maxAABB : vec3<f32>;
-  };
-  [[block]] struct Clusters {
-    bounds : [[stride(32)]] array<ClusterBounds, ${TOTAL_TILES}>;
-  };
-  [[group(${group}), binding(${binding})]] var<storage, ${access}> clusters : Clusters;
-`;
-}
-
-export function ClusterLightsStorage(group, binding, access='read') { return `
-  struct ClusterLights {
-    offset : u32;
-    count : u32;
-  };
-  [[block]] struct ClusterLightGroup {
-    offset : atomic<u32>;
-    lights : [[stride(8)]] array<ClusterLights, ${TOTAL_TILES}>;
-    indices : [[stride(4)]] array<u32, ${MAX_CLUSTERED_LIGHTS}>;
-  };
-  [[group(${group}), binding(${binding})]] var<storage, ${access}> clusterLights : ClusterLightGroup;
-`;
-}
-
-export function LightStorage(group, binding) { return `
-  struct Light {
-    position : vec3<f32>;
-    range : f32;
-    color : vec3<f32>;
-    intensity : f32;
-  };
-
-  [[block]] struct GlobalLightUniforms {
-    ambient : vec3<f32>;
-    lightCount : u32;
-    lights : [[stride(32)]] array<Light>;
-  };
-  [[group(${group}), binding(${binding})]] var<storage> globalLights : GlobalLightUniforms;
-`;
-}
-
 export const ClusterBoundsSource = `
-  ${CameraUniforms(0, 0)}
-  ${ClusterStorage(1, 0, 'write')}
+  ${CameraStruct(0, 0)}
+  ${ClusterStruct(1, 0, 'write')}
 
   fn lineIntersectionToZPlane(a : vec3<f32>, b : vec3<f32>, zDistance : f32) -> vec3<f32> {
     let normal : vec3<f32> = vec3<f32>(0.0, 0.0, 1.0);
@@ -138,10 +95,10 @@ export const ClusterBoundsSource = `
 `;
 
 export const ClusterLightsSource = `
-  ${CameraUniforms(0, 0)}
-  ${LightStorage(0, 1)}
-  ${ClusterStorage(1, 0, 'read')}
-  ${ClusterLightsStorage(1, 1, 'read_write')}
+  ${CameraStruct(0, 0)}
+  ${LightStruct(0, 1)}
+  ${ClusterStruct(1, 0, 'read')}
+  ${ClusterLightsStruct(1, 1, 'read_write')}
 
   ${TileFunctions}
 
@@ -213,24 +170,14 @@ export const ClusterLightsSource = `
 
 const emptyArray = new Uint32Array(1);
 
-export class ClusteredLightSystem extends System {
+export class WebGPUClusteredLights extends System {
   #outputSize = {width: 0, height: 0};
 
   init(gpu) {
     const device = gpu.device;
 
-    this.clusterLightsBuffer = device.createBuffer({
-      size: CLUSTER_LIGHTS_SIZE,
-      usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST
-    });
-
-    this.clusterBoundsBuffer = device.createBuffer({
-      size: TOTAL_TILES * 32, // Cluster x, y, z size * 32 bytes per cluster.
-      usage: GPUBufferUsage.STORAGE
-    });
-
     // Cluster Bounds computation resources
-    const clusterStorageBindGroupLayout = device.createBindGroupLayout({
+    gpu.bindGroupLayouts.clusterBounds = device.createBindGroupLayout({
       label: `Cluster Storage Bind Group Layout`,
       entries: [{
         binding: 0,
@@ -239,21 +186,11 @@ export class ClusteredLightSystem extends System {
       }]
     });
 
-    this.clusterStorageBindGroup = device.createBindGroup({
-      layout: clusterStorageBindGroupLayout,
-      entries: [{
-        binding: 0,
-        resource: {
-          buffer: this.clusterBoundsBuffer,
-        },
-      }],
-    });
-
     device.createComputePipelineAsync({
       layout: device.createPipelineLayout({
         bindGroupLayouts: [
           gpu.bindGroupLayouts.frame,
-          clusterStorageBindGroupLayout,
+          gpu.bindGroupLayouts.clusterBounds,
         ]
       }),
       compute: {
@@ -261,11 +198,11 @@ export class ClusteredLightSystem extends System {
         entryPoint: 'computeMain',
       }
     }).then((pipeline) => {
-      this.clusterBoundsPipeline = pipeline;
+      this.boundsPipeline = pipeline;
     });
 
     // Cluster Lights computation resources
-    const clusterBoundsReadOnlyBindGroupLayout = device.createBindGroupLayout({
+    gpu.bindGroupLayouts.clusterLights = device.createBindGroupLayout({
       label: `Cluster Bounds Bind Group Layout`,
       entries: [{
         binding: 0,
@@ -278,22 +215,11 @@ export class ClusteredLightSystem extends System {
       }]
     });
 
-    this.clusterBoundsBindGroup = device.createBindGroup({
-      layout: clusterBoundsReadOnlyBindGroupLayout,
-      entries: [{
-        binding: 0,
-        resource: { buffer: this.clusterBoundsBuffer },
-      }, {
-        binding: 1,
-        resource: { buffer: this.clusterLightsBuffer },
-      }],
-    });
-
     device.createComputePipelineAsync({
       layout: device.createPipelineLayout({
         bindGroupLayouts: [
           gpu.bindGroupLayouts.frame,
-          clusterBoundsReadOnlyBindGroupLayout,
+          gpu.bindGroupLayouts.clusterLights,
         ]
       }),
       compute: {
@@ -301,12 +227,12 @@ export class ClusteredLightSystem extends System {
         entryPoint: 'computeMain',
       }
     }).then((pipeline) => {
-      this.clusterLightsPipeline = pipeline;
+      this.lightsPipeline = pipeline;
     });
   }
 
-  updateClusterBounds(gpu, passEncoder) {
-    if (!this.clusterBoundsPipeline ||
+  updateClusterBounds(gpu, frameBindings, passEncoder) {
+    if (!this.boundsPipeline ||
       (this.#outputSize.width == gpu.size.width &&
       this.#outputSize.height == gpu.size.height)) {
       return;
@@ -315,38 +241,39 @@ export class ClusteredLightSystem extends System {
     this.#outputSize.width = gpu.size.width;
     this.#outputSize.height = gpu.size.height;
 
-    passEncoder.setPipeline(this.clusterBoundsPipeline);
-    passEncoder.setBindGroup(1, this.clusterStorageBindGroup);
+    passEncoder.setPipeline(this.boundsPipeline);
+    passEncoder.setBindGroup(1, frameBindings.cluster.boundsBindGroup);
     passEncoder.dispatch(...TILE_COUNT);
   }
 
-  updateClusterLights(gpu, passEncoder) {
+  updateClusterLights(gpu, frameBindings, passEncoder) {
     if (!this.clusterLightsPipeline) { return; }
 
     // Reset the light offset counter to 0 before populating the light clusters.
-    device.queue.writeBuffer(this.clusterLightsBuffer, 0, emptyArray);
+    device.queue.writeBuffer(frameBindings.cluster.lightsBuffer, 0, emptyArray);
 
     // Update the FrameUniforms buffer with the values that are used by every
     // program and don't change for the duration of the frame.
-    passEncoder.setPipeline(this.clusterLightsPipeline);
-    passEncoder.setBindGroup(1, this.clusterBoundsBindGroup);
+    passEncoder.setPipeline(this.lightsPipeline);
+    passEncoder.setBindGroup(1, frameBindings.cluster.lightsBindGroup);
     passEncoder.dispatch(...TILE_COUNT);
   }
 
   execute(delta, time) {
-    /*const gpu = this.singleton.get(WebGPU);
+    const gpu = this.singleton.get(WebGPU);
 
-    this.query(WebGPUCamera).forEach((entity, camera) => {
+    this.query(WebGPUFrameBindings).forEach((entity, frameBindings) => {
       const commandEncoder = gpu.device.createCommandEncoder();
       const passEncoder = commandEncoder.beginComputePass();
-      passEncoder.setBindGroup(0, camera.bindGroup);
+      passEncoder.setBindGroup(0, frameBindings.bindGroup);
 
-      this.updateClusterBounds(gpu, passEncoder);
-      this.updateClusterLights(gpu, passEncoder);
+      this.updateClusterBounds(gpu, frameBindings, passEncoder);
+      this.updateClusterLights(gpu, frameBindings, passEncoder);
 
       passEncoder.endPass();
 
       gpu.device.queue.submit([commandEncoder.finish()]);
-    });*/
+    });
+    /*c*/
   }
 }

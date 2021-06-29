@@ -1,9 +1,9 @@
 import { WebGPURenderable } from './webgpu-components.js';
-import { CameraUniforms } from './webgpu-camera.js';
+import { CameraStruct } from './webgpu-frame-components.js';
 
 const Cube = {
   vertexShader: `
-    ${CameraUniforms(0, 0)}
+    ${CameraStruct(0, 0)}
     
     struct VertexInput {
       [[location(0)]] position : vec4<f32>;

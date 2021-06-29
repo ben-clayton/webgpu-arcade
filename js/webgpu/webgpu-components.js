@@ -12,7 +12,7 @@ export class WebGPU {
   context = null;
   size = {width: 0, height: 0};
 
-  bindGroupLayouts = new WebGPUBindGroupLayouts();
+  bindGroupLayouts = {};
 
   get adapter() {
     return this.device?.adapter;

@@ -37,7 +37,7 @@ export class WebGPUWorld extends World {
         binding: 0, // Camera uniforms
         visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT | GPUShaderStage.COMPUTE,
         buffer: {},
-      }, /*{
+      }, {
         binding: 1, // Light uniforms
         visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT | GPUShaderStage.COMPUTE,
         buffer: { type: 'read-only-storage' }
@@ -45,7 +45,7 @@ export class WebGPUWorld extends World {
         binding: 2, // Cluster Lights storage
         visibility: GPUShaderStage.FRAGMENT | GPUShaderStage.COMPUTE,
         buffer: { type: 'read-only-storage' }
-      }*/]
+      }]
     });
 
     this.singleton.add(gpu);
