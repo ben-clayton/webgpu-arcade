@@ -168,9 +168,9 @@ export class WebGPURenderer extends System {
         const ib = renderable.indexBuffer;
         if (ib) {
           passEncoder.setIndexBuffer(ib.buffer, ib.format, ib.offset, ib.size);
-          passEncoder.drawIndexed(renderable.drawCount);
+          passEncoder.drawIndexed(renderable.drawCount, renderable.instanceCount);
         } else {
-          passEncoder.draw(renderable.drawCount);
+          passEncoder.draw(renderable.drawCount, renderable.instanceCount);
         }
       });
 

@@ -42,6 +42,7 @@ export class WebGPULightBuffer {
       size: GLOBAL_LIGHTS_ARRAY_SIZE * Float32Array.BYTES_PER_ELEMENT,
       usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.STORAGE,
     });
+    this.lightCount = 0;
   }
 }
 
@@ -66,7 +67,7 @@ export class WebGPULightSystem extends System {
         // Recycle previously used and released
         entity.add(freedLights.pop());
       } else {
-        this.lightCount++;
+        this.lightCount[0]++;
         entity.add(new WebGPULight(this.array.buffer, this.nextByteOffset));
         this.nextByteOffset += LIGHT_ARRAY_SIZE * Float32Array.BYTES_PER_ELEMENT;
       }
@@ -103,5 +104,6 @@ export class WebGPULightSystem extends System {
     const gpu = this.singleton.get(WebGPU);
     const lights = this.singleton.get(WebGPULightBuffer);
     gpu.device.queue.writeBuffer(lights.buffer, 0, this.array);
+    lights.lightCount = this.lightCount[0];
   }
 }

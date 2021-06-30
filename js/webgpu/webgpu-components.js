@@ -20,9 +20,11 @@ export class WebGPU {
 }
 
 export const RenderOrder = {
+  First: 0,
   Default: 1,
   Skybox: 2,
   Transparent: 3,
+  Last: 4
 };
 
 export class WebGPURenderGeometry {
@@ -37,6 +39,7 @@ export class WebGPURenderable {
   pipeline = null;
   renderOrder = RenderOrder.Default;
   drawCount = 0;
+  instanceCount = 1;
 
   #indexBuffer = null;
   get indexBuffer() { return this.#indexBuffer; }

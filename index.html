@@ -69,6 +69,7 @@
       import { WebGPUFrameSystem } from './js/webgpu/webgpu-frame.js';
       import { WebGPUClusteredLights } from './js/webgpu/webgpu-clustered-light.js';
       import { WebGPURenderer } from './js/webgpu/webgpu-renderer.js';
+      import { WebGPULightSpriteSystem } from './js/webgpu/webgpu-light-sprite.js';
 
       import dat from 'dat.gui';
       import Stats from 'stats.js';
@@ -93,6 +94,7 @@
         .registerGPUSystem(WebGPULightSystem)
         .registerGPUSystem(WebGPUFrameSystem)
         .registerGPUSystem(WebGPUClusteredLights)
+        .registerGPUSystem(WebGPULightSpriteSystem)
         .registerGPUSystem(WebGPURenderer);
 
       const camera = world.create(
