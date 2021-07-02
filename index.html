@@ -66,7 +66,7 @@
 
       import { WebGPUWorld } from './js/webgpu/webgpu-world.js';
       import { WebGPULightSystem } from './js/webgpu/webgpu-light.js';
-      import { WebGPUFrameSystem } from './js/webgpu/webgpu-frame.js';
+      import { WebGPUCameraSystem } from './js/webgpu/webgpu-camera.js';
       import { WebGPUClusteredLights } from './js/webgpu/webgpu-clustered-light.js';
       import { WebGPURenderer } from './js/webgpu/webgpu-renderer.js';
       import { WebGPULightSpriteSystem } from './js/webgpu/webgpu-light-sprite.js';
@@ -92,7 +92,7 @@
         .registerSystem(OrbitControlsSystem)
         // Unfortunately the order of these systems is kind of delicate.
         .registerGPUSystem(WebGPULightSystem)
-        .registerGPUSystem(WebGPUFrameSystem)
+        .registerGPUSystem(WebGPUCameraSystem)
         .registerGPUSystem(WebGPUClusteredLights)
         .registerGPUSystem(WebGPULightSpriteSystem)
         .registerGPUSystem(WebGPURenderer);

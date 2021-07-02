@@ -1,8 +1,7 @@
 import { System } from 'ecs';
 import { WebGPURenderable, RenderOrder } from './webgpu-components.js';
-import { LightStruct, WebGPULightBuffer } from './webgpu-light.js';
-import { CameraStruct } from './webgpu-frame-components.js';
-import { ColorConversions } from './shader-common.js';
+import { WebGPULightBuffer } from './webgpu-light.js';
+import { CameraStruct, LightStruct, ColorConversions } from './wgsl/common.js';
 
 const LightSpriteVertexSource = `
   var<private> pos : array<vec2<f32>, 4> = array<vec2<f32>, 4>(

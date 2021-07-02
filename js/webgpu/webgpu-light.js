@@ -4,28 +4,10 @@ import { AmbientLight, PointLight } from '../light.js';
 import { Transform } from '../transform.js';
 import { WebGPU } from './webgpu-components.js';
 
-export function LightStruct(group = 0, binding = 1) { return `
-  struct Light {
-    position : vec3<f32>;
-    range : f32;
-    color : vec3<f32>;
-    intensity : f32;
-  };
-
-  [[block]] struct GlobalLights {
-    ambient : vec3<f32>;
-    lightCount : u32;
-    lights : [[stride(32)]] array<Light>;
-  };
-  [[group(${group}), binding(${binding})]] var<storage, read> globalLights : GlobalLights;
-`;
-}
+import { LIGHT_BUFFER_SIZE } from './wgsl/common.js';
 
 const MAX_LIGHTS = 256;
-
-// Number of Float32 values in the lights buffer.
-const LIGHT_ARRAY_SIZE = 8;
-const GLOBAL_LIGHTS_ARRAY_SIZE = 4 + MAX_LIGHTS * LIGHT_ARRAY_SIZE;
+const GLOBAL_LIGHTS_BUFFER_SIZE = 4 + MAX_LIGHTS * LIGHT_BUFFER_SIZE;
 
 export class WebGPULight {
   constructor(arrayBuffer, byteOffset) {
@@ -39,7 +21,7 @@ export class WebGPULight {
 export class WebGPULightBuffer {
   constructor(gpu) {
     this.buffer = gpu.device.createBuffer({
-      size: GLOBAL_LIGHTS_ARRAY_SIZE * Float32Array.BYTES_PER_ELEMENT,
+      size: GLOBAL_LIGHTS_BUFFER_SIZE,
       usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.STORAGE,
     });
     this.lightCount = 0;
@@ -51,10 +33,9 @@ export class WebGPULightSystem extends System {
   freedLights = [];
 
   init(gpu) {
-    this.array = new Float32Array(GLOBAL_LIGHTS_ARRAY_SIZE);
-    const arrayBuffer = this.array.buffer;
-    this.ambientColor = new Float32Array(arrayBuffer, 0, 3);
-    this.lightCount = new Uint32Array(arrayBuffer, 3 * Float32Array.BYTES_PER_ELEMENT, 1);
+    this.arrayBuffer = new ArrayBuffer(GLOBAL_LIGHTS_BUFFER_SIZE);
+    this.ambientColor = new Float32Array(this.arrayBuffer, 0, 3);
+    this.lightCount = new Uint32Array(this.arrayBuffer, 3 * Float32Array.BYTES_PER_ELEMENT, 1);
     this.lightCount[0] = 0;
 
     this.singleton.add(new WebGPULightBuffer(gpu));
@@ -68,8 +49,8 @@ export class WebGPULightSystem extends System {
         entity.add(freedLights.pop());
       } else {
         this.lightCount[0]++;
-        entity.add(new WebGPULight(this.array.buffer, this.nextByteOffset));
-        this.nextByteOffset += LIGHT_ARRAY_SIZE * Float32Array.BYTES_PER_ELEMENT;
+        entity.add(new WebGPULight(this.arrayBuffer, this.nextByteOffset));
+        this.nextByteOffset += LIGHT_BUFFER_SIZE;
       }
     });
 
@@ -103,7 +84,7 @@ export class WebGPULightSystem extends System {
 
     const gpu = this.singleton.get(WebGPU);
     const lights = this.singleton.get(WebGPULightBuffer);
-    gpu.device.queue.writeBuffer(lights.buffer, 0, this.array);
+    gpu.device.queue.writeBuffer(lights.buffer, 0, this.arrayBuffer);
     lights.lightCount = this.lightCount[0];
   }
 }

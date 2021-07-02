@@ -3,7 +3,7 @@ import { Transform } from '../transform.js';
 import { StaticGeometry } from '../geometry.js';
 
 import { WebGPU, WebGPURenderGeometry, WebGPURenderable } from './webgpu-components.js';
-import { WebGPUFrameBindings } from './webgpu-frame.js';
+import { WebGPUCamera } from './webgpu-camera.js';
 import { CubeRenderableFactory } from './cube.js';
 import { GeometryLayoutCache } from './resource-cache.js';
 
@@ -15,16 +15,16 @@ export class WebGPURenderer extends System {
       // attachment is acquired and set in onFrame.
       resolveTarget: undefined,
       loadValue: { r: 0.0, g: 0.0, b: 0.0, a: 1.0 },
-      storeOp: gpu.sampleCount > 1 ? 'clear' : 'store',
+      storeOp: gpu.sampleCount > 1 ? 'discard' : 'store',
     };
 
     this.depthAttachment = {
       // attachment is acquired and set in onResize.
       attachment: undefined,
       depthLoadValue: 1.0,
-      depthStoreOp: 'store',
+      depthStoreOp: 'discard',
       stencilLoadValue: 0,
-      stencilStoreOp: 'store',
+      stencilStoreOp: 'discard',
     };
 
     this.renderPassDescriptor = {
@@ -140,7 +140,7 @@ export class WebGPURenderer extends System {
 
     this.updateGeometry(gpu);
 
-    this.query(WebGPUFrameBindings).forEach((entity, frameBindings) => {
+    this.query(WebGPUCamera).forEach((entity, camera) => {
       const commandEncoder = gpu.device.createCommandEncoder({});
 
       const outputTexture = gpu.context.getCurrentTexture().createView();
@@ -152,7 +152,7 @@ export class WebGPURenderer extends System {
 
       const passEncoder = commandEncoder.beginRenderPass(this.renderPassDescriptor);
 
-      passEncoder.setBindGroup(0, frameBindings.bindGroup);
+      passEncoder.setBindGroup(0, camera.bindGroup);
 
       this.query(WebGPURenderable).forEach((entity, renderable) => {
         const transform = entity.get(Transform);

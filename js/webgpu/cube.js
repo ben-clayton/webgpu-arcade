@@ -1,5 +1,5 @@
 import { WebGPURenderable } from './webgpu-components.js';
-import { CameraStruct } from './webgpu-frame-components.js';
+import { CameraStruct } from './wgsl/common.js';
 
 const Cube = {
   vertexShader: `

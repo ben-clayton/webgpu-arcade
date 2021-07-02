@@ -3,170 +3,12 @@
 
 import { System } from 'ecs';
 import { WebGPU } from './webgpu-components.js';
-import { LightStruct } from './webgpu-light.js';
+import { WebGPUCamera } from './webgpu-camera.js';
 import {
-  TILE_COUNT,
-  MAX_LIGHTS_PER_CLUSTER,
-  MAX_CLUSTERED_LIGHTS,
-  CameraStruct,
-  ClusterStruct,
-  ClusterLightsStruct,
-} from './webgpu-frame-components.js';
-import { WebGPUFrameBindings } from './webgpu-frame.js';
-
-export const TileFunctions = `
-let tileCount : vec3<u32> = vec3<u32>(${TILE_COUNT[0]}u, ${TILE_COUNT[1]}u, ${TILE_COUNT[2]}u);
-
-fn linearDepth(depthSample : f32) -> f32 {
-  let depthRange : f32 = 2.0 * depthSample - 1.0;
-  return 2.0 * camera.zNear * camera.zFar / (camera.zFar + camera.zNear - depthRange * (camera.zFar - camera.zNear));
-}
-
-fn getTile(fragCoord : vec4<f32>) -> vec3<u32> {
-  // TODO: scale and bias calculation can be moved outside the shader to save cycles.
-  let sliceScale : f32 = f32(tileCount.z) / log2(camera.zFar / camera.zNear);
-  let sliceBias : f32 = -(f32(tileCount.z) * log2(camera.zNear) / log2(camera.zFar / camera.zNear));
-  let zTile : u32 = u32(max(log2(linearDepth(fragCoord.z)) * sliceScale + sliceBias, 0.0));
-
-  return vec3<u32>(u32(fragCoord.x / (camera.outputSize.x / f32(tileCount.x))),
-                   u32(fragCoord.y / (camera.outputSize.y / f32(tileCount.y))),
-                   zTile);
-}
-
-fn getClusterIndex(fragCoord : vec4<f32>) -> u32 {
-  let tile : vec3<u32> = getTile(fragCoord);
-  return tile.x +
-         tile.y * tileCount.x +
-         tile.z * tileCount.x * tileCount.y;
-}
-`;
-
-export const ClusterBoundsSource = `
-  ${CameraStruct(0, 0)}
-  ${ClusterStruct(1, 0, 'write')}
-
-  fn lineIntersectionToZPlane(a : vec3<f32>, b : vec3<f32>, zDistance : f32) -> vec3<f32> {
-    let normal : vec3<f32> = vec3<f32>(0.0, 0.0, 1.0);
-    let ab : vec3<f32> =  b - a;
-    let t : f32 = (zDistance - dot(normal, a)) / dot(normal, ab);
-    return a + t * ab;
-  }
-
-  fn clipToView(clip : vec4<f32>) -> vec4<f32> {
-    let view : vec4<f32> = camera.inverseProjection * clip;
-    return view / vec4<f32>(view.w, view.w, view.w, view.w);
-  }
-
-  fn screen2View(screen : vec4<f32>) -> vec4<f32> {
-    let texCoord : vec2<f32> = screen.xy / camera.outputSize.xy;
-    let clip : vec4<f32> = vec4<f32>(vec2<f32>(texCoord.x, 1.0 - texCoord.y) * 2.0 - vec2<f32>(1.0, 1.0), screen.z, screen.w);
-    return clipToView(clip);
-  }
-
-  let tileCount : vec3<u32> = vec3<u32>(${TILE_COUNT[0]}u, ${TILE_COUNT[1]}u, ${TILE_COUNT[2]}u);
-  let eyePos : vec3<f32> = vec3<f32>(0.0, 0.0, 0.0);
-
-  [[stage(compute)]]
-  fn computeMain([[builtin(global_invocation_id)]] global_id : vec3<u32>) {
-    let tileIndex : u32 = global_id.x +
-                          global_id.y * tileCount.x +
-                          global_id.z * tileCount.x * tileCount.y;
-
-    let tileSize : vec2<f32> = vec2<f32>(camera.outputSize.x / f32(tileCount.x),
-                                         camera.outputSize.y / f32(tileCount.y));
-
-    let maxPoint_sS : vec4<f32> = vec4<f32>(vec2<f32>(f32(global_id.x+1u), f32(global_id.y+1u)) * tileSize, -1.0, 1.0);
-    let minPoint_sS : vec4<f32> = vec4<f32>(vec2<f32>(f32(global_id.x), f32(global_id.y)) * tileSize, -1.0, 1.0);
-
-    let maxPoint_vS : vec3<f32> = screen2View(maxPoint_sS).xyz;
-    let minPoint_vS : vec3<f32> = screen2View(minPoint_sS).xyz;
-
-    let tileNear : f32 = -camera.zNear * pow(camera.zFar/ camera.zNear, f32(global_id.z)/f32(tileCount.z));
-    let tileFar : f32 = -camera.zNear * pow(camera.zFar/ camera.zNear, f32(global_id.z+1u)/f32(tileCount.z));
-
-    let minPointNear : vec3<f32> = lineIntersectionToZPlane(eyePos, minPoint_vS, tileNear);
-    let minPointFar : vec3<f32> = lineIntersectionToZPlane(eyePos, minPoint_vS, tileFar);
-    let maxPointNear : vec3<f32> = lineIntersectionToZPlane(eyePos, maxPoint_vS, tileNear);
-    let maxPointFar : vec3<f32> = lineIntersectionToZPlane(eyePos, maxPoint_vS, tileFar);
-
-    clusters.bounds[tileIndex].minAABB = min(min(minPointNear, minPointFar),min(maxPointNear, maxPointFar));
-    clusters.bounds[tileIndex].maxAABB = max(max(minPointNear, minPointFar),max(maxPointNear, maxPointFar));
-  }
-`;
-
-export const ClusterLightsSource = `
-  ${CameraStruct(0, 0)}
-  ${LightStruct(0, 1)}
-  ${ClusterStruct(1, 0, 'read')}
-  ${ClusterLightsStruct(1, 1, 'read_write')}
-
-  ${TileFunctions}
-
-  fn sqDistPointAABB(point : vec3<f32>, minAABB : vec3<f32>, maxAABB : vec3<f32>) -> f32 {
-    var sqDist : f32 = 0.0;
-    // const minAABB : vec3<f32> = clusters.bounds[tileIndex].minAABB;
-    // const maxAABB : vec3<f32> = clusters.bounds[tileIndex].maxAABB;
-
-    // Wait, does this actually work? Just porting code, but it seems suspect?
-    for(var i : i32 = 0; i < 3; i = i + 1) {
-      let v : f32 = point[i];
-      if(v < minAABB[i]){
-        sqDist = sqDist + (minAABB[i] - v) * (minAABB[i] - v);
-      }
-      if(v > maxAABB[i]){
-        sqDist = sqDist + (v - maxAABB[i]) * (v - maxAABB[i]);
-      }
-    }
-
-    return sqDist;
-  }
-
-  [[stage(compute)]]
-  fn computeMain([[builtin(global_invocation_id)]] global_id : vec3<u32>) {
-    let tileIndex : u32 = global_id.x +
-                          global_id.y * tileCount.x +
-                          global_id.z * tileCount.x * tileCount.y;
-
-    // TODO: Look into improving threading using local invocation groups?
-    var clusterLightCount : u32 = 0u;
-    var cluserLightIndices : array<u32, ${MAX_LIGHTS_PER_CLUSTER}>;
-    for (var i : u32 = 0u; i < globalLights.lightCount; i = i + 1u) {
-      let range : f32 = globalLights.lights[i].range;
-      // Lights without an explicit range affect every cluster, but this is a poor way to handle that.
-      var lightInCluster : bool = range <= 0.0;
-
-      if (!lightInCluster) {
-        let lightViewPos : vec4<f32> = camera.view * vec4<f32>(globalLights.lights[i].position, 1.0);
-        let sqDist : f32 = sqDistPointAABB(lightViewPos.xyz, clusters.bounds[tileIndex].minAABB, clusters.bounds[tileIndex].maxAABB);
-        lightInCluster = sqDist <= (range * range);
-      }
-
-      if (lightInCluster) {
-        // Light affects this cluster. Add it to the list.
-        cluserLightIndices[clusterLightCount] = i;
-        clusterLightCount = clusterLightCount + 1u;
-      }
-
-      if (clusterLightCount == ${MAX_LIGHTS_PER_CLUSTER}u) {
-        break;
-      }
-    }
-
-    // TODO: Stick a barrier here and track cluster lights with an offset into a global light list
-    let lightCount : u32 = clusterLightCount;
-    var offset : u32 = atomicAdd(&clusterLights.offset, lightCount);
-
-    if (offset >= ${MAX_CLUSTERED_LIGHTS}u) {
-        return;
-    }
-
-    for(var i : u32 = 0u; i < clusterLightCount; i = i + 1u) {
-      clusterLights.indices[offset + i] = cluserLightIndices[i];
-    }
-    clusterLights.lights[tileIndex].offset = offset;
-    clusterLights.lights[tileIndex].count = clusterLightCount;
-  }
-`;
+  TILE_COUNT, 
+  ClusterBoundsSource,
+  ClusterLightsSource
+} from './wgsl/clustered-light.js';
 
 const emptyArray = new Uint32Array(1);
 
@@ -231,7 +73,7 @@ export class WebGPUClusteredLights extends System {
     });
   }
 
-  updateClusterBounds(gpu, frameBindings, passEncoder) {
+  updateClusterBounds(gpu, camera, passEncoder) {
     if (!this.boundsPipeline ||
       (this.#outputSize.width == gpu.size.width &&
       this.#outputSize.height == gpu.size.height)) {
@@ -242,7 +84,7 @@ export class WebGPUClusteredLights extends System {
     this.#outputSize.height = gpu.size.height;
 
     passEncoder.setPipeline(this.boundsPipeline);
-    passEncoder.setBindGroup(1, frameBindings.cluster.boundsBindGroup);
+    passEncoder.setBindGroup(1, camera.clusterBoundsBindGroup);
     passEncoder.dispatch(...TILE_COUNT);
   }
 
@@ -250,25 +92,25 @@ export class WebGPUClusteredLights extends System {
     if (!this.clusterLightsPipeline) { return; }
 
     // Reset the light offset counter to 0 before populating the light clusters.
-    device.queue.writeBuffer(frameBindings.cluster.lightsBuffer, 0, emptyArray);
+    device.queue.writeBuffer(camera.clusterLightsBuffer, 0, emptyArray);
 
     // Update the FrameUniforms buffer with the values that are used by every
     // program and don't change for the duration of the frame.
     passEncoder.setPipeline(this.lightsPipeline);
-    passEncoder.setBindGroup(1, frameBindings.cluster.lightsBindGroup);
+    passEncoder.setBindGroup(1, camera.clusterLightsBindGroup);
     passEncoder.dispatch(...TILE_COUNT);
   }
 
   execute(delta, time) {
     const gpu = this.singleton.get(WebGPU);
 
-    this.query(WebGPUFrameBindings).forEach((entity, frameBindings) => {
+    this.query(WebGPUCamera).forEach((entity, camera) => {
       const commandEncoder = gpu.device.createCommandEncoder();
       const passEncoder = commandEncoder.beginComputePass();
-      passEncoder.setBindGroup(0, frameBindings.bindGroup);
+      passEncoder.setBindGroup(0, camera.bindGroup);
 
-      this.updateClusterBounds(gpu, frameBindings, passEncoder);
-      this.updateClusterLights(gpu, frameBindings, passEncoder);
+      this.updateClusterBounds(gpu, camera, passEncoder);
+      this.updateClusterLights(gpu, camera, passEncoder);
 
       passEncoder.endPass();
 
