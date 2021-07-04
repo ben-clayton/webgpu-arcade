@@ -71,6 +71,8 @@
       import { WebGPUClusteredLights } from './js/webgpu/webgpu-clustered-light.js';
       import { WebGPURenderer } from './js/webgpu/webgpu-renderer.js';
       import { WebGPULightSpriteSystem } from './js/webgpu/webgpu-light-sprite.js';
+      import { WebGPUGeometrySystem } from './js/webgpu/webgpu-geometry.js';
+      import { WebGPUDefaultPipelineSystem } from './js/webgpu/webgpu-pipeline.js';
 
       import { createCubeGeometry } from './js/cube-geometry.js';
 
@@ -98,6 +100,8 @@
         .registerGPUSystem(WebGPUCameraSystem)
         .registerGPUSystem(WebGPUClusteredLights)
         .registerGPUSystem(WebGPULightSpriteSystem)
+        .registerGPUSystem(WebGPUGeometrySystem)
+        .registerGPUSystem(WebGPUDefaultPipelineSystem)
         .registerGPUSystem(WebGPURenderer);
 
       const camera = world.create(

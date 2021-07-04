@@ -1,5 +1,6 @@
 import { System } from 'ecs';
-import { WebGPURenderable, RenderOrder } from './webgpu-components.js';
+import { WebGPURenderable } from './webgpu-components.js';
+import { WebGPURenderPipeline, RenderOrder } from './webgpu-pipeline.js';
 import { WebGPULightBuffer } from './webgpu-light.js';
 import { CameraStruct, LightStruct, ColorConversions } from './wgsl/common.js';
 

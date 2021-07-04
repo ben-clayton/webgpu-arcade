@@ -61,6 +61,7 @@ export class GeometryLayoutCache extends ResourceCache {
 
   createFor(geometry, id) {
     const buffers = [];
+    const locationsUsed = [];
     for (const buffer of geometry.buffers) {
       const attributes = [];
       for (const attrib of buffer.attributes) {
@@ -71,6 +72,7 @@ export class GeometryLayoutCache extends ResourceCache {
           format: attrib.format,
           offset,
         });
+        locationsUsed.push(attrib.shaderLocation);
       }
 
       buffers.push({
@@ -89,9 +91,27 @@ export class GeometryLayoutCache extends ResourceCache {
     const layout = {
       id,
       buffers,
-      primitive
+      primitive,
+      locationsUsed,
     };
 
     return layout;
+  }
+}
+
+// Creates a default RenderPipeline for the given geometry and output format. This will render using
+// any positions, normals, and vertex colors that may be supplied. If no colors are given will
+// render magenta to help visually identify geometry that lacks a proper material.
+export class DefaultPipelineCache {
+  constructor(device) {
+    this.device = device;
+  }
+
+  getKeyFor(descriptor) {
+    return `${descriptor.layout.id}:${descriptor.format}:${descriptor.depthFormat}:${descriptor.sampleCount}`;
+  }
+
+  createFor(descriptor, id) {
+
   }
 }

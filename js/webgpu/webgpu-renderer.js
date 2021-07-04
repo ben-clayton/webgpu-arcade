@@ -1,11 +1,13 @@
 import { System } from 'ecs';
 import { Transform } from '../core/transform.js';
-import { StaticGeometry } from '../core/geometry.js';
 
-import { WebGPU, WebGPURenderGeometry, WebGPURenderable } from './webgpu-components.js';
+
+import { WebGPU, WebGPURenderable } from './webgpu-components.js';
+import { WebGPURenderGeometry } from './webgpu-geometry.js';
+import { WebGPURenderPipeline } from './webgpu-pipeline.js';
 import { WebGPUCamera } from './webgpu-camera.js';
 import { CubeRenderableFactory } from './cube.js';
-import { GeometryLayoutCache } from './resource-cache.js';
+
 
 export class WebGPURenderer extends System {
   async init(gpu) {
@@ -52,8 +54,6 @@ export class WebGPURenderer extends System {
     this.resizeObserver.observe(gpu.canvas);
     this.onCanvasResized(gpu, gpu.canvas.width, gpu.canvas.height);
 
-    this.geometryLayoutCache = new GeometryLayoutCache();
-
     // Frame uniforms
     const cubeFactory = new CubeRenderableFactory(gpu, gpu.bindGroupLayouts.frame);
 
@@ -89,56 +89,8 @@ export class WebGPURenderer extends System {
     }
   }
 
-  updateGeometry(gpu) {
-    // For any entities with StaticGeometry but no WebGPURenderable, create the WebGPU buffers for
-    // the geometry, fill it from the StaticGeometry attributes, then clear the StaticGeometry's
-    // attributes so the memory can be GCed if needed.
-    this.query(StaticGeometry).not(WebGPURenderGeometry).forEach((entity, geometry) => {
-      const renderGeometry = new WebGPURenderGeometry();
-      //renderable.pipeline = this.pipeline;
-      renderGeometry.drawCount = geometry.drawCount;
-
-      const [id, layout] = this.geometryLayoutCache.getFor(geometry);
-      renderGeometry.layoutId = id;
-      renderGeometry.layout = layout;
-
-      let i = 0;
-      for (const buffer of geometry.buffers) {
-        const vertexBuffer = gpu.device.createBuffer({
-          size: buffer.array.byteLength,
-          usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST
-        });
-        gpu.device.queue.writeBuffer(vertexBuffer, 0, buffer.array);
-        renderGeometry.vertexBuffers.push({
-          slot: i++,
-          buffer: vertexBuffer,
-          offset: buffer.minOffset,
-        });
-      }
-
-      if (geometry.indexArray) {
-        const indexBuffer = gpu.device.createBuffer({
-          size: geometry.indexArray.byteLength,
-          usage: GPUBufferUsage.INDEX | GPUBufferUsage.COPY_DST
-        });
-        gpu.device.queue.writeBuffer(indexBuffer, 0, geometry.indexArray);
-        renderGeometry.indexBuffer = {
-          buffer: indexBuffer,
-          format: geometry.indexFormat
-        };
-      }
-
-      // TODO: Allow StaticGeometry to GC?
-
-      entity.add(renderGeometry);
-    });
-  }
-
   execute(delta, time) {
     const gpu = this.singleton.get(WebGPU);
-    if (!gpu) { return; }
-
-    this.updateGeometry(gpu);
 
     this.query(WebGPUCamera).forEach((entity, camera) => {
       const commandEncoder = gpu.device.createCommandEncoder({});
@@ -153,6 +105,26 @@ export class WebGPURenderer extends System {
       const passEncoder = commandEncoder.beginRenderPass(this.renderPassDescriptor);
 
       passEncoder.setBindGroup(0, camera.bindGroup);
+
+      this.query(WebGPURenderGeometry, WebGPURenderPipeline).forEach((entity, geometry, pipeline) => {
+        const transform = entity.get(Transform);
+        if (transform) {
+          // Apply model transform
+        }
+
+        passEncoder.setPipeline(pipeline.pipeline);
+
+        for (const vb of geometry.vertexBuffers) {
+          passEncoder.setVertexBuffer(vb.slot, vb.buffer, vb.offset);
+        }
+        const ib = geometry.indexBuffer;
+        if (ib) {
+          passEncoder.setIndexBuffer(ib.buffer, ib.format);
+          passEncoder.drawIndexed(geometry.drawCount, geometry.instanceCount);
+        } else {
+          passEncoder.draw(geometry.drawCount, geometry.instanceCount);
+        }
+      });
 
       this.query(WebGPURenderable).forEach((entity, renderable) => {
         const transform = entity.get(Transform);

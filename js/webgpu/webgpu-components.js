@@ -19,25 +19,9 @@ export class WebGPU {
   }
 }
 
-export const RenderOrder = {
-  First: 0,
-  Default: 1,
-  Skybox: 2,
-  Transparent: 3,
-  Last: 4
-};
-
-export class WebGPURenderGeometry {
-  layoutId = 0;
-  layout = null;
-  drawCount = 0;
-  indexBuffer = null;
-  vertexBuffers = [];
-}
-
 export class WebGPURenderable {
   pipeline = null;
-  renderOrder = RenderOrder.Default;
+  renderOrder = 0;
   drawCount = 0;
   instanceCount = 1;
 
