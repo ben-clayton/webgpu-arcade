@@ -1,6 +1,6 @@
 import { System } from 'ecs';
 import { MouseState } from './input.js';
-import { Transform } from './transform.js';
+import { Transform } from '../core/transform.js';
 import { vec3, vec2, quat } from 'gl-matrix';
 
 export class OrbitControls {

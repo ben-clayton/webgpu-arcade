@@ -12,8 +12,5 @@
         "gl-matrix": "github:toji/gl-matrix",
         "stats.js": "^0.17.0",
         "web-texture-tool": "github:toji/web-texture-tool"
-    },
-    "devDependencies": {
-        "ecsy": "^0.4.2"
     }
 }

@@ -1,6 +1,6 @@
 import { System } from 'ecs';
-import { Transform } from '../transform.js';
-import { StaticGeometry } from '../geometry.js';
+import { Transform } from '../core/transform.js';
+import { StaticGeometry } from '../core/geometry.js';
 
 import { WebGPU, WebGPURenderGeometry, WebGPURenderable } from './webgpu-components.js';
 import { WebGPUCamera } from './webgpu-camera.js';

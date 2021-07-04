@@ -5,7 +5,7 @@ import { System } from 'ecs';
 import { WebGPU } from './webgpu-components.js';
 import { WebGPUCamera } from './webgpu-camera.js';
 import {
-  TILE_COUNT, 
+  DISPATCH_SIZE, 
   ClusterBoundsSource,
   ClusterLightsSource
 } from './wgsl/clustered-light.js';
@@ -85,7 +85,7 @@ export class WebGPUClusteredLights extends System {
 
     passEncoder.setPipeline(this.boundsPipeline);
     passEncoder.setBindGroup(1, camera.clusterBoundsBindGroup);
-    passEncoder.dispatch(...TILE_COUNT);
+    passEncoder.dispatch(...DISPATCH_SIZE);
   }
 
   updateClusterLights(gpu, frameBindings, passEncoder) {
@@ -98,7 +98,7 @@ export class WebGPUClusteredLights extends System {
     // program and don't change for the duration of the frame.
     passEncoder.setPipeline(this.lightsPipeline);
     passEncoder.setBindGroup(1, camera.clusterLightsBindGroup);
-    passEncoder.dispatch(...TILE_COUNT);
+    passEncoder.dispatch(...DISPATCH_SIZE);
   }
 
   execute(delta, time) {

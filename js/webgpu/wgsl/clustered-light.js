@@ -2,6 +2,13 @@ import { CameraStruct, LightStruct } from './common.js';
 
 export const TILE_COUNT = [32, 18, 48];
 export const TOTAL_TILES = TILE_COUNT[0] * TILE_COUNT[1] * TILE_COUNT[2];
+
+const WORKGROUP_SIZE = [4, 2, 4];
+export const DISPATCH_SIZE = [
+  TILE_COUNT[0] / WORKGROUP_SIZE[0],
+  TILE_COUNT[1] / WORKGROUP_SIZE[1],
+  TILE_COUNT[2] / WORKGROUP_SIZE[2]]
+
 // Cluster x, y, z size * 32 bytes per cluster.
 export const CLUSTER_BOUNDS_SIZE = TOTAL_TILES * 32;
 
@@ -89,7 +96,7 @@ export const ClusterBoundsSource = `
   let tileCount : vec3<u32> = vec3<u32>(${TILE_COUNT[0]}u, ${TILE_COUNT[1]}u, ${TILE_COUNT[2]}u);
   let eyePos : vec3<f32> = vec3<f32>(0.0, 0.0, 0.0);
 
-  [[stage(compute)]]
+  [[stage(compute), workgroup_size(${WORKGROUP_SIZE[0]}, ${WORKGROUP_SIZE[1]}, ${WORKGROUP_SIZE[2]})]]
   fn computeMain([[builtin(global_invocation_id)]] global_id : vec3<u32>) {
     let tileIndex : u32 = global_id.x +
                           global_id.y * tileCount.x +
@@ -144,7 +151,7 @@ export const ClusterLightsSource = `
     return sqDist;
   }
 
-  [[stage(compute)]]
+  [[stage(compute), workgroup_size(${WORKGROUP_SIZE[0]}, ${WORKGROUP_SIZE[1]}, ${WORKGROUP_SIZE[2]})]]
   fn computeMain([[builtin(global_invocation_id)]] global_id : vec3<u32>) {
     let tileIndex : u32 = global_id.x +
                           global_id.y * tileCount.x +

@@ -1,8 +1,8 @@
 import { System } from 'ecs';
 import { mat4, vec3 } from 'gl-matrix';
 
-import { Transform } from '../transform.js';
-import { Camera } from '../camera.js';
+import { Transform } from '../core/transform.js';
+import { Camera } from '../core/camera.js';
 import { WebGPU } from './webgpu-components.js';
 import { WebGPULightBuffer } from './webgpu-light.js';
 

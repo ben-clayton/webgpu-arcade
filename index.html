@@ -57,12 +57,13 @@
     <script type="module">
       import { World } from 'ecs';
 
-      import { InputSystem } from './js/input.js';
-      import { Transform } from './js/transform.js';
-      import { Camera } from './js/camera.js';
-      import { PointLight, AmbientLight } from './js/light.js';
-      import { FlyingControls, FlyingControlsSystem } from './js/flying-controls.js';
-      import { OrbitControls, OrbitControlsSystem } from './js/orbit-controls.js';
+      import { Transform } from './js/core/transform.js';
+      import { Camera } from './js/core/camera.js';
+      import { PointLight, AmbientLight } from './js/core/light.js';
+
+      import { InputSystem } from './js/input/input.js';
+      import { FlyingControls, FlyingControlsSystem } from './js/input/flying-controls.js';
+      import { OrbitControls, OrbitControlsSystem } from './js/input/orbit-controls.js';
 
       import { WebGPUWorld } from './js/webgpu/webgpu-world.js';
       import { WebGPULightSystem } from './js/webgpu/webgpu-light.js';
