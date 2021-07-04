@@ -72,6 +72,8 @@
       import { WebGPURenderer } from './js/webgpu/webgpu-renderer.js';
       import { WebGPULightSpriteSystem } from './js/webgpu/webgpu-light-sprite.js';
 
+      import { createCubeGeometry } from './js/cube-geometry.js';
+
       import dat from 'dat.gui';
       import Stats from 'stats.js';
 
@@ -102,6 +104,11 @@
         new Transform([0, 0, 3]),
         new OrbitControls(),
         new Camera()
+      );
+
+      const cube = world.create(
+        new Transform([0, 0, 0]),
+        createCubeGeometry(),
       );
 
       // Add some lights

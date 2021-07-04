@@ -96,7 +96,7 @@ export class WebGPURenderer extends System {
     this.query(StaticGeometry).not(WebGPURenderGeometry).forEach((entity, geometry) => {
       const renderGeometry = new WebGPURenderGeometry();
       //renderable.pipeline = this.pipeline;
-      renderGeometry.drawCount = drawCount.drawCount;
+      renderGeometry.drawCount = geometry.drawCount;
 
       const [id, layout] = this.geometryLayoutCache.getFor(geometry);
       renderGeometry.layoutId = id;
@@ -105,10 +105,10 @@ export class WebGPURenderer extends System {
       let i = 0;
       for (const buffer of geometry.buffers) {
         const vertexBuffer = gpu.device.createBuffer({
-          size: attrib.values.byteLength,
+          size: buffer.array.byteLength,
           usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST
         });
-        gpu.device.queue.writeBuffer(vertexBuffer, 0, attrib.values);
+        gpu.device.queue.writeBuffer(vertexBuffer, 0, buffer.array);
         renderGeometry.vertexBuffers.push({
           slot: i++,
           buffer: vertexBuffer,

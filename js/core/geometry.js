@@ -52,33 +52,37 @@ export class InterleavedBuffer {
     this.array = array;
     this.arrayStride = arrayStride;
     this.attributes = [];
-    this.maxVertexCount = Math.floor(values.length * values.BYTES_PER_ELEMENT) / stride;
+    this.maxVertexCount = Math.floor(array.length * array.BYTES_PER_ELEMENT) / arrayStride;
     this.minOffset = Number.MAX_SAFE_INTEGER;
   }
 
   addAttribute(attribute, offset = 0, format) {
-    if (!format) {
+    const shaderLocation = Attribute[attribute];
+    if (format === undefined) {
       format = DefaultAttributeFormat[attribute];
-    }
-    if (typeof attribute == 'string') {
-      attribute = Attribute[attribute];
+      if (!format) {
+        throw new Error(`Unable to determine attribute format for ${attribute}.`);
+      }
     }
     this.minOffset = Math.min(this.minOffset, offset);
-    this.attributes.push({shaderLocation: attribute, offset, format});
+    this.attributes.push({attribute, shaderLocation, offset, format});
     return this;
   }
 };
 
 export class AttributeBuffer extends InterleavedBuffer {
   constructor(attribute, array, format, arrayStride) {
-    if (!format) {
+    if (format === undefined) {
       format = DefaultAttributeFormat[attribute];
+      if (!format) {
+        throw new Error(`Unable to determine attribute format for ${attribute}.`);
+      }
     }
     if (!arrayStride) {
       arrayStride = DefaultStride[format];
     }
     super(array, arrayStride);
-    super.addAttribute(location, 0, format);
+    super.addAttribute(attribute, 0, format);
   }
 
   addAttribute() {

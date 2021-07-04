@@ -5,10 +5,11 @@ export class ResourceCache {
 
   getFor(object) {
     let key = this.getKeyFor(object);
-    let id = this.#keyMap(key);
+    let id = this.#keyMap[key];
     if (id === undefined) {
       id = this.#nextId++;
       const resource = this.createFor(object, id);
+      this.#keyMap.set(key, id);
       this.#cache.set(id, resource);
       return [id, resource];
     }
@@ -36,7 +37,7 @@ export class GeometryLayoutCache extends ResourceCache {
     for (const buffer of geometry.buffers) {
       const attributes = [];
       for (const attrib of buffer.attributes) {
-        const offset = attrib.offset - attrib.minOffset
+        const offset = attrib.offset - buffer.minOffset
         attributes.push(`${attrib.shaderLocation},${attrib.format},${offset}`);
       }
 
@@ -64,7 +65,7 @@ export class GeometryLayoutCache extends ResourceCache {
       const attributes = [];
       for (const attrib of buffer.attributes) {
         // Exact offset will be handled when setting the buffer.
-        const offset = attrib.offset - attrib.minOffset
+        const offset = attrib.offset - buffer.minOffset
         attributes.push({
           shaderLocation: attrib.shaderLocation,
           format: attrib.format,
@@ -74,7 +75,7 @@ export class GeometryLayoutCache extends ResourceCache {
 
       buffers.push({
         arrayStride: buffer.arrayStride,
-        attributes: buffer.attributes
+        attributes
       });
     }
 
