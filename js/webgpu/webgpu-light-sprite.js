@@ -1,5 +1,5 @@
 import { System } from 'ecs';
-import { WebGPURenderable } from './webgpu-components.js';
+import { WebGPURenderGeometry } from './webgpu-geometry.js';
 import { WebGPURenderPipeline, RenderOrder } from './webgpu-pipeline.js';
 import { WebGPULightBuffer } from './webgpu-light.js';
 import { CameraStruct, LightStruct, ColorConversions } from './wgsl/common.js';
@@ -124,17 +124,19 @@ export class WebGPULightSpriteSystem extends System {
       }
     });
 
-    this.renderable = new WebGPURenderable();
-    this.renderOrder = RenderOrder.Last;
-    this.renderable.pipeline = this.pipeline;
-    this.renderable.drawCount = 4;
-    this.renderable.instanceCount = 0;
+    this.gpuPipeline = new WebGPURenderPipeline();
+    this.gpuPipeline.renderOrder = RenderOrder.Last;
+    this.gpuPipeline.pipeline = this.pipeline;
 
-    this.entity = this.world.create(this.renderable);
+    this.gpuGeometry = new WebGPURenderGeometry(gpu);
+    this.gpuGeometry.drawCount = 4;
+    this.gpuGeometry.instanceCount = 0;
+
+    this.entity = this.world.create(this.gpuPipeline, this.gpuGeometry);
   }
 
   execute(delta, time) {
     const lights = this.singleton.get(WebGPULightBuffer);
-    this.renderable.instanceCount = lights.lightCount;
+    this.gpuGeometry.instanceCount = lights.lightCount;
   }
 }

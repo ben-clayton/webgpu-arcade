@@ -48,6 +48,15 @@ export class WebGPUWorld extends World {
       }]
     });
 
+    gpu.bindGroupLayouts.model = gpu.device.createBindGroupLayout({
+      label: `Model BindGroupLayout`,
+      entries: [{
+        binding: 0, // Model uniforms
+        visibility: GPUShaderStage.VERTEX,
+        buffer: {},
+      }]
+    });
+
     this.singleton.add(gpu);
 
     return gpu;

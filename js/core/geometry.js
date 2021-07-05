@@ -97,7 +97,7 @@ export class StaticGeometry {
   topology = 'triangle-list';
 
   constructor(drawCount = 0, ...buffers) {
-    this.drawCount = 0;
+    this.drawCount = drawCount;
     this.buffers.push(...buffers);
   }
 

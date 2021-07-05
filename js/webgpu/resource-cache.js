@@ -98,20 +98,3 @@ export class GeometryLayoutCache extends ResourceCache {
     return layout;
   }
 }
-
-// Creates a default RenderPipeline for the given geometry and output format. This will render using
-// any positions, normals, and vertex colors that may be supplied. If no colors are given will
-// render magenta to help visually identify geometry that lacks a proper material.
-export class DefaultPipelineCache {
-  constructor(device) {
-    this.device = device;
-  }
-
-  getKeyFor(descriptor) {
-    return `${descriptor.layout.id}:${descriptor.format}:${descriptor.depthFormat}:${descriptor.sampleCount}`;
-  }
-
-  createFor(descriptor, id) {
-
-  }
-}

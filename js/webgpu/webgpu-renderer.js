@@ -1,13 +1,10 @@
 import { System } from 'ecs';
 import { Transform } from '../core/transform.js';
 
-
-import { WebGPU, WebGPURenderable } from './webgpu-components.js';
+import { WebGPU } from './webgpu-components.js';
 import { WebGPURenderGeometry } from './webgpu-geometry.js';
 import { WebGPURenderPipeline } from './webgpu-pipeline.js';
 import { WebGPUCamera } from './webgpu-camera.js';
-import { CubeRenderableFactory } from './cube.js';
-
 
 export class WebGPURenderer extends System {
   async init(gpu) {
@@ -53,14 +50,6 @@ export class WebGPURenderer extends System {
     });
     this.resizeObserver.observe(gpu.canvas);
     this.onCanvasResized(gpu, gpu.canvas.width, gpu.canvas.height);
-
-    // Frame uniforms
-    const cubeFactory = new CubeRenderableFactory(gpu, gpu.bindGroupLayouts.frame);
-
-    this.world.create(
-      new Transform(),
-      cubeFactory.createRenderable()
-    );
   }
 
   onCanvasResized(gpu, pixelWidth, pixelHeight) {
@@ -107,12 +96,8 @@ export class WebGPURenderer extends System {
       passEncoder.setBindGroup(0, camera.bindGroup);
 
       this.query(WebGPURenderGeometry, WebGPURenderPipeline).forEach((entity, geometry, pipeline) => {
-        const transform = entity.get(Transform);
-        if (transform) {
-          // Apply model transform
-        }
-
-        passEncoder.setPipeline(pipeline.pipeline);
+        passEncoder.setPipeline(pipeline.pipeline); // TODO: Dedup these calls
+        passEncoder.setBindGroup(1, geometry.bindGroup);
 
         for (const vb of geometry.vertexBuffers) {
           passEncoder.setVertexBuffer(vb.slot, vb.buffer, vb.offset);
@@ -123,26 +108,6 @@ export class WebGPURenderer extends System {
           passEncoder.drawIndexed(geometry.drawCount, geometry.instanceCount);
         } else {
           passEncoder.draw(geometry.drawCount, geometry.instanceCount);
-        }
-      });
-
-      this.query(WebGPURenderable).forEach((entity, renderable) => {
-        const transform = entity.get(Transform);
-        if (transform) {
-          // Apply model transform
-        }
-
-        passEncoder.setPipeline(renderable.pipeline);
-
-        for (const vb of renderable.vertexBuffers) {
-          passEncoder.setVertexBuffer(vb.slot, vb.buffer, vb.offset, vb.size);
-        }
-        const ib = renderable.indexBuffer;
-        if (ib) {
-          passEncoder.setIndexBuffer(ib.buffer, ib.format, ib.offset, ib.size);
-          passEncoder.drawIndexed(renderable.drawCount, renderable.instanceCount);
-        } else {
-          passEncoder.draw(renderable.drawCount, renderable.instanceCount);
         }
       });
 

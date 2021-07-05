@@ -60,10 +60,10 @@
       import { Transform } from './js/core/transform.js';
       import { Camera } from './js/core/camera.js';
       import { PointLight, AmbientLight } from './js/core/light.js';
+      import { InputSystem } from './js/core/input.js';
 
-      import { InputSystem } from './js/input/input.js';
-      import { FlyingControls, FlyingControlsSystem } from './js/input/flying-controls.js';
-      import { OrbitControls, OrbitControlsSystem } from './js/input/orbit-controls.js';
+      import { FlyingControls, FlyingControlsSystem } from './js/controls/flying-controls.js';
+      import { OrbitControls, OrbitControlsSystem } from './js/controls/orbit-controls.js';
 
       import { WebGPUWorld } from './js/webgpu/webgpu-world.js';
       import { WebGPULightSystem } from './js/webgpu/webgpu-light.js';
@@ -117,12 +117,12 @@
 
       // Add some lights
       world.create(
-        new Transform([5, 5, 5]),
+        new Transform([3, 3, 3]),
         new PointLight(1, 0.3, 0.3)
       );
 
       world.create(
-        new Transform([-5, 5, -5]),
+        new Transform([-3, 3, -3]),
         new PointLight(0.3, 1, 0.3)
       );
 
@@ -150,6 +150,9 @@
 
       function onFrame() {
         requestAnimationFrame(onFrame);
+
+        const transform = cube.get(Transform);
+        transform.position[0] = Math.sin(Date.now() / 1000);
 
         stats.begin();
         world.execute();

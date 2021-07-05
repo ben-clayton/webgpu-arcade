@@ -1,6 +1,6 @@
 import { Attribute } from '../../core/geometry.js';
 import { wgsl } from './wgsl-utils.js';
-import { CameraStruct, ColorConversions } from './common.js';
+import { CameraStruct, ModelStruct, ColorConversions } from './common.js';
 
 function DefaultAttributes(layout) {
   let inputs = layout.locationsUsed.map((location) => {
@@ -19,6 +19,7 @@ function DefaultAttributes(layout) {
 export function DefaultVertexSource(layout) {
   return wgsl`
       ${CameraStruct()}
+      ${ModelStruct()}
       
       struct VertexInput {
         ${DefaultAttributes(layout)}
@@ -33,9 +34,9 @@ export function DefaultVertexSource(layout) {
       [[stage(vertex)]]
       fn vertexMain(input : VertexInput) -> VertexOutput {
         var output : VertexOutput;
-        output.position = camera.projection * camera.view * vec4<f32>(input.position, 1.0);
+        output.position = camera.projection * camera.view * model.matrix * vec4<f32>(input.position, 1.0);
 #if ${layout.locationsUsed.includes(Attribute.normal)}
-        output.normal = normalize((vec4<f32>(input.normal, 0.0)).xyz);
+        output.normal = normalize((mesh.matrix * vec4<f32>(input.normal, 0.0)).xyz);
 #endif
 #if ${layout.locationsUsed.includes(Attribute.texCoord)}
         output.texCoord = input.texCoord;

@@ -34,6 +34,15 @@ export function LightStruct(group = 0, binding = 1) { return `
 `;
 }
 
+export const MODEL_BUFFER_SIZE = 16 * Float32Array.BYTES_PER_ELEMENT;
+export function ModelStruct(group = 1, binding = 0) { return `
+  [[block]] struct Model {
+    matrix : mat4x4<f32>;
+  };
+  [[group(${group}), binding(${binding})]] var<uniform> model : Model;
+`;
+}
+
 const APPROXIMATE_SRGB = true;
 export const ColorConversions = wgsl`
 #if ${APPROXIMATE_SRGB}

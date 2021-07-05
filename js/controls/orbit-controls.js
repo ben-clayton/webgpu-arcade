@@ -1,5 +1,5 @@
 import { System } from 'ecs';
-import { MouseState } from './input.js';
+import { MouseState } from '../core/input.js';
 import { Transform } from '../core/transform.js';
 import { vec3, vec2, quat } from 'gl-matrix';
 

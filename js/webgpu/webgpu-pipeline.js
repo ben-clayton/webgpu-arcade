@@ -71,7 +71,10 @@ export class WebGPUDefaultPipelineSystem extends WebGPUPipelineSystem {
 
     return gpu.device.createRenderPipeline({
       layout: gpu.device.createPipelineLayout({
-        bindGroupLayouts: [gpu.bindGroupLayouts.frame]
+        bindGroupLayouts: [
+          gpu.bindGroupLayouts.frame,
+          gpu.bindGroupLayouts.model
+        ]
       }),
       vertex: {
         module: gpu.device.createShaderModule({ code: DefaultVertexSource(layout) }),
