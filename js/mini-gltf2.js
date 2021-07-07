@@ -45,13 +45,50 @@ function getComponentTypeSize(componentType) {
   }
 }
 
+// The client is an object that will receive callbacks as each element of
+// the glTF file is loaded. It can extend this class if that's convenient, but
+// doesn't have to. It just needs to provide the same methods. Could even be a
+// dictionary of functions, if you'd like!
+export class Gltf2Client {
+  createSampler(sampler) {
+    return sampler;
+  }
+
+  async createImage(image, blob, colorSpace) {
+    return { image, blob, colorSpace };
+  }
+
+  createTexture(texture, clientImage, clientSampler) {
+    return { texture, clientImage, clientSampler }
+  }
+
+  createMaterial(material) {
+
+  }
+
+  createPrimitive(primitive) {
+
+  }
+
+  createLight(type, color, intensity, range) {
+    return { type, color, intensity, range };
+  }
+}
+
+const DEFAULT_SAMPLER = {
+  wrapS: GL.REPEAT,
+  wrapT: GL.REPEAT
+};
+
 /**
  * Gltf2Loader
  * Loads glTF 2.0 scenes into a more gpu-ready structure.
  */
 
 export class Gltf2Loader {
-  constructor() {
+  constructor(client) {
+    
+    this.#client = client;
   }
 
   async loadFromUrl(url) {
@@ -111,6 +148,8 @@ export class Gltf2Loader {
       throw new Error('Incompatible asset version.');
     }
 
+    // TODO: Check extensions against supported set.
+
     const gltf = new Gltf2();
     const resourcePromises = [];
 
@@ -137,43 +176,68 @@ export class Gltf2Loader {
     }
 
     // Images
-    if (json.images) {
-      for (const image of json.images) {
-        let blob;
+    const clientImages = [];
+    async function resolveImage(index, colorSpace) {
+      let clientImage = clientImages[index];
+      if (!clientImage) {
+        const image = json.images[index];
         if (image.uri) {
-          blob = fetch(resolveUri(image.uri, baseUrl)).then(async (response) => {
-            return await response.blob();
+          clientImage[index] = fetch(resolveUri(image.uri, baseUrl)).then(async (response) => {
+            return this.#client.createImage(image, await response.blob(), colorSpace);
           });
         } else {
           let bufferView = gltf.bufferViews[image.bufferView];
           bufferView.usage.add('image');
-          blob = bufferView.dataView.then((dataView) => {
-            return new Blob([dataView], {type: image.mimeType});
+          clientImage[index] = bufferView.dataView.then((dataView) => {
+            return this.#client.createImage(image, new Blob([dataView], {type: image.mimeType}), colorSpace);
           });
         }
-
-        gltf.images.push({
-          colorSpace: 'linear',
-          blob
-        });
-        resourcePromises.push(blob);
       }
+      return clientImage;
     }
 
     // Samplers
-    if (json.samplers) {
-      for (const sampler of json.samplers) {
-        gltf.samplers.push(new Sampler(
-          sampler.magFilter,
-          sampler.minFilter,
-          sampler.wrapS,
-          sampler.wrapT
-        ));
+    let defaultSampler = null;
+    const clientSamplers = [];
+    function resolveSampler(index) {
+      if (index === undefined) {
+        if (!defaultSampler) {
+          defaultSampler = this.#client.createSampler(DEFAULT_SAMPLER);
+        }
+        return defaultSampler;
+      } else {
+        let clientSampler = clientSamplers[index];
+        if (!clientSampler) {
+          // Resolve any sampler defaults 
+          const sampler = Object.assign({}, DEFAULT_SAMPLER, json.samplers[index]);
+          clientSampler = this.#client.createSampler(sampler);
+          clientSamplers[index] = clientSampler;
+        }
+        return clientSampler;
       }
     }
 
     // Textures
-    let defaultSampler = null;
+    const clientTextures = [];
+    async function resolveTexture(textureInfo, colorSpace = 'linear') {
+      if (!textureInfo) {
+        return null;
+      }
+      let clientTexture = clientTextures[textureInfo.index];
+      if (!clientTexture) {
+        const texture = json.textures[textureInfo.index];
+        const clientSampler = resolveSampler(texture.sampler);
+        let source = texture.source;
+        if (texture.extensions && texture.extensions.KHR_texture_basisu) {
+          source = texture.extensions.KHR_texture_basisu.source;
+        }
+        clientTexture = resolveImage(source, colorSpace).then((clientImage) => {
+          return this.#client.createTexture(texture, clientImage, clientSampler);
+        });
+      }
+      return clientTexture;
+    }
+
     if (json.textures) {
       for (const texture of json.textures) {
         let sampler;
@@ -182,7 +246,7 @@ export class Gltf2Loader {
         } else {
           // Use a default sampler if the texture has none.
           if (!defaultSampler) {
-            defaultSampler = new Sampler();
+            defaultSampler = this.#client.createSampler(DEFAULT_SAMPLER);
             gltf.samplers.push(defaultSampler);
           }
           sampler = defaultSampler;
@@ -326,7 +390,7 @@ export class Gltf2Loader {
         for (const light of KHR_lights_punctual.lights) {
           // Blender export has issues. Still not sure how to fix it:
           // https://github.com/KhronosGroup/glTF-Blender-IO/issues/564
-          gltf.lights.push(new Light(
+          gltf.lights.push(this.#client.createLight(
             light.type,
             light.color,
             light.intensity, //(light.intensity) / (4 * Math.PI),
