@@ -80,6 +80,20 @@ const DEFAULT_SAMPLER = {
   wrapT: GL.REPEAT
 };
 
+const DEFAULT_METALLIC_ROUGHNESS = {
+  baseColorFactor: [1,1,1,1],
+  metallicFactor: 1.0,
+  roughnessFactor: 1.0,
+};
+
+const DEFAULT_MATERIAL = {
+  pbrMetallicRoughness: DEFAULT_METALLIC_ROUGHNESS,
+  emissiveFactor:	[0,0,0],
+  alphaMode: "OPAQUE",
+  alphaCutoff: 0.5,
+  doubleSided: false,
+};
+
 /**
  * Gltf2Loader
  * Loads glTF 2.0 scenes into a more gpu-ready structure.
@@ -182,16 +196,17 @@ export class Gltf2Loader {
       if (!clientImage) {
         const image = json.images[index];
         if (image.uri) {
-          clientImage[index] = fetch(resolveUri(image.uri, baseUrl)).then(async (response) => {
+          clientImage = fetch(resolveUri(image.uri, baseUrl)).then(async (response) => {
             return this.#client.createImage(image, await response.blob(), colorSpace);
           });
         } else {
           let bufferView = gltf.bufferViews[image.bufferView];
           bufferView.usage.add('image');
-          clientImage[index] = bufferView.dataView.then((dataView) => {
+          clientImage = bufferView.dataView.then((dataView) => {
             return this.#client.createImage(image, new Blob([dataView], {type: image.mimeType}), colorSpace);
           });
         }
+        clientImage[index] = clientImage;
       }
       return clientImage;
     }
@@ -205,27 +220,24 @@ export class Gltf2Loader {
           defaultSampler = this.#client.createSampler(DEFAULT_SAMPLER);
         }
         return defaultSampler;
-      } else {
-        let clientSampler = clientSamplers[index];
-        if (!clientSampler) {
-          // Resolve any sampler defaults 
-          const sampler = Object.assign({}, DEFAULT_SAMPLER, json.samplers[index]);
-          clientSampler = this.#client.createSampler(sampler);
-          clientSamplers[index] = clientSampler;
-        }
-        return clientSampler;
       }
+
+      let clientSampler = clientSamplers[index];
+      if (!clientSampler) {
+        // Resolve any sampler defaults 
+        const sampler = Object.assign({}, DEFAULT_SAMPLER, json.samplers[index]);
+        clientSampler = this.#client.createSampler(sampler);
+        clientSamplers[index] = clientSampler;
+      }
+      return clientSampler;
     }
 
     // Textures
     const clientTextures = [];
-    async function resolveTexture(textureInfo, colorSpace = 'linear') {
-      if (!textureInfo) {
-        return null;
-      }
-      let clientTexture = clientTextures[textureInfo.index];
+    async function resolveTexture(index, colorSpace = 'linear') {
+      let clientTexture = clientTextures[index];
       if (!clientTexture) {
-        const texture = json.textures[textureInfo.index];
+        const texture = json.textures[index];
         const clientSampler = resolveSampler(texture.sampler);
         let source = texture.source;
         if (texture.extensions && texture.extensions.KHR_texture_basisu) {
@@ -234,80 +246,66 @@ export class Gltf2Loader {
         clientTexture = resolveImage(source, colorSpace).then((clientImage) => {
           return this.#client.createTexture(texture, clientImage, clientSampler);
         });
+        clientTextures[index] = clientTexture;
       }
       return clientTexture;
     }
 
-    if (json.textures) {
-      for (const texture of json.textures) {
-        let sampler;
-        if (texture.sampler) {
-          sampler = gltf.samplers[texture.sampler];
-        } else {
-          // Use a default sampler if the texture has none.
-          if (!defaultSampler) {
-            defaultSampler = this.#client.createSampler(DEFAULT_SAMPLER);
-            gltf.samplers.push(defaultSampler);
-          }
-          sampler = defaultSampler;
-        }
-        if (texture.extensions && texture.extensions.KHR_texture_basisu) {
-          gltf.textures.push(new Texture(gltf.images[texture.extensions.KHR_texture_basisu.source], sampler));
-        } else {
-          gltf.textures.push(new Texture(gltf.images[texture.source], sampler));
-        }
-      }
-    }
-
-    function getTexture(textureInfo, sRGB = false) {
-      if (!textureInfo) {
-        return null;
-      }
-      let texture = gltf.textures[textureInfo.index];
-      if (sRGB && texture && texture.image) {
-        texture.image.colorSpace = 'sRGB';
-      }
-      return gltf.textures[textureInfo.index];
-    }
-
     // Materials
     let defaultMaterial = null;
-    if (json.materials) {
-      for (const material of json.materials) {
-        const glMaterial = new Material();
-        const pbr = material.pbrMetallicRoughness || {};
+    const clientMaterials = [];
+    async function resolveMaterial(index) {
+      if (index === undefined) {
+        if (!defaultMaterial) {
+          defaultMaterial = this.#client.createMaterial(DEFAULT_MATERIAL);
+        }
+        return defaultMaterial;
+      }
 
-        glMaterial.baseColorFactor = vec4.clone(pbr.baseColorFactor || DEFAULT_BASE_COLOR_FACTOR);
-        glMaterial.baseColorTexture = getTexture(pbr.baseColorTexture, true);
-        glMaterial.metallicRoughnessFactor = vec2.clone([
-          pbr.metallicFactor || 1.0,
-          pbr.roughnessFactor || 1.0,
-        ]);
-        glMaterial.metallicRoughnessTexture = getTexture(pbr.metallicRoughnessTexture);
-        glMaterial.normalTexture = getTexture(material.normalTexture);
-        glMaterial.occlusionTexture = getTexture(material.occlusionTexture);
-        glMaterial.occlusionStrength = (material.occlusionTexture && material.occlusionTexture.strength) ?
-                                        material.occlusionTexture.strength : 1.0;
-        glMaterial.emissiveFactor = vec3.clone(material.emissiveFactor || DEFAULT_EMISSIVE_FACTOR);
-        glMaterial.emissiveTexture = getTexture(material.emissiveTexture, true);
+      let clientMaterial = clientMaterials[index];
+      if (!clientMaterial) {
+        const material = Object.assign({}, DEFAULT_MATERIAL, json.materials[index]);
+        Object.assign(material.pbrMetallicRoughness, DEFAULT_METALLIC_ROUGHNESS, json.materials[index].pbrMetallicRoughness);
 
-        switch (material.alphaMode) {
-          case 'BLEND':
-            glMaterial.blend = true;
-            break;
-          case 'MASK':
-            // Not really supported.
-            glMaterial.blend = true;
-            break;
-          default: // Includes 'OPAQUE'
-            glMaterial.blend = false;
+        const texturePromises = [];
+        const pbr = material.pbrMetallicRoughness;
+        if (pbr.baseColorTexture) {
+          texturePromises.push(
+            resolveTexture(pbr.baseColorTexture.index, 'sRGB').then(texture => {
+              pbr.baseColorTexture.texture = texture;
+            }));
+        }
+        if (pbr.metallicRoughnessTexture) {
+          texturePromises.push(
+            resolveTexture(pbr.metallicRoughnessTexture.index).then(texture => {
+              pbr.metallicRoughnessTexture.texture = texture;
+            }));
+        }
+        if (material.normalTexture) {
+          texturePromises.push(
+            resolveTexture(material.normalTexture.index).then(texture => {
+              material.normalTexture.texture = texture;
+            }));
+        }
+        if (material.occlusionTexture) {
+          texturePromises.push(
+            resolveTexture(material.occlusionTexture.index).then(texture => {
+              material.occlusionTexture.texture = texture;
+            }));
+        }
+        if (material.emissiveTexture) {
+          texturePromises.push(
+            resolveTexture(material.emissiveTexture.index, 'sRGB').then(texture => {
+              material.emissiveTexture.texture = texture;
+            }));
         }
 
-        // glMaterial.alpha_cutoff = material.alphaCutoff;
-        glMaterial.cullFace = !material.doubleSided;
-
-        gltf.materials.push(glMaterial);
+        clientMaterial = Promise.all(texturePromises).then(() => {
+          return this.#client.createMaterial(material);
+        });
+        clientMaterials[index] = clientMaterial;
       }
+      return clientMaterial;
     }
 
     const accessors = json.accessors;
@@ -319,18 +317,8 @@ export class Gltf2Loader {
       meshes.push(primitives);
 
       for (const primitive of mesh.primitives) {
-        let material;
-        if ('material' in primitive) {
-          material = gltf.materials[primitive.material];
-        } else {
-          // Use a "default" material if the primitive has none.
-          if (!defaultMaterial) {
-            defaultMaterial = new Material();
-            gltf.materials.push(defaultMaterial);
-          }
-          material = defaultMaterial;
-        }
-
+        const material = resolveMaterial(primitive.material);
+        
         let elementCount = 0;
 
         const attributeBuffers = new Map();
@@ -383,20 +371,19 @@ export class Gltf2Loader {
     }
 
     // Extensions
-    if (json.extensions) {
-      // Lights
-      const KHR_lights_punctual = json.extensions.KHR_lights_punctual;
-      if (KHR_lights_punctual) {
-        for (const light of KHR_lights_punctual.lights) {
-          // Blender export has issues. Still not sure how to fix it:
-          // https://github.com/KhronosGroup/glTF-Blender-IO/issues/564
-          gltf.lights.push(this.#client.createLight(
-            light.type,
-            light.color,
-            light.intensity, //(light.intensity) / (4 * Math.PI),
-            light.range
-          ));
-        }
+
+    // Lights
+    const KHR_lights_punctual = json.extensions?.KHR_lights_punctual;
+    if (KHR_lights_punctual) {
+      for (const light of KHR_lights_punctual.lights) {
+        // Blender export has issues. Still not sure how to fix it:
+        // https://github.com/KhronosGroup/glTF-Blender-IO/issues/564
+        gltf.lights.push(this.#client.createLight(
+          light.type,
+          light.color,
+          light.intensity, //(light.intensity) / (4 * Math.PI),
+          light.range
+        ));
       }
     }
 
@@ -425,11 +412,9 @@ export class Gltf2Loader {
         mat4.copy(glNode.worldMatrix, worldMatrix);
       }
 
-      if ('extensions' in node) {
-        if (node.extensions.KHR_lights_punctual) {
-          node.light = gltf.lights[node.extensions.KHR_lights_punctual.light];
-          vec3.transformMat4(node.light.position, node.light.position, glNode.worldMatrix);
-        }
+      if (node.extensions?.KHR_lights_punctual) {
+        node.light = gltf.lights[node.extensions.KHR_lights_punctual.light];
+        vec3.transformMat4(node.light.position, node.light.position, glNode.worldMatrix);
       }
 
       if (node.children) {
@@ -639,95 +624,6 @@ class Primitive {
         // LINE_LOOP and TRIANGLE_FAN are unsupported.
         throw new Error('Unsupported primitive topology.');
     }
-  }
-}
-
-class Sampler {
-  constructor(magFilter, minFilter, wrapS, wrapT) {
-    // WebGL-compatible definition
-    this.magFilter = magFilter;
-    this.minFilter = minFilter;
-    this.wrapS = wrapS || GL.REPEAT;
-    this.wrapT = wrapT || GL.REPEAT;
-
-    // For renderer-specific data;
-    this.renderData = {};
-  }
-
-  get gpuSamplerDescriptor() {
-    // WebGPU-compatible definition
-    const descriptor = {};
-
-    if (!this.magFilter || this.magFilter == GL.LINEAR) {
-      descriptor.magFilter = 'linear';
-    }
-
-    switch (this.minFilter) {
-      case undefined:
-        descriptor.minFilter = 'linear';
-        descriptor.mipmapFilter = 'linear';
-        break;
-      case GL.LINEAR:
-      case GL.LINEAR_MIPMAP_NEAREST:
-        descriptor.minFilter = 'linear';
-        break;
-      case GL.NEAREST_MIPMAP_LINEAR:
-        descriptor.mipmapFilter = 'linear';
-        break;
-      case GL.LINEAR_MIPMAP_LINEAR:
-        descriptor.minFilter = 'linear';
-        descriptor.mipmapFilter = 'linear';
-        break;
-    }
-
-    switch (this.wrapS) {
-      case GL.REPEAT:
-        descriptor.addressModeU = 'repeat';
-        break;
-      case GL.MIRRORED_REPEAT:
-        descriptor.addressModeU = 'mirror-repeat';
-        break;
-    }
-
-    switch (this.wrapT) {
-      case GL.REPEAT:
-        descriptor.addressModeV = 'repeat';
-        break;
-      case GL.MIRRORED_REPEAT:
-        descriptor.addressModeV = 'mirror-repeat';
-        break;
-    }
-
-    return descriptor;
-  }
-}
-
-class Texture {
-  constructor(image, sampler) {
-    this.image = image;
-    this.sampler = sampler;
-
-    // For renderer-specific data;
-    this.renderData = {};
-  }
-}
-
-class Material {
-  constructor() {
-    this.baseColorFactor = null;
-    this.baseColorTexture = null;
-    this.normalTexture = null;
-    this.metallicRoughnessFactor = null;
-    this.metallicRoughnessTexture = null;
-    this.occlusionStrength = null;
-    this.occlusionTexture = null;
-    this.emissiveFactor = null;
-    this.emissiveTexture = null;
-    this.cullFace = true;
-    this.blend = false;
-
-    // For renderer-specific data;
-    this.renderData = {};
   }
 }
 
