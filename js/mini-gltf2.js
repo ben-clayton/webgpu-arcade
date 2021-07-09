@@ -58,15 +58,23 @@ export class Gltf2Client {
     return { image, blob, colorSpace };
   }
 
-  createTexture(texture, clientImage, clientSampler) {
+  async createTexture(texture, clientImage, clientSampler) {
     return { texture, clientImage, clientSampler }
   }
 
-  createMaterial(material) {
-
+  async createMaterial(material) {
+    return material;
   }
 
-  createPrimitive(primitive) {
+  async createVertexBuffer(bufferView) {
+    return bufferView;
+  }
+
+  async createIndexBuffer(bufferView) {
+    return bufferView;
+  }
+
+  async createPrimitive(primitive) {
 
   }
 
@@ -100,8 +108,8 @@ const DEFAULT_MATERIAL = {
  */
 
 export class Gltf2Loader {
+  #client;
   constructor(client) {
-    
     this.#client = client;
   }
 
@@ -165,28 +173,39 @@ export class Gltf2Loader {
     // TODO: Check extensions against supported set.
 
     const gltf = new Gltf2();
+    const client = this.#client;
     const resourcePromises = [];
 
     // Buffers
+    const clientBuffers = [];
     if (binaryChunk) {
-      gltf.buffers.push(Promise.resolve(binaryChunk));
-    } else {
-      for (const buffer of json.buffers) {
+      clientBuffers.push(Promise.resolve(binaryChunk));
+    }
+    async function resolveBuffer(index) {
+      let clientBuffer = clientBuffers[index];
+      if (!clientBuffer) {
+        const buffer = json.buffers[index];
         const uri = resolveUri(buffer.uri, baseUrl);
-        gltf.buffers.push(fetch(uri).then((response) => response.arrayBuffer()));
+        clientBuffer = fetch(uri).then(response => response.arrayBuffer());
+        clientBuffers[index] = clientBuffer;
       }
-
-      resourcePromises.push(...gltf.buffers);
+      return clientBuffer;
     }
 
     // Buffer Views
-    for (const bufferView of json.bufferViews) {
-      gltf.bufferViews.push(new BufferView(
-        gltf.buffers[bufferView.buffer],
-        bufferView.byteStride,
-        bufferView.byteOffset,
-        bufferView.byteLength
-      ));
+    const clientBufferViews = [];
+    async function resolveBufferView(index) {
+      let clientBufferView = clientBufferViews[index];
+      if (!clientBufferView) {
+        const bufferView = json.bufferViews[index];
+        clientBufferView = resolveBuffer(bufferView.buffer).then(buffer => {
+          const result = Object.assign({}, bufferView);
+          result.buffer = buffer;
+          result.view = new Uint8Array(buffer, bufferView.byteOffset, bufferView.byteLength);
+        });
+        clientBufferViews[index] = clientBufferView;
+      }
+      return bufferView;
     }
 
     // Images
@@ -197,13 +216,11 @@ export class Gltf2Loader {
         const image = json.images[index];
         if (image.uri) {
           clientImage = fetch(resolveUri(image.uri, baseUrl)).then(async (response) => {
-            return this.#client.createImage(image, await response.blob(), colorSpace);
+            return client.createImage(image, await response.blob(), colorSpace);
           });
         } else {
-          let bufferView = gltf.bufferViews[image.bufferView];
-          bufferView.usage.add('image');
-          clientImage = bufferView.dataView.then((dataView) => {
-            return this.#client.createImage(image, new Blob([dataView], {type: image.mimeType}), colorSpace);
+          clientImage = resolveBufferView(image.bufferView).then(bufferView => {
+            return client.createImage(image, new Blob([bufferView.view], {type: image.mimeType}), colorSpace);
           });
         }
         clientImage[index] = clientImage;
@@ -217,7 +234,7 @@ export class Gltf2Loader {
     function resolveSampler(index) {
       if (index === undefined) {
         if (!defaultSampler) {
-          defaultSampler = this.#client.createSampler(DEFAULT_SAMPLER);
+          defaultSampler = client.createSampler(DEFAULT_SAMPLER);
         }
         return defaultSampler;
       }
@@ -226,7 +243,7 @@ export class Gltf2Loader {
       if (!clientSampler) {
         // Resolve any sampler defaults 
         const sampler = Object.assign({}, DEFAULT_SAMPLER, json.samplers[index]);
-        clientSampler = this.#client.createSampler(sampler);
+        clientSampler = client.createSampler(sampler);
         clientSamplers[index] = clientSampler;
       }
       return clientSampler;
@@ -244,7 +261,7 @@ export class Gltf2Loader {
           source = texture.extensions.KHR_texture_basisu.source;
         }
         clientTexture = resolveImage(source, colorSpace).then((clientImage) => {
-          return this.#client.createTexture(texture, clientImage, clientSampler);
+          return client.createTexture(texture, clientImage, clientSampler);
         });
         clientTextures[index] = clientTexture;
       }
@@ -257,7 +274,7 @@ export class Gltf2Loader {
     async function resolveMaterial(index) {
       if (index === undefined) {
         if (!defaultMaterial) {
-          defaultMaterial = this.#client.createMaterial(DEFAULT_MATERIAL);
+          defaultMaterial = client.createMaterial(DEFAULT_MATERIAL);
         }
         return defaultMaterial;
       }
@@ -301,7 +318,7 @@ export class Gltf2Loader {
         }
 
         clientMaterial = Promise.all(texturePromises).then(() => {
-          return this.#client.createMaterial(material);
+          return client.createMaterial(material);
         });
         clientMaterials[index] = clientMaterial;
       }
@@ -309,6 +326,30 @@ export class Gltf2Loader {
     }
 
     const accessors = json.accessors;
+
+    const clientVertexBuffers = [];
+    async function resolveVertexBuffer(index) {
+      let clientVertexBuffer = clientVertexBuffers[index];
+      if (!clientVertexBuffer) {
+        clientVertexBuffer = resolveBufferView(index).then(bufferView => {
+          return client.createVertexBuffer(bufferView);
+        });
+        clientVertexBuffers[index] = clientVertexBuffer;
+      }
+      return clientVertexBuffer;
+    }
+
+    const clientIndexBuffers = [];
+    async function resolveIndexBuffer(index) {
+      let clientIndexBuffer = clientIndexBuffers[index];
+      if (!clientIndexBuffer) {
+        clientIndexBuffer = resolveBufferView(index).then(bufferView => {
+          return client.createIndexBuffer(bufferView);
+        });
+        clientIndexBuffers[index] = clientIndexBuffer;
+      }
+      return clientVertexBuffer;
+    }
 
     // Meshes
     const meshes = [];
@@ -325,6 +366,9 @@ export class Gltf2Loader {
         for (const name in primitive.attributes) {
           const accessor = accessors[primitive.attributes[name]];
           elementCount = accessor.count;
+
+          // TODO: Handle accessors with no bufferView (initialized to 0);
+          const vertexBuffer = resolveVertexBuffer(accessor.bufferView);
 
           const bufferView = gltf.bufferViews[accessor.bufferView];
           bufferView.usage.add('vertex');
@@ -348,11 +392,11 @@ export class Gltf2Loader {
           const accessor = accessors[primitive.indices];
           elementCount = accessor.count;
 
-          const bufferView = gltf.bufferViews[accessor.bufferView];
-          bufferView.usage.add('index');
+          // TODO: Don't create multiple identical buffers
+          const indexBuffer = resolveIndexBuffer(accessor.bufferView);
 
           indices = new PrimitiveIndices(
-            bufferView,
+            indexBuffer,
             accessor.byteOffset,
             accessor.componentType
           );
@@ -414,7 +458,7 @@ export class Gltf2Loader {
 
       if (node.extensions?.KHR_lights_punctual) {
         node.light = gltf.lights[node.extensions.KHR_lights_punctual.light];
-        vec3.transformMat4(node.light.position, node.light.position, glNode.worldMatrix);
+        //vec3.transformMat4(node.light.position, node.light.position, glNode.worldMatrix);
       }
 
       if (node.children) {

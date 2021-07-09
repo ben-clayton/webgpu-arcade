@@ -74,6 +74,8 @@
       import { WebGPUGeometrySystem } from './js/webgpu/webgpu-geometry.js';
       import { WebGPUDefaultPipelineSystem } from './js/webgpu/webgpu-pipeline.js';
 
+      import { Gltf2Loader, Gltf2Client } from './js/mini-gltf2.js';
+
       import { createCubeGeometry } from './js/cube-geometry.js';
 
       import dat from 'dat.gui';
@@ -147,6 +149,9 @@
           }
         }
       });
+
+      const gltfLoader = new Gltf2Loader(new Gltf2Client());
+      const model = gltfLoader.loadFromUrl('./media/models/dungeon/dungeon.glb');
 
       function onFrame() {
         requestAnimationFrame(onFrame);
