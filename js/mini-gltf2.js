@@ -54,12 +54,12 @@ export class Gltf2Client {
     return sampler;
   }
 
-  async createImage(image, blob, colorSpace) {
-    return { image, blob, colorSpace };
+  async createImage(image) {
+    return image;
   }
 
-  async createTexture(texture, clientImage, clientSampler) {
-    return { texture, clientImage, clientSampler }
+  async createTexture(texture) {
+    return texture;
   }
 
   async createMaterial(material) {
@@ -78,8 +78,8 @@ export class Gltf2Client {
 
   }
 
-  createLight(type, color, intensity, range) {
-    return { type, color, intensity, range };
+  createLight(light) {
+    return light;
   }
 }
 
@@ -197,30 +197,34 @@ export class Gltf2Loader {
     async function resolveBufferView(index) {
       let clientBufferView = clientBufferViews[index];
       if (!clientBufferView) {
-        const bufferView = json.bufferViews[index];
+        const bufferView = Object.assign({}, json.bufferViews[index]);
         clientBufferView = resolveBuffer(bufferView.buffer).then(buffer => {
-          const result = Object.assign({}, bufferView);
-          result.buffer = buffer;
-          result.view = new Uint8Array(buffer, bufferView.byteOffset, bufferView.byteLength);
+          bufferView.buffer = buffer;
+          return bufferView;
         });
         clientBufferViews[index] = clientBufferView;
       }
-      return bufferView;
+      return clientBufferView;
     }
 
     // Images
     const clientImages = [];
-    async function resolveImage(index, colorSpace) {
+    function resolveImage(index, colorSpace) {
       let clientImage = clientImages[index];
       if (!clientImage) {
-        const image = json.images[index];
+        const image = Object.assign({ colorSpace }, json.images[index]);
         if (image.uri) {
           clientImage = fetch(resolveUri(image.uri, baseUrl)).then(async (response) => {
-            return client.createImage(image, await response.blob(), colorSpace);
+            image.blob = await response.blob();
+            return client.createImage(image);
           });
         } else {
           clientImage = resolveBufferView(image.bufferView).then(bufferView => {
-            return client.createImage(image, new Blob([bufferView.view], {type: image.mimeType}), colorSpace);
+            image.bufferView = bufferView;
+            image.blob = new Blob(
+                [new Uint8Array(bufferView.buffer, bufferView.byteOffset, bufferView.byteLength)],
+                {type: image.mimeType});
+            return client.createImage(image);
           });
         }
         clientImage[index] = clientImage;
@@ -251,17 +255,18 @@ export class Gltf2Loader {
 
     // Textures
     const clientTextures = [];
-    async function resolveTexture(index, colorSpace = 'linear') {
+    function resolveTexture(index, colorSpace = 'linear') {
       let clientTexture = clientTextures[index];
       if (!clientTexture) {
-        const texture = json.textures[index];
-        const clientSampler = resolveSampler(texture.sampler);
+        const texture = Object.assign({}, json.textures[index]);
+        texture.sampler = resolveSampler(texture.sampler);
         let source = texture.source;
         if (texture.extensions && texture.extensions.KHR_texture_basisu) {
           source = texture.extensions.KHR_texture_basisu.source;
         }
         clientTexture = resolveImage(source, colorSpace).then((clientImage) => {
-          return client.createTexture(texture, clientImage, clientSampler);
+          texture.image = clientImage;
+          return client.createTexture(texture);
         });
         clientTextures[index] = clientTexture;
       }
@@ -271,7 +276,7 @@ export class Gltf2Loader {
     // Materials
     let defaultMaterial = null;
     const clientMaterials = [];
-    async function resolveMaterial(index) {
+    function resolveMaterial(index) {
       if (index === undefined) {
         if (!defaultMaterial) {
           defaultMaterial = client.createMaterial(DEFAULT_MATERIAL);
@@ -328,7 +333,7 @@ export class Gltf2Loader {
     const accessors = json.accessors;
 
     const clientVertexBuffers = [];
-    async function resolveVertexBuffer(index) {
+    function resolveVertexBuffer(index) {
       let clientVertexBuffer = clientVertexBuffers[index];
       if (!clientVertexBuffer) {
         clientVertexBuffer = resolveBufferView(index).then(bufferView => {
@@ -340,7 +345,7 @@ export class Gltf2Loader {
     }
 
     const clientIndexBuffers = [];
-    async function resolveIndexBuffer(index) {
+    function resolveIndexBuffer(index) {
       let clientIndexBuffer = clientIndexBuffers[index];
       if (!clientIndexBuffer) {
         clientIndexBuffer = resolveBufferView(index).then(bufferView => {
@@ -348,7 +353,7 @@ export class Gltf2Loader {
         });
         clientIndexBuffers[index] = clientIndexBuffer;
       }
-      return clientVertexBuffer;
+      return clientIndexBuffer;
     }
 
     // Meshes
@@ -370,13 +375,10 @@ export class Gltf2Loader {
           // TODO: Handle accessors with no bufferView (initialized to 0);
           const vertexBuffer = resolveVertexBuffer(accessor.bufferView);
 
-          const bufferView = gltf.bufferViews[accessor.bufferView];
-          bufferView.usage.add('vertex');
-
-          let bufferAttributes = attributeBuffers.get(bufferView);
+          let bufferAttributes = attributeBuffers.get(vertexBuffer);
           if (!bufferAttributes) {
-            bufferAttributes = new PrimitiveBufferAttributes(bufferView);
-            attributeBuffers.set(bufferView, bufferAttributes);
+            bufferAttributes = new PrimitiveBufferAttributes(vertexBuffer);
+            attributeBuffers.set(vertexBuffer, bufferAttributes);
           }
 
           bufferAttributes.addAttribute(name, new PrimitiveAttribute(
@@ -422,12 +424,8 @@ export class Gltf2Loader {
       for (const light of KHR_lights_punctual.lights) {
         // Blender export has issues. Still not sure how to fix it:
         // https://github.com/KhronosGroup/glTF-Blender-IO/issues/564
-        gltf.lights.push(this.#client.createLight(
-          light.type,
-          light.color,
-          light.intensity, //(light.intensity) / (4 * Math.PI),
-          light.range
-        ));
+        gltf.lights.push(this.#client.createLight(light));
+        // TODO: Use a `resolveLight()` pattern like everything else in this file.
       }
     }
 

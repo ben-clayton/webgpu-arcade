@@ -46,7 +46,6 @@
     {
         "imports": {
             "gl-matrix": "./node_modules/gl-matrix/dist/esm/index.js",
-            "webgl-texture-loader": "./node_modules/web-texture-tool/build/webgl-texture-loader.js",
             "webgpu-texture-loader": "./node_modules/web-texture-tool/build/webgpu-texture-loader.js",
             "dat.gui": "./node_modules/dat.gui/build/dat.gui.module.js",
             "stats.js": "./node_modules/stats.js/src/Stats.js",
@@ -73,8 +72,7 @@
       import { WebGPULightSpriteSystem } from './js/webgpu/webgpu-light-sprite.js';
       import { WebGPUGeometrySystem } from './js/webgpu/webgpu-geometry.js';
       import { WebGPUDefaultPipelineSystem } from './js/webgpu/webgpu-pipeline.js';
-
-      import { Gltf2Loader, Gltf2Client } from './js/mini-gltf2.js';
+      import { GltfScene, WebGPUGltfSystem } from './js/webgpu/webgpu-gltf.js';
 
       import { createCubeGeometry } from './js/cube-geometry.js';
 
@@ -102,6 +100,7 @@
         .registerGPUSystem(WebGPUCameraSystem)
         .registerGPUSystem(WebGPUClusteredLights)
         .registerGPUSystem(WebGPULightSpriteSystem)
+        .registerGPUSystem(WebGPUGltfSystem)
         .registerGPUSystem(WebGPUGeometrySystem)
         .registerGPUSystem(WebGPUDefaultPipelineSystem)
         .registerGPUSystem(WebGPURenderer);
@@ -132,6 +131,11 @@
         new AmbientLight(0.0, 0.0, 0.1)
       );
 
+      // Load a scene
+      world.create(
+        new GltfScene('./media/models/dungeon/dungeon.glb')
+      );
+
       gui.add(appSettings, 'controls', {
         'Orbit': 'orbit',
         'Flying': 'flying',
@@ -149,9 +153,6 @@
           }
         }
       });
-
-      const gltfLoader = new Gltf2Loader(new Gltf2Client());
-      const model = gltfLoader.loadFromUrl('./media/models/dungeon/dungeon.glb');
 
       function onFrame() {
         requestAnimationFrame(onFrame);
