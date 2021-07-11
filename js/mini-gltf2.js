@@ -50,35 +50,43 @@ function getComponentTypeSize(componentType) {
 // doesn't have to. It just needs to provide the same methods. Could even be a
 // dictionary of functions, if you'd like!
 export class Gltf2Client {
-  createSampler(sampler) {
+  createSampler(sampler, index) {
     return sampler;
   }
 
-  async createImage(image) {
+  async createImage(image, index) {
     return image;
   }
 
-  async createTexture(texture) {
+  async createTexture(texture, index) {
     return texture;
   }
 
-  async createMaterial(material) {
+  async createMaterial(material, index) {
     return material;
   }
 
-  async createVertexBuffer(bufferView) {
+  async createVertexBuffer(bufferView, index) {
     return bufferView;
   }
 
-  async createIndexBuffer(bufferView) {
+  async createIndexBuffer(bufferView, index) {
     return bufferView;
   }
 
-  async createPrimitive(primitive) {
-
+  async createPrimitive(primitive, index) {
+    return primitive;
   }
 
-  createLight(light) {
+  async createMesh(mesh, index) {
+    return mesh;
+  }
+
+  createCamera(camera, index) {
+    return camera;
+  }
+
+  createLight(light, index) {
     return light;
   }
 }
@@ -102,6 +110,31 @@ const DEFAULT_MATERIAL = {
   doubleSided: false,
 };
 
+const DEFAULT_LIGHT = {
+  color: [1.0, 1.0, 1.0, 1.0],
+  intensity: 1.0,
+};
+
+const CLIENT_METHODS = [
+  'createSampler',
+  'createImage',
+  'createTexture',
+  'createMaterial',
+  'createVertexBuffer',
+  'createIndexBuffer',
+  'createPrimitive',
+  'createMesh',
+  'createCamera',
+  'createLight',
+];
+
+function IDENTITY_FUNC(value) { return value; } 
+const CLIENT_PROXY_HANDLER = {
+  get: function(target, key) {
+    return key in target ? target[key] : IDENTITY_FUNC;
+  }
+};
+
 /**
  * Gltf2Loader
  * Loads glTF 2.0 scenes into a more gpu-ready structure.
@@ -110,7 +143,8 @@ const DEFAULT_MATERIAL = {
 export class Gltf2Loader {
   #client;
   constructor(client) {
-    this.#client = client;
+    // Doing this allows clients to omit methods that they don't care about.
+    this.#client = new Proxy(client, CLIENT_PROXY_HANDLER);
   }
 
   async loadFromUrl(url) {
@@ -172,8 +206,8 @@ export class Gltf2Loader {
 
     // TODO: Check extensions against supported set.
 
-    const gltf = new Gltf2();
     const client = this.#client;
+    const gltf = new Gltf2();
     const resourcePromises = [];
 
     // Buffers
@@ -197,7 +231,7 @@ export class Gltf2Loader {
     async function resolveBufferView(index) {
       let clientBufferView = clientBufferViews[index];
       if (!clientBufferView) {
-        const bufferView = Object.assign({}, json.bufferViews[index]);
+        const bufferView = json.bufferViews[index];
         clientBufferView = resolveBuffer(bufferView.buffer).then(buffer => {
           bufferView.buffer = buffer;
           return bufferView;
@@ -216,7 +250,7 @@ export class Gltf2Loader {
         if (image.uri) {
           clientImage = fetch(resolveUri(image.uri, baseUrl)).then(async (response) => {
             image.blob = await response.blob();
-            return client.createImage(image);
+            return client.createImage(image, index);
           });
         } else {
           clientImage = resolveBufferView(image.bufferView).then(bufferView => {
@@ -224,7 +258,7 @@ export class Gltf2Loader {
             image.blob = new Blob(
                 [new Uint8Array(bufferView.buffer, bufferView.byteOffset, bufferView.byteLength)],
                 {type: image.mimeType});
-            return client.createImage(image);
+            return client.createImage(image, index);
           });
         }
         clientImage[index] = clientImage;
@@ -238,7 +272,7 @@ export class Gltf2Loader {
     function resolveSampler(index) {
       if (index === undefined) {
         if (!defaultSampler) {
-          defaultSampler = client.createSampler(DEFAULT_SAMPLER);
+          defaultSampler = client.createSampler(DEFAULT_SAMPLER, index);
         }
         return defaultSampler;
       }
@@ -247,7 +281,7 @@ export class Gltf2Loader {
       if (!clientSampler) {
         // Resolve any sampler defaults 
         const sampler = Object.assign({}, DEFAULT_SAMPLER, json.samplers[index]);
-        clientSampler = client.createSampler(sampler);
+        clientSampler = client.createSampler(sampler, index);
         clientSamplers[index] = clientSampler;
       }
       return clientSampler;
@@ -258,7 +292,7 @@ export class Gltf2Loader {
     function resolveTexture(index, colorSpace = 'linear') {
       let clientTexture = clientTextures[index];
       if (!clientTexture) {
-        const texture = Object.assign({}, json.textures[index]);
+        const texture = json.textures[index];
         texture.sampler = resolveSampler(texture.sampler);
         let source = texture.source;
         if (texture.extensions && texture.extensions.KHR_texture_basisu) {
@@ -266,7 +300,7 @@ export class Gltf2Loader {
         }
         clientTexture = resolveImage(source, colorSpace).then((clientImage) => {
           texture.image = clientImage;
-          return client.createTexture(texture);
+          return client.createTexture(texture, index);
         });
         clientTextures[index] = clientTexture;
       }
@@ -323,21 +357,19 @@ export class Gltf2Loader {
         }
 
         clientMaterial = Promise.all(texturePromises).then(() => {
-          return client.createMaterial(material);
+          return client.createMaterial(material, index);
         });
         clientMaterials[index] = clientMaterial;
       }
       return clientMaterial;
     }
 
-    const accessors = json.accessors;
-
     const clientVertexBuffers = [];
     function resolveVertexBuffer(index) {
       let clientVertexBuffer = clientVertexBuffers[index];
       if (!clientVertexBuffer) {
         clientVertexBuffer = resolveBufferView(index).then(bufferView => {
-          return client.createVertexBuffer(bufferView);
+          return client.createVertexBuffer(bufferView, index);
         });
         clientVertexBuffers[index] = clientVertexBuffer;
       }
@@ -349,84 +381,119 @@ export class Gltf2Loader {
       let clientIndexBuffer = clientIndexBuffers[index];
       if (!clientIndexBuffer) {
         clientIndexBuffer = resolveBufferView(index).then(bufferView => {
-          return client.createIndexBuffer(bufferView);
+          return client.createIndexBuffer(bufferView, index);
         });
         clientIndexBuffers[index] = clientIndexBuffer;
       }
       return clientIndexBuffer;
     }
 
-    // Meshes
-    const meshes = [];
-    for (let mesh of json.meshes) {
-      let primitives = []; // A mesh in glTF is just an array of primitives
-      meshes.push(primitives);
-
-      for (const primitive of mesh.primitives) {
-        const material = resolveMaterial(primitive.material);
+    // Primitives
+    function resolvePrimitive(mesh, index) {
+      const primitive = mesh.primitives[index];
+      const primitivePromises = [];
         
-        let elementCount = 0;
+      primitivePromises.push(resolveMaterial(primitive.material).then(material => {
+        primitive.material = material;
+      }));
+      
+      let elementCount = 0;
 
-        const attributeBuffers = new Map();
-        for (const name in primitive.attributes) {
-          const accessor = accessors[primitive.attributes[name]];
-          elementCount = accessor.count;
+      const attributeBuffers = new Map();
+      for (const name in primitive.attributes) {
+        const accessor = json.accessors[primitive.attributes[name]];
+        elementCount = accessor.count;
 
-          // TODO: Handle accessors with no bufferView (initialized to 0);
-          const vertexBuffer = resolveVertexBuffer(accessor.bufferView);
+        // TODO: Handle accessors with no bufferView (initialized to 0);
+        primitivePromises.push(resolveVertexBuffer(accessor.bufferView).then(vertexBuffer => {
+          accessor.vertexBuffer = vertexBuffer;
+        }));
 
-          let bufferAttributes = attributeBuffers.get(vertexBuffer);
-          if (!bufferAttributes) {
-            bufferAttributes = new PrimitiveBufferAttributes(vertexBuffer);
-            attributeBuffers.set(vertexBuffer, bufferAttributes);
-          }
-
-          bufferAttributes.addAttribute(name, new PrimitiveAttribute(
-            getComponentCount(accessor.type),
-            accessor.componentType,
-            accessor.byteOffset,
-            accessor.normalized
-          ));
-        }
-
-        let indices;
-        if ('indices' in primitive) {
-          const accessor = accessors[primitive.indices];
-          elementCount = accessor.count;
-
-          // TODO: Don't create multiple identical buffers
-          const indexBuffer = resolveIndexBuffer(accessor.bufferView);
-
-          indices = new PrimitiveIndices(
-            indexBuffer,
-            accessor.byteOffset,
-            accessor.componentType
-          );
-        }
-
-        primitives.push(new Primitive(
-          attributeBuffers,
-          indices,
-          elementCount,
-          primitive.mode,
-          material
-        ));
+        primitive.attributes[name] = accessor;
       }
 
-      gltf.primitives.push(...primitives);
+      if ('indices' in primitive) {
+        const accessor = json.accessors[primitive.indices];
+        elementCount = accessor.count;
+
+        primitivePromises.push(resolveIndexBuffer(accessor.bufferView).then(indexBuffer => {
+          accessor.indexBuffer = indexBuffer;
+        }));
+
+        primitive.indices = accessor;
+      }
+
+      return Promise.all(primitivePromises).then(() => {
+        return client.createPrimitive(primitive);
+      });
+    }
+
+    // Meshes
+    const clientMeshes = [];
+    function resolveMesh(index) {
+      let clientMesh = clientMeshes[index];
+      if (!clientMesh) {
+        const clientPrimitives = [];
+        const mesh = json.meshes[index];
+        for (const primitiveIndex in mesh.primitives) {
+          clientPrimitives[primitiveIndex] = resolvePrimitive(mesh, primitiveIndex);
+        }
+        clientMesh = Promise.all(clientPrimitives).then(primitives => {
+          mesh.primitives = primitives;
+          return client.createMesh(mesh, index);
+        });
+        clientMeshes[index] = clientMesh;
+      }
+      return clientMesh;
+    }
+
+    // Camera
+    const clientCameras = [];
+    function resolveCamera(index) {
+      let clientCamera = clientCameras[index];
+      if (!clientCamera) {
+        const camera = json.cameras[index];
+        clientCamera = client.createCamera(camera, index);
+        clientCameras[index] = clientCamera;
+      }
+      return clientCamera;
     }
 
     // Extensions
 
     // Lights
     const KHR_lights_punctual = json.extensions?.KHR_lights_punctual;
-    if (KHR_lights_punctual) {
-      for (const light of KHR_lights_punctual.lights) {
-        // Blender export has issues. Still not sure how to fix it:
-        // https://github.com/KhronosGroup/glTF-Blender-IO/issues/564
-        gltf.lights.push(this.#client.createLight(light));
-        // TODO: Use a `resolveLight()` pattern like everything else in this file.
+    const clientLights = [];
+    function resolveLight(index) {
+      let clientLight = clientLights[index];
+      if (!clientLight) {
+        const light = Object.assign({}, DEFAULT_LIGHT, KHR_lights_punctual[index]);
+        clientLight = client.createLight(light, index);
+        clientLights[index] = clientLight;
       }
+      return clientLight;
+    }
+
+
+    const clientNodes = [];
+    function resolveNode(index) {
+      let clientNode = clientNodes[index];
+      if (!clientNode) {
+        let node = json.nodes[index];
+
+        if ('mesh' in node) {
+          resolveMesh(node.mesh).then(mesh => {
+            node.mesh = mesh;
+          });
+        }
+
+        if ('camera' in node) {
+          resolveCamera(node.camera).then(camera => {
+            node.camera = camera;
+          });
+        }
+      }
+      return clientNode;
     }
 
     function processNode(node, worldMatrix) {
@@ -434,7 +501,9 @@ export class Gltf2Loader {
       glNode.name = node.name;
 
       if ('mesh' in node) {
-        glNode.primitives.push(...meshes[node.mesh]);
+        node.mesh = resolveMesh(node.mesh).then(mesh => {
+          node.mesh = mesh;
+        });
       }
 
       if (glNode.matrix) {

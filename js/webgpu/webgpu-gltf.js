@@ -79,14 +79,6 @@ export class WebGPUGltf2Client {
     return result.texture.createView();
   }
 
-  createTexture(texture) {
-    return texture;
-  }
-
-  createMaterial(material) {
-    return material;
-  }
-
   createBuffer(bufferView, usage) {
     const alignedLength = Math.ceil(bufferView.byteLength / 4) * 4;
     const gpuBuffer = this.device.createBuffer({
@@ -106,14 +98,6 @@ export class WebGPUGltf2Client {
 
   createIndexBuffer(bufferView) {
     return this.createBuffer(bufferView, GPUBufferUsage.INDEX);
-  }
-
-  createPrimitive(primitive) {
-    return primitive;
-  }
-
-  createLight(light) {
-    return light;
   }
 }
 
