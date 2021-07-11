@@ -3,7 +3,7 @@ import { mat4 } from 'gl-matrix';
 import { WebGPUTextureLoader } from 'webgpu-texture-loader';
 
 import { WebGPU } from './webgpu-components.js';
-import { Gltf2Loader } from '../mini-gltf2.js';
+import { Gltf2Loader } from '../gltf2-loader.js';
 
 // Used for comparing values from glTF files, which uses WebGL enums natively.
 const GL = WebGLRenderingContext;

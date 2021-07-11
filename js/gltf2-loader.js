@@ -8,11 +8,10 @@ const CHUNK_TYPE = {
   JSON: 0x4E4F534A,
   BIN: 0x004E4942,
 };
+
 const DEFAULT_TRANSLATION = vec3.fromValues(0, 0, 0);
 const DEFAULT_ROTATION = vec4.fromValues(0, 0, 0, 1);
 const DEFAULT_SCALE = vec3.fromValues(1, 1, 1);
-const DEFAULT_BASE_COLOR_FACTOR = vec4.fromValues(1, 1, 1, 1);
-const DEFAULT_EMISSIVE_FACTOR = vec3.fromValues(0, 0, 0);
 
 const absUriRegEx = new RegExp(`^${window.location.protocol}`, 'i');
 const dataUriRegEx = /^data:/;
@@ -45,52 +44,6 @@ function getComponentTypeSize(componentType) {
   }
 }
 
-// The client is an object that will receive callbacks as each element of
-// the glTF file is loaded. It can extend this class if that's convenient, but
-// doesn't have to. It just needs to provide the same methods. Could even be a
-// dictionary of functions, if you'd like!
-export class Gltf2Client {
-  createSampler(sampler, index) {
-    return sampler;
-  }
-
-  async createImage(image, index) {
-    return image;
-  }
-
-  async createTexture(texture, index) {
-    return texture;
-  }
-
-  async createMaterial(material, index) {
-    return material;
-  }
-
-  async createVertexBuffer(bufferView, index) {
-    return bufferView;
-  }
-
-  async createIndexBuffer(bufferView, index) {
-    return bufferView;
-  }
-
-  async createPrimitive(primitive, index) {
-    return primitive;
-  }
-
-  async createMesh(mesh, index) {
-    return mesh;
-  }
-
-  createCamera(camera, index) {
-    return camera;
-  }
-
-  createLight(light, index) {
-    return light;
-  }
-}
-
 const DEFAULT_SAMPLER = {
   wrapS: GL.REPEAT,
   wrapT: GL.REPEAT
@@ -110,30 +63,93 @@ const DEFAULT_MATERIAL = {
   doubleSided: false,
 };
 
+const DEFAULT_ACCESSOR = {
+  byteOffset: 0,
+  normalized: false,
+};
+
 const DEFAULT_LIGHT = {
   color: [1.0, 1.0, 1.0, 1.0],
   intensity: 1.0,
 };
 
-const CLIENT_METHODS = [
-  'createSampler',
-  'createImage',
-  'createTexture',
-  'createMaterial',
-  'createVertexBuffer',
-  'createIndexBuffer',
-  'createPrimitive',
-  'createMesh',
-  'createCamera',
-  'createLight',
-];
-
-function IDENTITY_FUNC(value) { return value; } 
+async function IDENTITY_FUNC(value) { return value; }
 const CLIENT_PROXY_HANDLER = {
   get: function(target, key) {
     return key in target ? target[key] : IDENTITY_FUNC;
   }
 };
+
+/**
+ * Gltf2Node
+ * Represents a node in a glTF2 scene, and resolves the nodes world matrix.
+ */
+
+class Gltf2Node {
+  index;
+  name;
+  children;
+  parent;
+  mesh;
+  camera;
+  light;
+
+  #dirtyWorldMatrix = true;
+  #worldMatrix;
+
+  #dirtyLocalMatrix = true;
+  #localMatrix;
+
+  constructor(index, jsonNode, children) {
+    Object.assign(this, jsonNode, { index, children });
+    for (const child of children) {
+      child.parent = this;
+    }
+  }
+
+  get worldMatrix() {
+    if (this.#dirtyWorldMatrix) {
+      this.#dirtyWorldMatrix = false;
+      if (!this.parent) {
+        return this.#localMatrix;
+      }
+      mat4.mul(this.#worldMatrix, this.parent.worldMatrix, this.localMatrix);
+    }
+    return this.#worldMatrix;
+  }
+
+  get localMatrix() {
+    if (this.matrix) {
+      this.#dirtyLocalMatrix = false;
+      return this.matrix;
+    }
+
+    if (!this.#localMatrix) {
+      this.#localMatrix = mat4.create();
+    }
+
+    if (this.#dirtyLocalMatrix && (node.translation || node.rotation || node.scale)) {
+      mat4.fromRotationTranslationScale(
+        this.#localMatrix,
+        node.rotation || DEFAULT_ROTATION,
+        node.translation || DEFAULT_TRANSLATION,
+        node.scale || DEFAULT_SCALE);
+    }
+    this.#dirtyLocalMatrix = false;
+
+    return this.#localMatrix;
+  }
+
+  dirtyMatrix() {
+    this.#dirtyLocalMatrix = true;
+    if (!this.#dirtyWorldMatrix) {
+      this.#dirtyWorldMatrix = true;
+      for (const child of this.children) {
+        child.dirtyMatrix();
+      }
+    }
+  }
+}
 
 /**
  * Gltf2Loader
@@ -161,7 +177,7 @@ export class Gltf2Loader {
     }
   }
 
-  loadFromBinary(arrayBuffer, baseUrl) {
+  async loadFromBinary(arrayBuffer, baseUrl) {
     const headerView = new DataView(arrayBuffer, 0, 12);
     const magic = headerView.getUint32(0, true);
     const version = headerView.getUint32(4, true);
@@ -191,11 +207,15 @@ export class Gltf2Loader {
 
     const decoder = new TextDecoder('utf-8');
     const jsonString = decoder.decode(chunks[CHUNK_TYPE.JSON]);
-    const json = JSON.parse(jsonString);
-    return this.loadFromJson(json, baseUrl, chunks[CHUNK_TYPE.BIN]);
+    return this.loadFromJson(JSON.parse(jsonString), baseUrl, chunks[CHUNK_TYPE.BIN]);
   }
 
   async loadFromJson(json, baseUrl, binaryChunk) {
+    const client = this.#client;
+
+    // Give the client an opportunity to inspect and modify the json if they choose.
+    json = await client.preprocessJson(json);
+
     if (!json.asset) {
       throw new Error('Missing asset description.');
     }
@@ -205,10 +225,6 @@ export class Gltf2Loader {
     }
 
     // TODO: Check extensions against supported set.
-
-    const client = this.#client;
-    const gltf = new Gltf2();
-    const resourcePromises = [];
 
     // Buffers
     const clientBuffers = [];
@@ -232,6 +248,8 @@ export class Gltf2Loader {
       let clientBufferView = clientBufferViews[index];
       if (!clientBufferView) {
         const bufferView = json.bufferViews[index];
+        // Set defaults.
+        bufferView.byteOffset = bufferView.byteOffset || 0;
         clientBufferView = resolveBuffer(bufferView.buffer).then(buffer => {
           bufferView.buffer = buffer;
           return bufferView;
@@ -293,13 +311,13 @@ export class Gltf2Loader {
       let clientTexture = clientTextures[index];
       if (!clientTexture) {
         const texture = json.textures[index];
-        texture.sampler = resolveSampler(texture.sampler);
         let source = texture.source;
         if (texture.extensions && texture.extensions.KHR_texture_basisu) {
           source = texture.extensions.KHR_texture_basisu.source;
         }
-        clientTexture = resolveImage(source, colorSpace).then((clientImage) => {
+        clientTexture = resolveImage(source, colorSpace).then(async (clientImage) => {
           texture.image = clientImage;
+          texture.sampler = await resolveSampler(texture.sampler);
           return client.createTexture(texture, index);
         });
         clientTextures[index] = clientTexture;
@@ -401,7 +419,7 @@ export class Gltf2Loader {
 
       const attributeBuffers = new Map();
       for (const name in primitive.attributes) {
-        const accessor = json.accessors[primitive.attributes[name]];
+        const accessor = Object.assign({}, DEFAULT_ACCESSOR, json.accessors[primitive.attributes[name]]);
         elementCount = accessor.count;
 
         // TODO: Handle accessors with no bufferView (initialized to 0);
@@ -413,7 +431,7 @@ export class Gltf2Loader {
       }
 
       if ('indices' in primitive) {
-        const accessor = json.accessors[primitive.indices];
+        const accessor = Object.assign({}, DEFAULT_ACCESSOR, json.accessors[primitive.indices]);
         elementCount = accessor.count;
 
         primitivePromises.push(resolveIndexBuffer(accessor.bufferView).then(indexBuffer => {
@@ -480,286 +498,51 @@ export class Gltf2Loader {
       let clientNode = clientNodes[index];
       if (!clientNode) {
         let node = json.nodes[index];
+        const nodePromises = [];
 
         if ('mesh' in node) {
-          resolveMesh(node.mesh).then(mesh => {
+          nodePromises.push(resolveMesh(node.mesh).then(mesh => {
             node.mesh = mesh;
-          });
+          }));
         }
 
         if ('camera' in node) {
-          resolveCamera(node.camera).then(camera => {
+          nodePromises.push(resolveCamera(node.camera).then(camera => {
             node.camera = camera;
-          });
+          }));
         }
+        
+        if (node.extensions?.KHR_lights_punctual) {
+          nodePromises.push(resolveLight(node.extensions.KHR_lights_punctual.light).then(light => {
+            node.light = light;
+          }));
+        }
+
+        // Resolve any children of the node as well.
+        const clientChildren = [];
+        if ('children' in node) {
+          for (const childIndex of node.children) {
+            clientChildren.push(resolveNode(childIndex));
+          }
+        }
+
+        clientNode = Promise.all(nodePromises).then(async () => {
+          return new Gltf2Node(index, node, await Promise.all(clientChildren));
+        });
+
+        clientNodes[index] = clientNode;
       }
       return clientNode;
     }
 
-    function processNode(node, worldMatrix) {
-      const glNode = new Node();
-      glNode.name = node.name;
-
-      if ('mesh' in node) {
-        node.mesh = resolveMesh(node.mesh).then(mesh => {
-          node.mesh = mesh;
-        });
-      }
-
-      if (glNode.matrix) {
-        glNode.localMatrix = mat4.clone(node.matrix);
-      } else if (node.translation || node.rotation || node.scale) {
-        glNode.localMatrix = mat4.create();
-        mat4.fromRotationTranslationScale(
-          glNode.localMatrix,
-          node.rotation || DEFAULT_ROTATION,
-          node.translation || DEFAULT_TRANSLATION,
-          node.scale || DEFAULT_SCALE);
-      }
-
-      if (glNode.localMatrix) {
-        mat4.mul(glNode.worldMatrix, worldMatrix, glNode.localMatrix);
-      } else {
-        mat4.copy(glNode.worldMatrix, worldMatrix);
-      }
-
-      if (node.extensions?.KHR_lights_punctual) {
-        node.light = gltf.lights[node.extensions.KHR_lights_punctual.light];
-        //vec3.transformMat4(node.light.position, node.light.position, glNode.worldMatrix);
-      }
-
-      if (node.children) {
-        for (const nodeId of node.children) {
-          glNode.children.push(processNode(json.nodes[nodeId], glNode.worldMatrix));
-        }
-      }
-
-      return glNode;
-    }
-
+    // TODO: Load more than the default scene?
     const scene = json.scenes[json.scene];
-    for (const nodeId of scene.nodes) {
-      gltf.scene.children.push(processNode(json.nodes[nodeId], gltf.scene.worldMatrix));
+    const sceneNodes = [];
+    for (const nodeIndex of scene.nodes) {
+      sceneNodes.push(resolveNode(nodeIndex));
     }
+    scene.nodes = await Promise.all(sceneNodes);
 
-    await Promise.all(resourcePromises);
-
-    return gltf;
-  }
-}
-
-class Gltf2 {
-  constructor() {
-    this.buffers = [];
-    this.bufferViews = [];
-    this.images = [];
-    this.samplers = [];
-    this.textures = [];
-    this.materials = [];
-    this.primitives = [];
-    this.lights = [];
-    this.scene = new Node();
-  }
-}
-
-class Node {
-  constructor() {
-    this.name = null;
-    this.children = [];
-    this.primitives = [];
-    this.worldMatrix = mat4.create();
-    // null is treated as an identity matrix
-    this.localMatrix = null;
-    this.light = null;
-  }
-}
-
-class PrimitiveBufferAttributes {
-  constructor(bufferView) {
-    this.bufferView = bufferView;
-    this.minAttributeByteOffset = 0;
-    this.attributeCount = 0;
-    this.attributes = {};
-  }
-
-  addAttribute(name, primitiveAttribute) {
-    if (this.attributeCount == 0) {
-      this.minAttributeByteOffset = primitiveAttribute.byteOffset;
-    } else {
-      this.minAttributeByteOffset = Math.min(this.minAttributeByteOffset, primitiveAttribute.byteOffset);
-    }
-
-    this.attributeCount++;
-    this.attributes[name] = primitiveAttribute;
-  }
-}
-
-class PrimitiveAttribute {
-  constructor(componentCount, componentType, byteOffset, normalized) {
-    this.componentCount = componentCount || 3;
-    this.componentType = componentType || GL.FLOAT;
-    this.byteOffset = byteOffset || 0;
-    this.normalized = normalized || false;
-  }
-
-  get packedByteStride() {
-    return getComponentTypeSize(this.componentType) * this.componentCount;
-  }
-
-  get gpuFormat() {
-    const count = this.componentCount > 1 ? `x${this.componentCount}` : '';
-    const intType = this.normalized ? 'norm' : 'int';
-    switch(this.componentType) {
-      case GL.BYTE:
-        return `s${intType}8${count}`;
-      case GL.UNSIGNED_BYTE:
-        return `u${intType}8${count}`;
-      case GL.SHORT:
-        return `s${intType}16${count}`;
-      case GL.UNSIGNED_SHORT:
-        return `u${intType}16${count}`;
-      case GL.UNSIGNED_INT:
-        return `u${intType}32${count}`;
-      case GL.FLOAT:
-        return `float32${count}`;
-    }
-  }
-}
-
-class PrimitiveIndices {
-  constructor(bufferView, byteOffset, type) {
-    this.bufferView = bufferView;
-    this.byteOffset = byteOffset || 0;
-    this.type = type || GL.UNSIGNED_SHORT;
-  }
-
-  get gpuType() {
-    return this.type == GL.UNSIGNED_SHORT ? 'uint16' : 'uint32';
-  }
-}
-
-class Primitive {
-  constructor(attributeBuffers, indices, elementCount, mode, material) {
-    this.attributeBuffers = attributeBuffers; // Map<BufferView -> PrimitiveBufferAttributes>
-    this.indices = indices || null;
-    this.elementCount = elementCount || 0;
-    this.mode = mode || GL.TRIANGLES;
-    this.material = material;
-
-    this.enabledAttributes = new Set();
-    for (let bufferAttributes of attributeBuffers.values()) {
-      for (let attribName in bufferAttributes.attributes) {
-        this.enabledAttributes.add(attribName);
-      }
-    }
-
-    // For renderer-specific data;
-    this.renderData = {};
-  }
-
-  getPartialRenderPipelineDescriptor(attributeMap) {
-    const primitive = {
-      topology: this.gpuPrimitiveTopology,
-      cullMode: this.material.cullFace ? 'back' : 'none',
-    };
-
-    if (this.mode == GL.TRIANGLE_STRIP || this.mode == GL.LINE_STRIP) {
-      primitive.stripIndexFormat = this.indices.gpuType;
-    }
-
-    return {
-      vertex: {
-        buffers: this.getVertexBufferLayout(attributeMap)
-      },
-      primitive,
-    };
-  }
-
-  // Returns a GPUVertexStateDescriptor that describes the layout of the buffers for this primitive.
-  getVertexBufferLayout(attributeMap) {
-    const vertexBuffers = [];
-
-    for (const [bufferView, bufferAttributes] of this.attributeBuffers) {
-      const arrayStride = bufferView.byteStride;
-
-      const attributeLayouts = [];
-      for (const attribName in bufferAttributes.attributes) {
-        const attribute = bufferAttributes.attributes[attribName];
-        // WebGPU doesn't allow attribute offsets greater than 2048.
-        // This is apparently due to a Vulkan limitation.
-        const offset = attribute.byteOffset - bufferAttributes.minAttributeByteOffset;
-        const format = attribute.gpuFormat;
-
-        if (!bufferView.byteStride) {
-          arrayStride += attribute.packedByteStride;
-        }
-
-        const shaderLocation = attributeMap[attribName];
-
-        if (shaderLocation === undefined) {
-          console.warn(`Attribute name has no associated shader location: ${attribName}`);
-          continue;
-        }
-
-        attributeLayouts.push({
-          shaderLocation,
-          format,
-          offset,
-        });
-      }
-
-      if (attributeLayouts.length) {
-        vertexBuffers.push({
-          arrayStride,
-          attributes: attributeLayouts,
-        });
-      }
-    }
-
-    return vertexBuffers;
-  }
-
-  get gpuPrimitiveTopology() {
-    switch (this.mode) {
-      case GL.TRIANGLES:
-        return 'triangle-list';
-      case GL.TRIANGLE_STRIP:
-        return 'triangle-strip';
-      case GL.LINES:
-        return 'line-list';
-      case GL.LINE_STRIP:
-        return 'line-strip';
-      case GL.POINTS:
-        return 'point-list';
-      default:
-        // LINE_LOOP and TRIANGLE_FAN are unsupported.
-        throw new Error('Unsupported primitive topology.');
-    }
-  }
-}
-
-class BufferView {
-  constructor(buffer, stride = 0, offset = 0, length = null) {
-    this.buffer = buffer;
-    this.byteStride = stride;
-    this.byteOffset = offset;
-    this.byteLength = length;
-    this.dataView = buffer.then(value => new DataView(value, offset, length));
-
-    this.usage = new Set();
-
-    // For renderer-specific data;
-    this.renderData = {};
-  }
-}
-
-class Light {
-  constructor(type, color = [1.0, 1.0, 1.0], intensity = 1.0, range = -1) {
-    this.type = type;
-    this.color = color;
-    this.intensity = intensity;
-    this.range = range;
-
-    this.position = vec3.create();
+    return scene;
   }
 }
