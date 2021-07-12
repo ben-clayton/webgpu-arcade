@@ -1,4 +1,4 @@
-import { vec2, vec3, vec4, mat4 } from 'gl-matrix';
+import { vec3, vec4, mat4 } from 'gl-matrix';
 
 // Used for comparing values from glTF files, which uses WebGL enums natively.
 const GL = WebGLRenderingContext;
@@ -415,12 +415,9 @@ export class Gltf2Loader {
         primitive.material = material;
       }));
       
-      let elementCount = 0;
-
       const attributeBuffers = new Map();
       for (const name in primitive.attributes) {
         const accessor = Object.assign({}, DEFAULT_ACCESSOR, json.accessors[primitive.attributes[name]]);
-        elementCount = accessor.count;
 
         // TODO: Handle accessors with no bufferView (initialized to 0);
         primitivePromises.push(resolveVertexBuffer(accessor.bufferView).then(vertexBuffer => {
@@ -432,7 +429,6 @@ export class Gltf2Loader {
 
       if ('indices' in primitive) {
         const accessor = Object.assign({}, DEFAULT_ACCESSOR, json.accessors[primitive.indices]);
-        elementCount = accessor.count;
 
         primitivePromises.push(resolveIndexBuffer(accessor.bufferView).then(indexBuffer => {
           accessor.indexBuffer = indexBuffer;

@@ -4,6 +4,8 @@ import { WebGPUTextureLoader } from 'webgpu-texture-loader';
 
 import { WebGPU } from './webgpu-components.js';
 import { Gltf2Loader } from '../gltf2-loader.js';
+import { Transform } from '../core/transform.js';
+import { WebGPURenderGeometry } from './webgpu-geometry';
 
 // Used for comparing values from glTF files, which uses WebGL enums natively.
 const GL = WebGLRenderingContext;
@@ -23,9 +25,10 @@ export class WebGPUGltfScene {
 }
 
 export class WebGPUGltf2Client {
-  constructor(device) {
-    this.device = device;
-    this.textureLoader = new WebGPUTextureLoader(device);
+  constructor(gpu) {
+    this.gpu = gpu;
+    this.device = gpu.device;
+    this.textureLoader = new WebGPUTextureLoader(gpu.device);
   }
 
   createSampler(sampler) {
@@ -99,11 +102,48 @@ export class WebGPUGltf2Client {
   createIndexBuffer(bufferView) {
     return this.createBuffer(bufferView, GPUBufferUsage.INDEX);
   }
+
+  createPrimitive(primitive) {
+    const gpuGeometry = new WebGPURenderGeometry(this.gpu);
+    gpuGeometry.drawCount
+    
+    let i = 0;
+    for (const name in primitive.attributes) {
+      const accessor = primitive.attributes[name];
+      gpuGeometry.vertexBuffers.push({
+        slot: i++,
+        buffer: accessor.vertexBuffer,
+        offset: 0,
+      });
+
+      // TODO: Handle accessors with no bufferView (initialized to 0);
+      primitivePromises.push(resolveVertexBuffer(accessor.bufferView).then(vertexBuffer => {
+        accessor.vertexBuffer = vertexBuffer;
+      }));
+
+      primitive.attributes[name] = accessor;
+    }
+
+    return gpuGeometry;
+  }
 }
 
 export class WebGPUGltfSystem extends System {
   init(gpu) {
     this.loader = new Gltf2Loader(new WebGPUGltf2Client(gpu.device));
+  }
+
+  processNode(gpu, node) {
+    const transform = new Transform();
+    transform.matrix = node.worldMatrix;
+
+    const gpuGeometry = new WebGPURenderGeometry(gpu);
+
+    const nodeEntity = this.world.create(transform, );
+
+    for (const child of node.children) {
+      this.processNode(gpu, child);
+    }
   }
 
   execute(delta, time) {
@@ -113,6 +153,10 @@ export class WebGPUGltfSystem extends System {
       const gpuGltf = new WebGPUGltfScene();
       this.loader.loadFromUrl(gltf.src).then(scene => {
         gpuGltf.scene = scene;
+
+        for (const node of scene.nodes) {
+          this.processNode(gpu, node);
+        }
       });
       entity.add(gpuGltf);
     });
