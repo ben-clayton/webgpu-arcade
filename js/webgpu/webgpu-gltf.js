@@ -5,7 +5,7 @@ import { WebGPUTextureLoader } from 'webgpu-texture-loader';
 import { WebGPU } from './webgpu-components.js';
 import { Gltf2Loader } from '../gltf2-loader.js';
 import { Transform } from '../core/transform.js';
-import { WebGPURenderGeometry } from './webgpu-geometry';
+import { WebGPURenderGeometry } from './webgpu-geometry.js';
 
 // Used for comparing values from glTF files, which uses WebGL enums natively.
 const GL = WebGLRenderingContext;
@@ -91,7 +91,7 @@ export class WebGPUGltf2Client {
     });
     const mappedArray = new Uint8Array(gpuBuffer.getMappedRange());
     mappedArray.set(new Uint8Array(bufferView.buffer, bufferView.byteOffset, bufferView.byteLength));
-    gpuBuffer.unmap;
+    gpuBuffer.unmap();
     return gpuBuffer;
   }
 
@@ -116,11 +116,6 @@ export class WebGPUGltf2Client {
         offset: 0,
       });
 
-      // TODO: Handle accessors with no bufferView (initialized to 0);
-      primitivePromises.push(resolveVertexBuffer(accessor.bufferView).then(vertexBuffer => {
-        accessor.vertexBuffer = vertexBuffer;
-      }));
-
       primitive.attributes[name] = accessor;
     }
 
@@ -130,16 +125,16 @@ export class WebGPUGltf2Client {
 
 export class WebGPUGltfSystem extends System {
   init(gpu) {
-    this.loader = new Gltf2Loader(new WebGPUGltf2Client(gpu.device));
+    this.loader = new Gltf2Loader(new WebGPUGltf2Client(gpu));
   }
 
   processNode(gpu, node) {
     const transform = new Transform();
     transform.matrix = node.worldMatrix;
 
-    const gpuGeometry = new WebGPURenderGeometry(gpu);
+    //const gpuGeometry = new WebGPURenderGeometry(gpu);
 
-    const nodeEntity = this.world.create(transform, );
+    const nodeEntity = this.world.create(transform);
 
     for (const child of node.children) {
       this.processNode(gpu, child);

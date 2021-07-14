@@ -113,6 +113,12 @@ class Gltf2Node {
       if (!this.parent) {
         return this.#localMatrix;
       }
+      if (!this.#localMatrix) {
+        return this.parent.worldMatrix;
+      }
+      if (!this.#worldMatrix) {
+        this.#worldMatrix = mat4.create();
+      }
       mat4.mul(this.#worldMatrix, this.parent.worldMatrix, this.localMatrix);
     }
     return this.#worldMatrix;
@@ -124,16 +130,15 @@ class Gltf2Node {
       return this.matrix;
     }
 
-    if (!this.#localMatrix) {
-      this.#localMatrix = mat4.create();
-    }
-
-    if (this.#dirtyLocalMatrix && (node.translation || node.rotation || node.scale)) {
+    if (this.#dirtyLocalMatrix && (this.translation || this.rotation || this.scale)) {
+      if (!this.#localMatrix) {
+        this.#localMatrix = mat4.create();
+      }
       mat4.fromRotationTranslationScale(
         this.#localMatrix,
-        node.rotation || DEFAULT_ROTATION,
-        node.translation || DEFAULT_TRANSLATION,
-        node.scale || DEFAULT_SCALE);
+        this.rotation || DEFAULT_ROTATION,
+        this.translation || DEFAULT_TRANSLATION,
+        this.scale || DEFAULT_SCALE);
     }
     this.#dirtyLocalMatrix = false;
 
