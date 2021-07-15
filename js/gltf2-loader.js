@@ -264,6 +264,36 @@ export class Gltf2Loader {
       return clientBufferView;
     }
 
+    // Accessors
+    const clientAccessors = [];
+    const clientBufferTypeMap = new Map();
+    function resolveAccessor(index, bufferType) {
+      let clientAccessor = clientAccessors[index];
+      if (!clientAccessor) {
+        const accessor = Object.assign({}, DEFAULT_ACCESSOR, json.accessors[index]);
+        accessor.bufferViewIndex = accessor.bufferView;
+        clientAccessor = resolveBufferView(accessor.bufferViewIndex).then(async (bufferView) => {
+          accessor.bufferView = bufferView;
+
+          if (bufferType) {
+            let clientBufferTypes = clientBufferTypeMap[bufferType];
+            if (!clientBufferTypes) {
+              clientBufferTypes = [];
+              clientBufferTypeMap[bufferType] = clientBufferTypes;
+            }
+            if (!clientBufferTypes[accessor.bufferViewIndex]) {
+              clientBufferTypes[accessor.bufferViewIndex] = await client[`create${bufferType}`](bufferView, accessor.bufferViewIndex);
+            }
+            accessor[`client${bufferType}`] = clientBufferTypes[accessor.bufferViewIndex];
+          }
+
+          return accessor;
+        });
+        clientAccessors[index] = clientAccessor;
+      }
+      return clientAccessor;
+    }
+
     // Images
     const clientImages = [];
     function resolveImage(index, colorSpace) {
@@ -388,25 +418,35 @@ export class Gltf2Loader {
     }
 
     const clientVertexBuffers = [];
-    function resolveVertexBuffer(index) {
-      let clientVertexBuffer = clientVertexBuffers[index];
+    async function resolveVertexBuffer(index) {
+      const accessor = await resolveAccessor(index);
+      if (!accessor.vertexBuffer) {
+
+      }
+      let clientVertexBuffer = clientVertexBuffers[accessor.bufferView];
       if (!clientVertexBuffer) {
-        clientVertexBuffer = resolveBufferView(index).then(bufferView => {
-          return client.createVertexBuffer(bufferView, index);
+        clientVertexBuffer = resolveBufferView(accessor.bufferView).then(async (bufferView) => {
+          accessor.vertexBuffer = await client.createVertexBuffer(bufferView, index);
+          return accessor.vertexBuffer;
         });
-        clientVertexBuffers[index] = clientVertexBuffer;
+        clientVertexBuffers[accessor.bufferView] = clientVertexBuffer;
       }
       return clientVertexBuffer;
     }
 
     const clientIndexBuffers = [];
-    function resolveIndexBuffer(index) {
-      let clientIndexBuffer = clientIndexBuffers[index];
+    async function resolveIndexBuffer(index) {
+      const accessor = await resolveAccessor(index);
+      if (accessor.indexBuffer) {
+        return accessor.indexBuffer;
+      }
+      let clientIndexBuffer = clientIndexBuffers[accessor.bufferView];
       if (!clientIndexBuffer) {
-        clientIndexBuffer = resolveBufferView(index).then(bufferView => {
-          return client.createIndexBuffer(bufferView, index);
+        clientIndexBuffer = resolveBufferView(accessor.bufferView).then(async (bufferView) => {
+          accessor.indexBuffer = await client.createIndexBuffer(bufferView, index);
+          return accessor.indexBuffer;
         });
-        clientIndexBuffers[index] = clientIndexBuffer;
+        clientIndexBuffers[accessor.bufferView] = clientIndexBuffer;
       }
       return clientIndexBuffer;
     }
@@ -422,24 +462,16 @@ export class Gltf2Loader {
       
       const attributeBuffers = new Map();
       for (const name in primitive.attributes) {
-        const accessor = Object.assign({}, DEFAULT_ACCESSOR, json.accessors[primitive.attributes[name]]);
-
         // TODO: Handle accessors with no bufferView (initialized to 0);
-        primitivePromises.push(resolveVertexBuffer(accessor.bufferView).then(vertexBuffer => {
-          accessor.vertexBuffer = vertexBuffer;
+        primitivePromises.push(resolveAccessor(primitive.attributes[name], 'VertexBuffer').then(accessor => {
+          primitive.attributes[name] = accessor;
         }));
-
-        primitive.attributes[name] = accessor;
       }
 
       if ('indices' in primitive) {
-        const accessor = Object.assign({}, DEFAULT_ACCESSOR, json.accessors[primitive.indices]);
-
-        primitivePromises.push(resolveIndexBuffer(accessor.bufferView).then(indexBuffer => {
-          accessor.indexBuffer = indexBuffer;
+        primitivePromises.push(resolveAccessor(primitive.indices, 'IndexBuffer').then(accessor => {
+          primitive.indices = accessor;
         }));
-
-        primitive.indices = accessor;
       }
 
       return Promise.all(primitivePromises).then(() => {
@@ -464,6 +496,42 @@ export class Gltf2Loader {
         clientMeshes[index] = clientMesh;
       }
       return clientMesh;
+    }
+
+    // Skins
+    const clientSkins = [];
+    function resolveSkin(index) {
+      let clientSkin = clientSkins[index];
+      if (!clientSkin) {
+        const skin = json.skins[index];
+        const skinPromises = [];
+
+        const jointPromises = [];
+        for (const joint of skin.joints) {
+          jointPromises.push(resolveNode(joint));
+        }
+        skinPromises.push(Promise.all(jointPromises).then(joints => {
+          skin.joints = joints;
+        }));
+
+        if ('skeleton' in skin) {
+          skinPromises.push(resolveNode(skin.skeleton).then(skeleton => {
+            skin.skeleton = skeleton;
+          }));
+        }
+
+        if ('inverseBindMatrices' in skin) {
+          skinPromises.push(resolveAccessor(skin.inverseBindMatrices, 'InverseBindMatrices').then(accessor => {
+            skinPromises.inverseBindMatrices = accessor;
+          }));
+        }
+        
+        clientSkin = Promise.all(skinPromises).then(() => {
+          return client.createSkin(skin, index);
+        });
+        clientSkins[index] = clientSkin;
+      }
+      return clientSkin;
     }
 
     // Camera
