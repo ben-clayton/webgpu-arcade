@@ -2,7 +2,7 @@
 // https://github.com/Angelo1211/HybridRenderingEngine
 
 import { System } from 'ecs';
-import { WebGPU } from './webgpu-components.js';
+import { WebGPU } from './webgpu.js';
 import { WebGPUCamera } from './webgpu-camera.js';
 import {
   DISPATCH_SIZE, 

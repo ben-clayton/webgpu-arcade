@@ -2,7 +2,7 @@ import { System } from 'ecs';
 import { vec3 } from 'gl-matrix';
 import { AmbientLight, PointLight } from '../core/light.js';
 import { Transform } from '../core/transform.js';
-import { WebGPU } from './webgpu-components.js';
+import { WebGPU } from './webgpu.js';
 
 import { LIGHT_BUFFER_SIZE } from './wgsl/common.js';
 

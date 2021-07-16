@@ -2,7 +2,7 @@ import { System } from 'ecs';
 import { mat4 } from 'gl-matrix';
 import { WebGPUTextureLoader } from 'webgpu-texture-loader';
 
-import { WebGPU } from './webgpu-components.js';
+import { WebGPU } from './webgpu.js';
 import { Gltf2Loader } from '../gltf2-loader.js';
 import { Transform } from '../core/transform.js';
 import { WebGPURenderGeometry } from './webgpu-geometry.js';

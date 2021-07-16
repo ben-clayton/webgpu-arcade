@@ -3,7 +3,7 @@ import { mat4, vec3 } from 'gl-matrix';
 
 import { Transform } from '../core/transform.js';
 import { Camera } from '../core/camera.js';
-import { WebGPU } from './webgpu-components.js';
+import { WebGPU } from './webgpu.js';
 import { WebGPULightBuffer } from './webgpu-light.js';
 
 import { CAMERA_BUFFER_SIZE } from './wgsl/common.js';

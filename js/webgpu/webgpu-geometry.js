@@ -4,7 +4,7 @@ import { mat4 } from 'gl-matrix';
 import { MODEL_BUFFER_SIZE } from './wgsl/common.js';
 import { StaticGeometry } from '../core/geometry.js';
 import { Transform } from '../core/transform.js';
-import { WebGPU } from './webgpu-components.js';
+import { WebGPU } from './webgpu.js';
 
 const IDENTITY_MATRIX = mat4.create();
 

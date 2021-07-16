@@ -1,7 +1,7 @@
 import { System } from 'ecs';
 import { Transform } from '../core/transform.js';
 
-import { WebGPU } from './webgpu-components.js';
+import { WebGPU } from './webgpu.js';
 import { WebGPURenderGeometry } from './webgpu-geometry.js';
 import { WebGPURenderPipeline } from './webgpu-pipeline.js';
 import { WebGPUCamera } from './webgpu-camera.js';

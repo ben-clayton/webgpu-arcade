@@ -1,5 +1,5 @@
 import { System } from 'ecs';
-import { WebGPU } from './webgpu-components.js';
+import { WebGPU } from './webgpu.js';
 import { WebGPURenderGeometry } from './webgpu-geometry.js';
 import { DefaultVertexSource, DefaultFragmentSource } from './wgsl/default-material.js';
 
