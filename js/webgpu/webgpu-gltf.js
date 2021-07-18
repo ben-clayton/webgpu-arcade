@@ -2,7 +2,6 @@ import { System } from 'ecs';
 import { mat4 } from 'gl-matrix';
 import { WebGPUTextureLoader } from 'webgpu-texture-loader';
 
-import { WebGPU } from './webgpu.js';
 import { Gltf2Loader } from '../gltf2-loader.js';
 import { Transform } from '../core/transform.js';
 import { WebGPURenderGeometry } from './webgpu-geometry.js';
@@ -142,7 +141,7 @@ export class WebGPUGltfSystem extends System {
   }
 
   execute(delta, time) {
-    const gpu = this.singleton.get(WebGPU);
+    const gpu = this.world;
 
     this.query(GltfScene).not(WebGPUGltfScene).forEach((entity, gltf) => {
       const gpuGltf = new WebGPUGltfScene();

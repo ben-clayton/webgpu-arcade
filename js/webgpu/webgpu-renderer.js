@@ -1,7 +1,5 @@
 import { System } from 'ecs';
-import { Transform } from '../core/transform.js';
 
-import { WebGPU } from './webgpu.js';
 import { WebGPURenderGeometry } from './webgpu-geometry.js';
 import { WebGPURenderPipeline } from './webgpu-pipeline.js';
 import { WebGPUCamera } from './webgpu-camera.js';
@@ -79,7 +77,7 @@ export class WebGPURenderer extends System {
   }
 
   execute(delta, time) {
-    const gpu = this.singleton.get(WebGPU);
+    const gpu = this.world;
 
     this.query(WebGPUCamera).forEach((entity, camera) => {
       const commandEncoder = gpu.device.createCommandEncoder({});

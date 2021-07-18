@@ -2,7 +2,6 @@ import { System } from 'ecs';
 import { vec3 } from 'gl-matrix';
 import { AmbientLight, PointLight } from '../core/light.js';
 import { Transform } from '../core/transform.js';
-import { WebGPU } from './webgpu.js';
 
 import { LIGHT_BUFFER_SIZE } from './wgsl/common.js';
 
@@ -82,7 +81,7 @@ export class WebGPULightSystem extends System {
       vec3.add(this.ambientColor, this.ambientColor, light.color);
     });
 
-    const gpu = this.singleton.get(WebGPU);
+    const gpu = this.world;
     const lights = this.singleton.get(WebGPULightBuffer);
     gpu.device.queue.writeBuffer(lights.buffer, 0, this.arrayBuffer);
     lights.lightCount = this.lightCount[0];

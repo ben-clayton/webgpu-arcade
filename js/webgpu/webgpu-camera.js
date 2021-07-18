@@ -3,7 +3,6 @@ import { mat4, vec3 } from 'gl-matrix';
 
 import { Transform } from '../core/transform.js';
 import { Camera } from '../core/camera.js';
-import { WebGPU } from './webgpu.js';
 import { WebGPULightBuffer } from './webgpu-light.js';
 
 import { CAMERA_BUFFER_SIZE } from './wgsl/common.js';
@@ -76,7 +75,7 @@ export class WebGPUCamera {
 
 export class WebGPUCameraSystem extends System {
   execute(delta, time) {
-    const gpu = this.singleton.get(WebGPU);
+    const gpu = this.world;
 
     // If a Camera does not have an associated WebGPUCamera add one.
     this.query(Camera).not(WebGPUCamera).forEach((entity) => {

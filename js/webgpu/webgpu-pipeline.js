@@ -1,5 +1,4 @@
 import { System } from 'ecs';
-import { WebGPU } from './webgpu.js';
 import { WebGPURenderGeometry } from './webgpu-geometry.js';
 import { DefaultVertexSource, DefaultFragmentSource } from './wgsl/default-material.js';
 
@@ -39,7 +38,7 @@ export class WebGPUPipelineSystem extends System {
   }
 
   execute(delta, time) {
-    const gpu = this.singleton.get(WebGPU);
+    const gpu = this.world;
 
     this.needsMaterialQuery.forEach((entity, gpuGeometry, material) => {
       const gpuPipeline = new WebGPURenderPipeline();

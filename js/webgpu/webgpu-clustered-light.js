@@ -2,7 +2,6 @@
 // https://github.com/Angelo1211/HybridRenderingEngine
 
 import { System } from 'ecs';
-import { WebGPU } from './webgpu.js';
 import { WebGPUCamera } from './webgpu-camera.js';
 import {
   DISPATCH_SIZE, 
@@ -102,7 +101,7 @@ export class WebGPUClusteredLights extends System {
   }
 
   execute(delta, time) {
-    const gpu = this.singleton.get(WebGPU);
+    const gpu = this.world;
 
     this.query(WebGPUCamera).forEach((entity, camera) => {
       const commandEncoder = gpu.device.createCommandEncoder();
