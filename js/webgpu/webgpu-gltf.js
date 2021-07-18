@@ -6,6 +6,10 @@ import { Gltf2Loader } from '../gltf2-loader.js';
 import { Transform } from '../core/transform.js';
 import { WebGPURenderGeometry } from './webgpu-geometry.js';
 
+import { Geometry, Attribute, InterleavedAttributes } from '../core/geometry.js';
+import { WebGPUStaticBuffer  } from './webgpu-buffer.js';
+
+
 // Used for comparing values from glTF files, which uses WebGL enums natively.
 const GL = WebGLRenderingContext;
 
@@ -81,44 +85,46 @@ export class WebGPUGltf2Client {
     return result.texture.createView();
   }
 
-  createBuffer(bufferView, usage) {
-    const alignedLength = Math.ceil(bufferView.byteLength / 4) * 4;
-    const gpuBuffer = this.device.createBuffer({
-      size: alignedLength,
-      usage: usage,
-      mappedAtCreation: true
-    });
-    const mappedArray = new Uint8Array(gpuBuffer.getMappedRange());
-    mappedArray.set(new Uint8Array(bufferView.buffer, bufferView.byteOffset, bufferView.byteLength));
-    gpuBuffer.unmap();
-    return gpuBuffer;
-  }
-
   createVertexBuffer(bufferView) {
-    return this.createBuffer(bufferView, GPUBufferUsage.VERTEX);
+    const typedArray = new Uint8Array(bufferView.buffer, bufferView.byteOffset, bufferView.byteLength);
+    return this.gpu.createStaticBuffer(typedArray, 'vertex');
   }
 
   createIndexBuffer(bufferView) {
-    return this.createBuffer(bufferView, GPUBufferUsage.INDEX);
+    const typedArray = new Uint8Array(bufferView.buffer, bufferView.byteOffset, bufferView.byteLength);
+    return this.gpu.createStaticBuffer(typedArray, 'index');
   }
 
   createPrimitive(primitive) {
-    const gpuGeometry = new WebGPURenderGeometry(this.gpu);
-    gpuGeometry.drawCount
-    
-    let i = 0;
+    let drawCount = 0;
+    const attribBuffers = new Map();
     for (const name in primitive.attributes) {
       const accessor = primitive.attributes[name];
-      gpuGeometry.vertexBuffers.push({
-        slot: i++,
-        buffer: accessor.vertexBuffer,
-        offset: 0,
-      });
+      let attribBuffer = attribBuffers.get(accessor.bufferViewIndex);
+      if (!attribBuffer) {
+        attribBuffer = new InterleavedAttributes(accessor.clientVertexBuffer, accessor.bufferView.byteStride);
+        attribBuffers.set(accessor.bufferViewIndex, attribBuffer);
+        drawCount = accessor.count;
+      }
 
-      primitive.attributes[name] = accessor;
+      // TODO: Better handle attib name, format
+      if (accessor.byteOffset % 4 != 0) { throw new Error('Bork!'); }
+      attribBuffer.addAttribute(name.toLowerCase(), accessor.byteOffset);
     }
 
-    return gpuGeometry;
+    const geometry = new Geometry(drawCount, ...attribBuffers.values());
+
+    if (primitive.indices) {
+      geometry.indices = primitive.indices.clientIndexBuffer;
+      switch (primitive.indices.componentType) {
+        case GL.UNSIGNED_SHORT:
+          geometry.indexFormat = 'uint16'; break;
+        case GL.UNSIGNED_INT:
+          geometry.indexFormat = 'uint32'; break;
+      }
+    }
+
+    return geometry;
   }
 }
 
@@ -128,12 +134,13 @@ export class WebGPUGltfSystem extends System {
   }
 
   processNode(gpu, node) {
-    const transform = new Transform();
-    transform.matrix = node.worldMatrix;
-
-    //const gpuGeometry = new WebGPURenderGeometry(gpu);
-
-    const nodeEntity = this.world.create(transform);
+    if (node.mesh) {
+      for (const primitive of node.mesh.primitives) {
+        const transform = new Transform();
+        transform.matrix = node.worldMatrix;
+        const nodeEntity = this.world.create(primitive);
+      }
+    }
 
     for (const child of node.children) {
       this.processNode(gpu, child);

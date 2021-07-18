@@ -2,7 +2,7 @@ export const AttributeLocation = {
   position: 0,
   normal: 1,
   tangent: 2,
-  texCoord: 3,
+  texcoord: 3,
   color: 4,
 };
 
@@ -10,7 +10,7 @@ const DefaultAttributeFormat = {
   position: 'float32x3',
   normal: 'float32x3',
   tangent: 'float32x3',
-  texCoord: 'float32x2',
+  texcoord: 'float32x2',
   color: 'float32x4'
 };
 
@@ -86,6 +86,7 @@ export class InterleavedAttributes {
     if (format === undefined) {
       format = DefaultAttributeFormat[attribute];
       if (!format) {
+        return;
         throw new Error(`Unable to determine attribute format for ${attribute}.`);
       }
     }

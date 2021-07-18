@@ -1,14 +1,17 @@
 import { StaticBuffer } from '../core/geometry.js';
 
-class WebGPUStaticBuffer extends StaticBuffer {
+export class WebGPUStaticBuffer extends StaticBuffer {
   #arrayBuffer;
 
-  constructor(gpuBuffer, size, usage) {
+  constructor(gpuBuffer, size, usage, mapped = false) {
     super(size, usage);
 
     this.gpuBuffer = gpuBuffer;
-    // Static buffers are expected to be created with mappedAtCreation.
-    this.#arrayBuffer = gpuBuffer.getMappedRange();
+
+    if (mapped) {
+      // Static buffers are expected to be created with mappedAtCreation.
+      this.#arrayBuffer = gpuBuffer.getMappedRange();
+    }
   }
 
   get arrayBuffer() {
@@ -59,7 +62,7 @@ export class WebGPUBufferManager {
       usage: toGPUBufferUsage(usage),
       mappedAtCreation: true,
     });
-    const buffer = new WebGPUStaticBuffer(gpuBuffer, size, usage);
+    const buffer = new WebGPUStaticBuffer(gpuBuffer, size, usage, true);
 
     // If an ArrayBuffer or TypedArray was passed in, initialize the GPUBuffer
     // with it's data. Otherwise we'll leave it mapped for the used to populate.

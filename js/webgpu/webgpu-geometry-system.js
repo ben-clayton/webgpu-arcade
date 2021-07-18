@@ -26,6 +26,8 @@ export class WebGPUGeometrySystem extends System {
 
       let i = 0;
       for (const geoBuffer of geometry.buffers) {
+        if (!geoBuffer.attributes.length) { continue; }
+
         gpuGeometry.vertexBuffers.push({
           slot: i++,
           buffer: geoBuffer.buffer.gpuBuffer,
@@ -35,7 +37,7 @@ export class WebGPUGeometrySystem extends System {
 
       if (geometry.indices) {
         gpuGeometry.indexBuffer = {
-          buffer: geometry.indices,
+          buffer: geometry.indices.gpuBuffer,
           format: geometry.indexFormat
         };
       }
