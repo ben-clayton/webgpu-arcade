@@ -1,4 +1,4 @@
-import { StaticGeometry, InterleavedBuffer } from './core/geometry.js';
+import { Geometry, InterleavedAttributes } from './core/geometry.js';
 
 const CUBE_VERTS = new Float32Array([
 //position,    color,       uv,
@@ -44,11 +44,14 @@ const CUBE_VERTS = new Float32Array([
   1, -1, -1,   1, 0, 0, 1,  1, 1,
   -1, 1, -1,   0, 1, 0, 1,  0, 0,
 ]);
+const VERTEX_STRIDE = 36;
+const VERTEX_COUNT = 36;
 
-export function createCubeGeometry() {
-  const vertBuffer = new InterleavedBuffer(CUBE_VERTS, 36);
-  vertBuffer.addAttribute('position', 0);
-  vertBuffer.addAttribute('color', 12);
-  vertBuffer.addAttribute('texCoord', 28);
-  return new StaticGeometry(36, vertBuffer);
+export function createCubeGeometry(world) {
+  const vertBuffer = world.createStaticBuffer(CUBE_VERTS);
+  const attribs = new InterleavedAttributes(vertBuffer, VERTEX_STRIDE);
+  attribs.addAttribute('position', 0);
+  attribs.addAttribute('color', 12);
+  attribs.addAttribute('texCoord', 28);
+  return new Geometry(VERTEX_COUNT, attribs);
 }

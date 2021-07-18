@@ -105,6 +105,8 @@
         .registerGPUSystem(WebGPUDefaultPipelineSystem)
         .registerGPUSystem(WebGPURenderer);
 
+      await world.intialize();
+
       const camera = world.create(
         new Transform([0, 0, 3]),
         new OrbitControls(),
@@ -113,7 +115,7 @@
 
       const cube = world.create(
         new Transform([0, 0, 0]),
-        createCubeGeometry(),
+        createCubeGeometry(world),
       );
 
       // Add some lights

@@ -49,7 +49,7 @@ export class WebGPUPipelineSystem extends System {
       let cachedPipeline = this.#pipelineCache.get(pipelineKey);
       if (cachedPipeline) {
         gpuPipeline.pipeline = cachedPipeline.pipeline;
-        gpuPipeline.pipelineId = cachedPipeline.pipelineId++;
+        gpuPipeline.pipelineId = cachedPipeline.pipelineId;
       } else {
         gpuPipeline.pipeline = this.createPipeline(gpu, entity, gpuGeometry, material);
         gpuPipeline.pipelineId = this.#nextPipelineId++;

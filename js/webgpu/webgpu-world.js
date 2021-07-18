@@ -1,4 +1,5 @@
 import { World } from 'ecs';
+import { WebGPUBufferManager } from './webgpu-buffer.js';
 
 const desiredFeatures = [
   'texture-compression-bc'
@@ -16,6 +17,7 @@ export class WebGPUWorld extends World {
   size = {width: 0, height: 0};
 
   bindGroupLayouts = {};
+  bufferManager = null;
 
   constructor(canvas) {
     super();
@@ -23,10 +25,10 @@ export class WebGPUWorld extends World {
     canvas = canvas || document.createElement('canvas');
     this.context = canvas.getContext('webgpu');
 
-    this.#gpuInitialized = this.init(canvas);
+    this.#gpuInitialized = this.#initWebGPU();
   }
 
-  async init(canvas) {
+  async #initWebGPU() {
     const adapter = await navigator.gpu.requestAdapter({
       powerPreference: "high-performance"
     });
@@ -63,7 +65,13 @@ export class WebGPUWorld extends World {
       }]
     });
 
+    this.bufferManager = new WebGPUBufferManager(this.device);
+
     return this;
+  }
+
+  async intialize() {
+    return await this.#gpuInitialized;
   }
 
   registerGPUSystem(systemType, ...initArgs) {
@@ -79,5 +87,9 @@ export class WebGPUWorld extends World {
 
   get canvas() {
     return this.context.canvas;
+  }
+
+  createStaticBuffer(sizeOrArrayBuffer, usage = 'vertex') {
+    return this.bufferManager.createStaticBuffer(sizeOrArrayBuffer, usage);
   }
 }

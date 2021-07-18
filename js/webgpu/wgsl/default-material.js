@@ -1,15 +1,15 @@
-import { Attribute } from '../../core/geometry.js';
+import { AttributeLocation } from '../../core/geometry.js';
 import { wgsl } from './wgsl-utils.js';
 import { CameraStruct, ModelStruct, ColorConversions } from './common.js';
 
 function DefaultAttributes(layout) {
   let inputs = layout.locationsUsed.map((location) => {
     switch(location) {
-      case Attribute.position: return ``;
-      case Attribute.normal: return `[[location(${Attribute.normal})]] normal : vec3<f32>;`;
-      case Attribute.tangent: return `// Tangent unused`;
-      case Attribute.texCoord: return `[[location(${Attribute.texCoord})]] texCoord : vec2<f32>;`;
-      case Attribute.color: return `[[location(${Attribute.color})]] color : vec4<f32>;`;
+      case AttributeLocation.position: return ``;
+      case AttributeLocation.normal: return `[[location(${AttributeLocation.normal})]] normal : vec3<f32>;`;
+      case AttributeLocation.tangent: return `// Tangent unused`;
+      case AttributeLocation.texCoord: return `[[location(${AttributeLocation.texCoord})]] texCoord : vec2<f32>;`;
+      case AttributeLocation.color: return `[[location(${AttributeLocation.color})]] color : vec4<f32>;`;
     }
   });
 
@@ -23,7 +23,7 @@ export function DefaultVertexSource(layout) {
       
       struct VertexInput {
         ${DefaultAttributes(layout)}
-        [[location(${Attribute.position})]] position : vec3<f32>;
+        [[location(${AttributeLocation.position})]] position : vec3<f32>;
       };
 
       struct VertexOutput {
@@ -35,13 +35,13 @@ export function DefaultVertexSource(layout) {
       fn vertexMain(input : VertexInput) -> VertexOutput {
         var output : VertexOutput;
         output.position = camera.projection * camera.view * model.matrix * vec4<f32>(input.position, 1.0);
-#if ${layout.locationsUsed.includes(Attribute.normal)}
+#if ${layout.locationsUsed.includes(AttributeLocation.normal)}
         output.normal = normalize((mesh.matrix * vec4<f32>(input.normal, 0.0)).xyz);
 #endif
-#if ${layout.locationsUsed.includes(Attribute.texCoord)}
+#if ${layout.locationsUsed.includes(AttributeLocation.texCoord)}
         output.texCoord = input.texCoord;
 #endif
-#if ${layout.locationsUsed.includes(Attribute.color)}
+#if ${layout.locationsUsed.includes(AttributeLocation.color)}
         output.color = input.color;
 #endif
         return output;
@@ -59,14 +59,14 @@ export function DefaultFragmentSource(layout) {
 
       [[stage(fragment)]]
       fn fragmentMain(input : VertexOutput) -> [[location(0)]] vec4<f32> {
-#if ${layout.locationsUsed.includes(Attribute.color)}
+#if ${layout.locationsUsed.includes(AttributeLocation.color)}
         let baseColor = input.color;
 #else
         // Something that'll stand out :)
         let baseColor = vec4<f32>(1.0, 0.0, 1.0, 1.0);
 #endif
 
-#if ${layout.locationsUsed.includes(Attribute.normal)}
+#if ${layout.locationsUsed.includes(AttributeLocation.normal)}
         //let normal = input.normal;
 #else
         //let xTangent = dFdx(viewPosition);

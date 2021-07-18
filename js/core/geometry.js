@@ -1,4 +1,4 @@
-export const Attribute = {
+export const AttributeLocation = {
   position: 0,
   normal: 1,
   tangent: 2,
@@ -47,17 +47,42 @@ const DefaultStride = {
   sint32x4: 16,
 };
 
-export class InterleavedBuffer {
-  constructor(array, arrayStride) {
-    this.array = array;
-    this.arrayStride = arrayStride;
+export class StaticBuffer {
+  #size;
+  #usage;
+
+  constructor(size, usage) {
+    this.#size = size;
+    this.#usage = usage;
+  }
+
+  get size() {
+    return this.#size;
+  }
+  
+  get usage() {
+    return this.#usage;
+  }
+
+  get arrayBuffer() {
+    throw new Error('arrayBuffer() must be overriden in an extended class');
+  }
+
+  finish() {
+    throw new Error('finish() must be overriden in an extended class');
+  }
+}
+
+export class InterleavedAttributes {
+  constructor(buffer, stride) {
+    this.buffer = buffer;
+    this.arrayStride = stride;
     this.attributes = [];
-    this.maxVertexCount = Math.floor(array.length * array.BYTES_PER_ELEMENT) / arrayStride;
     this.minOffset = Number.MAX_SAFE_INTEGER;
   }
 
   addAttribute(attribute, offset = 0, format) {
-    const shaderLocation = Attribute[attribute];
+    const shaderLocation = AttributeLocation[attribute];
     if (format === undefined) {
       format = DefaultAttributeFormat[attribute];
       if (!format) {
@@ -70,18 +95,18 @@ export class InterleavedBuffer {
   }
 };
 
-export class AttributeBuffer extends InterleavedBuffer {
-  constructor(attribute, array, format, arrayStride) {
+export class Attribute extends InterleavedAttributes {
+  constructor(attribute, buffer, format, stride) {
     if (format === undefined) {
       format = DefaultAttributeFormat[attribute];
       if (!format) {
         throw new Error(`Unable to determine attribute format for ${attribute}.`);
       }
     }
-    if (!arrayStride) {
-      arrayStride = DefaultStride[format];
+    if (!stride) {
+      stride = DefaultStride[format];
     }
-    super(array, arrayStride);
+    super(buffer, stride);
     super.addAttribute(attribute, 0, format);
   }
 
@@ -90,18 +115,15 @@ export class AttributeBuffer extends InterleavedBuffer {
   }
 };
 
-export class StaticGeometry {
-  indexArray = null;
+export class Geometry {
+  indices = null;
+  indexFormat = 'uint32';
   buffers = [];
   drawCount = 0;
   topology = 'triangle-list';
 
-  constructor(drawCount = 0, ...buffers) {
+  constructor(drawCount = 0, ...attributes) {
     this.drawCount = drawCount;
-    this.buffers.push(...buffers);
-  }
-
-  get indexFormat() {
-    return this.indexBuffer?.BYTES_PER_ELEMENT == 2 ? 'uint16' : 'uint32';
+    this.buffers.push(...attributes);
   }
 }

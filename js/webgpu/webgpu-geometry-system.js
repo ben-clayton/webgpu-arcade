@@ -1,7 +1,7 @@
 import { System } from 'ecs';
 import { mat4 } from 'gl-matrix';
 
-import { StaticGeometry } from '../core/geometry.js';
+import { Geometry } from '../core/geometry.js';
 import { Transform } from '../core/transform.js';
 import { GeometryLayoutCache, WebGPURenderGeometry } from './webgpu-geometry.js';
 
@@ -16,7 +16,7 @@ export class WebGPUGeometrySystem extends System {
     // For any entities with StaticGeometry but no WebGPURenderGeometry, create the WebGPU buffers
     // for the geometry, fill it from the StaticGeometry attributes, then clear the StaticGeometry's
     // attributes so the memory can be GCed if needed.
-    this.query(StaticGeometry).not(WebGPURenderGeometry).forEach((entity, geometry) => {
+    this.query(Geometry).not(WebGPURenderGeometry).forEach((entity, geometry) => {
       const gpuGeometry = new WebGPURenderGeometry(gpu);
       //renderable.pipeline = this.pipeline;
       gpuGeometry.drawCount = geometry.drawCount;
@@ -25,31 +25,17 @@ export class WebGPUGeometrySystem extends System {
       gpuGeometry.layout = this.geometryLayoutCache.getLayout(gpuGeometry.layoutId);
 
       let i = 0;
-      for (const buffer of geometry.buffers) {
-        const alignedLength = Math.ceil(buffer.array.byteLength / 4) * 4;
-        const vertexBuffer = gpu.device.createBuffer({
-          size: alignedLength,
-          usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
-          mappedAtCreation: true
-        });
-        const mappedArray = new buffer.array.constructor(vertexBuffer.getMappedRange());
-        mappedArray.set(buffer.array);
-        vertexBuffer.unmap();
+      for (const geoBuffer of geometry.buffers) {
         gpuGeometry.vertexBuffers.push({
           slot: i++,
-          buffer: vertexBuffer,
-          offset: buffer.minOffset,
+          buffer: geoBuffer.buffer.gpuBuffer,
+          offset: geoBuffer.minOffset,
         });
       }
 
-      if (geometry.indexArray) {
-        const indexBuffer = gpu.device.createBuffer({
-          size: geometry.indexArray.byteLength,
-          usage: GPUBufferUsage.INDEX | GPUBufferUsage.COPY_DST
-        });
-        gpu.device.queue.writeBuffer(indexBuffer, 0, geometry.indexArray);
+      if (geometry.indices) {
         gpuGeometry.indexBuffer = {
-          buffer: indexBuffer,
+          buffer: geometry.indices,
           format: geometry.indexFormat
         };
       }
