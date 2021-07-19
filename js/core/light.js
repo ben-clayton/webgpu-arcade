@@ -3,10 +3,11 @@ export class PointLight {
   intensity = 1;
   range = -1;
 
-  constructor(r = 1, g = 1, b = 1) {
+  constructor(r = 1, g = 1, b = 1, intensity = 1) {
     this.color[0] = r;
     this.color[1] = g;
     this.color[2] = b;
+    this.intensity = intensity;
   }
 
   get computedRange() {

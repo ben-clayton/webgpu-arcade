@@ -13,6 +13,7 @@ export const RenderOrder = {
 export class WebGPURenderPipeline {
   pipelineId = 0;
   pipeline = null;
+  materialBindGroup = null;
   renderOrder = RenderOrder.Default;
 }
 
@@ -29,6 +30,10 @@ export class WebGPUPipelineSystem extends System {
     this.needsMaterialQuery = this.query(...queryArgs).not(WebGPURenderPipeline);
   }
 
+  createMaterialBindGroup(gpu, entity, material) {
+    return null; // Some materials may not require a given bind group.
+  }
+
   createPipeline(gpu, entity, gpuGeometry, material) {
     throw new Error('Must override createPipeline() for each system that extends WebGPUPipelineSystem.');
   }
@@ -43,6 +48,7 @@ export class WebGPUPipelineSystem extends System {
     this.needsMaterialQuery.forEach((entity, gpuGeometry, material) => {
       const gpuPipeline = new WebGPURenderPipeline();
       gpuPipeline.renderOrder = this.renderOrder;
+      gpuPipeline.materialBindGroup = this.createMaterialBindGroup(gpu, entity, material);
 
       const pipelineKey = this.pipelineKey(entity, gpuGeometry, material);
 

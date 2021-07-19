@@ -97,6 +97,11 @@ export class WebGPURenderer extends System {
         passEncoder.setPipeline(pipeline.pipeline); // TODO: Dedup these calls
         passEncoder.setBindGroup(1, geometry.bindGroup);
 
+        // Bind any
+        if (pipeline.materialBindGroup) {
+          passEncoder.setBindGroup(2, pipeline.materialBindGroup);
+        }
+
         for (const vb of geometry.vertexBuffers) {
           passEncoder.setVertexBuffer(vb.slot, vb.buffer, vb.offset);
         }

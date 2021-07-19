@@ -1,10 +1,10 @@
 import { System } from 'ecs';
 import { mat4 } from 'gl-matrix';
-import { WebGPUTextureLoader } from 'webgpu-texture-loader';
 
 import { Gltf2Loader } from '../gltf2-loader.js';
 import { Transform } from '../core/transform.js';
 import { Geometry, InterleavedAttributes } from '../core/geometry.js';
+import { PBRMaterial } from './webgpu-pbr-pipeline.js';
 
 
 // Used for comparing values from glTF files, which uses WebGL enums natively.
@@ -38,8 +38,6 @@ export class WebGPUGltfScene {
 export class WebGPUGltf2Client {
   constructor(gpu) {
     this.gpu = gpu;
-    this.device = gpu.device;
-    this.textureLoader = new WebGPUTextureLoader(gpu.device);
   }
 
   createSampler(sampler) {
@@ -85,11 +83,11 @@ export class WebGPUGltf2Client {
         break;
     }
 
-    return this.device.createSampler(descriptor);
+    return this.gpu.device.createSampler(descriptor);
   }
 
   async createImage(image) {
-    const result = await this.textureLoader.fromBlob(image.blob, {colorSpace: image.colorSpace});
+    const result = await this.gpu.textureLoader.fromBlob(image.blob, {colorSpace: image.colorSpace});
     return result.texture.createView();
   }
 
@@ -101,6 +99,16 @@ export class WebGPUGltf2Client {
   createIndexBuffer(bufferView) {
     const typedArray = new Uint8Array(bufferView.buffer, bufferView.byteOffset, bufferView.byteLength);
     return this.gpu.createStaticBuffer(typedArray, 'index');
+  }
+
+  createMaterial(material) {
+    let pbr = new PBRMaterial();
+    pbr.baseColorTexture = material.pbrMetallicRoughness?.baseColorTexture?.texture.image;
+    pbr.metallicRoughnessTexture = material.pbrMetallicRoughness?.metallicRoughnessTexture?.texture.image;
+    pbr.normalTexture = material.normalTexture?.texture.image;
+    pbr.occlusionTexture = material.occlusionTexture?.texture.image;
+    pbr.emissiveTexture = material.emissiveTexture?.texture.image;
+    return pbr;
   }
 
   createPrimitive(primitive) {
@@ -115,11 +123,6 @@ export class WebGPUGltf2Client {
         drawCount = accessor.count;
       }
 
-      if (name == "COLOR_0") {
-        console.log(accessor);
-      }
-
-      // TODO: Better handle attrib name, format
       attribBuffer.addAttribute(AttribMap[name], accessor.byteOffset, accessor.gpuFormat);
     }
 
@@ -148,7 +151,7 @@ export class WebGPUGltf2Client {
       }
     }
 
-    return geometry;
+    return { geometry, material: primitive.material };
   }
 }
 
@@ -162,7 +165,7 @@ export class WebGPUGltfSystem extends System {
       for (const primitive of node.mesh.primitives) {
         const transform = new Transform();
         transform.matrix = node.worldMatrix;
-        const nodeEntity = this.world.create(primitive, transform);
+        this.world.create(primitive.geometry, primitive.material, transform);
       }
     }
 

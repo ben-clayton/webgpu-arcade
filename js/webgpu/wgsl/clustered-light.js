@@ -30,7 +30,7 @@ export function ClusterStruct(group, binding, access = 'read') { return `
 `;
 }
 
-export function ClusterLightsStruct(group, binding, access='read') { return `
+export function ClusterLightsStruct(group=0, binding=2, access='read') { return `
   struct ClusterLights {
     offset : u32;
     count : u32;

@@ -1,5 +1,6 @@
 import { World } from 'ecs';
 import { WebGPUBufferManager } from './webgpu-buffer.js';
+import { WebGPUTextureLoader } from 'webgpu-texture-loader';
 
 const desiredFeatures = [
   'texture-compression-bc'
@@ -18,6 +19,7 @@ export class WebGPUWorld extends World {
 
   bindGroupLayouts = {};
   bufferManager = null;
+  textureLoader = null;
 
   constructor(canvas) {
     super();
@@ -66,6 +68,7 @@ export class WebGPUWorld extends World {
     });
 
     this.bufferManager = new WebGPUBufferManager(this.device);
+    this.textureLoader = new WebGPUTextureLoader(this.device);
 
     return this;
   }
