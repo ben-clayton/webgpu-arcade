@@ -80,6 +80,24 @@ export class WebGPURenderer extends System {
     const gpu = this.world;
 
     this.query(WebGPUCamera).forEach((entity, camera) => {
+
+      const pipelineGeometries = new Map();
+
+      // Loop through all the renderable entities and store them by pipeline.
+      this.query(WebGPURenderGeometry, WebGPURenderPipeline).forEach((entity, geometry, pipeline) => {
+        let geometryList = pipelineGeometries.get(pipeline);
+        if (!geometryList) {
+          geometryList = [];
+          pipelineGeometries.set(pipeline, geometryList);
+        }
+        geometryList.push(geometry);
+      });
+
+      // Sort the pipelines by render order (e.g. so transparent objects are rendered last).
+      const sortedPipelines = Array.from(pipelineGeometries.keys())
+      sortedPipelines.sort((a, b) => a.renderOrder - b.renderOrder);
+
+      // Render the sorted geometry.
       const commandEncoder = gpu.device.createCommandEncoder({});
 
       const outputTexture = gpu.context.getCurrentTexture().createView();
@@ -93,26 +111,29 @@ export class WebGPURenderer extends System {
 
       passEncoder.setBindGroup(0, camera.bindGroup);
 
-      this.query(WebGPURenderGeometry, WebGPURenderPipeline).forEach((entity, geometry, pipeline) => {
-        passEncoder.setPipeline(pipeline.pipeline); // TODO: Dedup these calls
-        passEncoder.setBindGroup(1, geometry.bindGroup);
+      for (const pipeline of sortedPipelines) {
+        const geometryList = pipelineGeometries.get(pipeline);
+        passEncoder.setPipeline(pipeline.pipeline);
 
-        // Bind any
-        if (pipeline.materialBindGroup) {
-          passEncoder.setBindGroup(2, pipeline.materialBindGroup);
-        }
+        for (const geometry of geometryList) {
+          passEncoder.setBindGroup(1, geometry.bindGroup);
 
-        for (const vb of geometry.vertexBuffers) {
-          passEncoder.setVertexBuffer(vb.slot, vb.buffer, vb.offset);
+          if (geometry.materialBindGroup) {
+            passEncoder.setBindGroup(2, geometry.materialBindGroup);
+          }
+
+          for (const vb of geometry.vertexBuffers) {
+            passEncoder.setVertexBuffer(vb.slot, vb.buffer, vb.offset);
+          }
+          const ib = geometry.indexBuffer;
+          if (ib) {
+            passEncoder.setIndexBuffer(ib.buffer, ib.format);
+            passEncoder.drawIndexed(geometry.drawCount, geometry.instanceCount);
+          } else {
+            passEncoder.draw(geometry.drawCount, geometry.instanceCount);
+          }
         }
-        const ib = geometry.indexBuffer;
-        if (ib) {
-          passEncoder.setIndexBuffer(ib.buffer, ib.format);
-          passEncoder.drawIndexed(geometry.drawCount, geometry.instanceCount);
-        } else {
-          passEncoder.draw(geometry.drawCount, geometry.instanceCount);
-        }
-      });
+      }
 
       passEncoder.endPass();
 

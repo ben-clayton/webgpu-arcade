@@ -13,7 +13,6 @@ export const RenderOrder = {
 export class WebGPURenderPipeline {
   pipelineId = 0;
   pipeline = null;
-  materialBindGroup = null;
   renderOrder = RenderOrder.Default;
 }
 
@@ -48,23 +47,25 @@ export class WebGPUPipelineSystem extends System {
     this.needsMaterialQuery.forEach((entity, gpuGeometry, material) => {
       const gpuPipeline = new WebGPURenderPipeline();
       gpuPipeline.renderOrder = this.renderOrder;
-      gpuPipeline.materialBindGroup = this.createMaterialBindGroup(gpu, entity, material);
 
       const pipelineKey = this.pipelineKey(entity, gpuGeometry, material);
 
       let cachedPipeline = this.#pipelineCache.get(pipelineKey);
       cachedPipeline = undefined; // TODO: NOT THIS.
-      if (cachedPipeline) {
-        gpuPipeline.pipeline = cachedPipeline.pipeline;
-        gpuPipeline.pipelineId = cachedPipeline.pipelineId;
-      } else {
-        gpuPipeline.pipeline = this.createPipeline(gpu, entity, gpuGeometry, material);
-        gpuPipeline.pipelineId = this.#nextPipelineId++;
-        this.#pipelineCache.set(pipelineKey, {
-          pipeline: gpuPipeline.pipeline,
-          pipelineId: gpuPipeline.pipelineId
-        });
+      if (!cachedPipeline) {
+        const pipeline = this.createPipeline(gpu, entity, gpuGeometry, material);
+        if (!pipeline) { return; }
+        
+        cachedPipeline = {
+          pipeline,
+          pipelineId: this.#nextPipelineId++,
+        };
+        this.#pipelineCache.set(pipelineKey, cachedPipeline);
       }
+
+      gpuPipeline.pipeline = cachedPipeline.pipeline;
+      gpuPipeline.pipelineId = cachedPipeline.pipelineId;
+      gpuGeometry.materialBindGroup = this.createMaterialBindGroup(gpu, entity, material);
 
       entity.add(gpuPipeline);
     });

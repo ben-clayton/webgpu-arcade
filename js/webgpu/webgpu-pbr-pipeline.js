@@ -1,4 +1,4 @@
-import { System } from 'ecs';
+import { AttributeLocation } from '../core/geometry.js';
 import { WebGPUPipelineSystem } from './webgpu-pipeline.js';
 import { PBRVertexSource, PBRFragmentSource, MATERIAL_BUFFER_SIZE } from './wgsl/pbr-material.js';
 
@@ -149,6 +149,12 @@ export class WebGPUPBRPipelineSystem extends WebGPUPipelineSystem {
 
   createPipeline(gpu, entity, gpuGeometry) {
     const layout = gpuGeometry.layout;
+
+    if (!layout.locationsUsed.includes(AttributeLocation.position) ||
+        !layout.locationsUsed.includes(AttributeLocation.normal)) {
+      console.error('Cannot use PBRMaterial if the associated Geometry does not define at least a position and normal attribute.')
+      return null;
+    }
 
     return gpu.device.createRenderPipeline({
       label: `PBR Pipeline (LayoutID: ${gpuGeometry.layoutId})`,
