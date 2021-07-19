@@ -112,7 +112,7 @@ export class WebGPUGltf2Client {
       attribBuffer.addAttribute(name.toLowerCase(), accessor.byteOffset);
     }
 
-    const geometry = new Geometry(drawCount, ...attribBuffers.values());
+    const geometry = new Geometry(primitive.indices?.count || drawCount, ...attribBuffers.values());
 
     switch (primitive.mode) {
       case GL.TRIANGLES:
