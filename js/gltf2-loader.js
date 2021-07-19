@@ -127,9 +127,9 @@ class Gltf2Node {
         if (!this.localMatrix) {
           this.#localMatrix = mat4.create();
         }
-        return this.#localMatrix;
+        return this.localMatrix;
       }
-      if (!this.#localMatrix) {
+      if (!this.localMatrix) {
         return this.parent.worldMatrix;
       }
       this.#dirtyWorldMatrix = false;

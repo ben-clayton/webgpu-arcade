@@ -113,7 +113,7 @@
       
       const projection = new Camera();
       projection.zNear = 1;
-      projection.zFar = 2048;
+      projection.zFar = 1024;
 
       const camera = world.create(
         new Transform([0, 0, 3]),
@@ -136,13 +136,13 @@
 
       // Add some lights
       world.create(
-        new Transform([30, 30, 30]),
-        new PointLight(1, 0.3, 0.3, 1000)
+        new Transform([3, 3, -2]),
+        new PointLight(1, 0.3, 0.3, 10)
       );
 
       world.create(
-        new Transform([-30, 30, -30]),
-        new PointLight(0.3, 1, 0.3, 1000)
+        new Transform([-3, 3, -2]),
+        new PointLight(0.3, 1, 0.3, 10)
       );
 
       world.create(
@@ -167,7 +167,7 @@
           case 'flying': {
             camera.remove(OrbitControls);
             const flyingControls = new FlyingControls();
-            flyingControls.speed = 1000;
+            flyingControls.speed = 10;
             camera.add(flyingControls);
             break;
           }
