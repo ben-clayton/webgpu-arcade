@@ -44,6 +44,20 @@ function getComponentTypeSize(componentType) {
   }
 }
 
+function getAccessorGPUFormat(accessor) {
+  const norm = accessor.normalized ? 'norm' : 'int';
+  const count = getComponentCount(accessor.type);
+  const x = count > 1 ? `x${count}` : '';
+  switch (accessor.componentType) {
+    case GL.BYTE: return `s${norm}8${x}`;
+    case GL.UNSIGNED_BYTE: return `u${norm}8${x}`;
+    case GL.SHORT: return `s${norm}16${x}`;
+    case GL.UNSIGNED_SHORT: return `u${norm}16${x}`;
+    case GL.UNSIGNED_INT: return `u${norm}32${x}`;
+    case GL.FLOAT: return `float32${x}`;
+  }
+}
+
 const DEFAULT_SAMPLER = {
   wrapS: GL.REPEAT,
   wrapT: GL.REPEAT
@@ -277,6 +291,7 @@ export class Gltf2Loader {
         accessor.bufferViewIndex = accessor.bufferView;
         clientAccessor = resolveBufferView(accessor.bufferViewIndex).then(async (bufferView) => {
           accessor.bufferView = bufferView;
+          accessor.gpuFormat = getAccessorGPUFormat(accessor);
           if (!bufferView.byteStride) {
             bufferView.byteStride = getComponentTypeSize(accessor.componentType) * getComponentCount(accessor.type);
           }

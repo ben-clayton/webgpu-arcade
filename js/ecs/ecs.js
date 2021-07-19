@@ -18,19 +18,18 @@ class Entity {
         this.#worldData.components[component.constructor] = componentSet = new Map();
       }
       componentSet[this.id] = component;
+      component.addedToEntity?.(this.id);
     }
 
     return this;
   }
 
-  remove(componentType, destroyComponent = true) {
+  remove(componentType) {
     const componentSet = this.#worldData.components[componentType];
     if (!componentSet) { return undefined; }
     const component = componentSet[this.id];
     delete componentSet[this.id];
-    if (destroyComponent && component?.destroy !== undefined) {
-      component.destroy();
-    }
+    component.removedFromEntity?.(this.id);
     return component;
   }
 

@@ -107,15 +107,29 @@
 
       await world.intialize();
 
+      const cubeGeometry = createCubeGeometry(world);
+      
+      const projection = new Camera();
+      projection.zNear = 1;
+      projection.zFar = 2048;
+
       const camera = world.create(
         new Transform([0, 0, 3]),
         new OrbitControls(),
-        new Camera()
+        projection
       );
 
       const cube = world.create(
         new Transform([0, 0, 0]),
-        createCubeGeometry(world),
+        cubeGeometry,
+      );
+      const cube2 = world.create(
+        new Transform([-3, 0, 0]),
+        cubeGeometry,
+      );
+      const cube3 = world.create(
+        new Transform([3, 0, 0]),
+        cubeGeometry,
       );
 
       // Add some lights
@@ -151,7 +165,7 @@
           case 'flying': {
             camera.remove(OrbitControls);
             const flyingControls = new FlyingControls();
-            flyingControls.speed = 100;
+            flyingControls.speed = 1000;
             camera.add(flyingControls);
             break;
           }
@@ -161,8 +175,14 @@
       function onFrame() {
         requestAnimationFrame(onFrame);
 
-        const transform = cube.get(Transform);
-        transform.position[0] = Math.sin(Date.now() / 1000);
+        let transform = cube.get(Transform);
+        transform.position[1] = Math.sin(Date.now() / 1000);
+
+        transform = cube2.get(Transform);
+        transform.position[1] = Math.sin((Date.now() - 1000) / 1000);
+
+        transform = cube3.get(Transform);
+        transform.position[1] = Math.sin((Date.now() + 1000) / 1000);
 
         stats.begin();
         world.execute();

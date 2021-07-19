@@ -4,14 +4,22 @@ import { WebGPUTextureLoader } from 'webgpu-texture-loader';
 
 import { Gltf2Loader } from '../gltf2-loader.js';
 import { Transform } from '../core/transform.js';
-import { WebGPURenderGeometry } from './webgpu-geometry.js';
-
-import { Geometry, Attribute, InterleavedAttributes } from '../core/geometry.js';
-import { WebGPUStaticBuffer  } from './webgpu-buffer.js';
+import { Geometry, InterleavedAttributes } from '../core/geometry.js';
 
 
 // Used for comparing values from glTF files, which uses WebGL enums natively.
 const GL = WebGLRenderingContext;
+
+const AttribMap = {
+  POSITION: 'position',
+  NORMAL: 'normal',
+  TANGENT: 'tangent',
+  TEXCOORD_0: 'texcoord',
+  TEXCOORD_1: 'texcoord2',
+  COLOR_0: 'color',
+  JOINTS_0: 'joints',
+  WEIGHTS_0: 'weights',
+};
 
 const IDENTITY_MATRIX = mat4.create();
 
@@ -107,9 +115,12 @@ export class WebGPUGltf2Client {
         drawCount = accessor.count;
       }
 
-      // TODO: Better handle attib name, format
-      if (accessor.byteOffset % 4 != 0) { throw new Error('Bork!'); }
-      attribBuffer.addAttribute(name.toLowerCase(), accessor.byteOffset);
+      if (name == "COLOR_0") {
+        console.log(accessor);
+      }
+
+      // TODO: Better handle attrib name, format
+      attribBuffer.addAttribute(AttribMap[name], accessor.byteOffset, accessor.gpuFormat);
     }
 
     const geometry = new Geometry(primitive.indices?.count || drawCount, ...attribBuffers.values());

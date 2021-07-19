@@ -3,7 +3,10 @@ export const AttributeLocation = {
   normal: 1,
   tangent: 2,
   texcoord: 3,
-  color: 4,
+  texcoord2: 4,
+  color: 5,
+  joints: 6,
+  weights: 7,
 };
 
 const DefaultAttributeFormat = {
@@ -11,7 +14,10 @@ const DefaultAttributeFormat = {
   normal: 'float32x3',
   tangent: 'float32x3',
   texcoord: 'float32x2',
-  color: 'float32x4'
+  texcoord2: 'float32x2',
+  color: 'float32x4',
+  joints: 'uint16x4',
+  weights: 'float32x4',
 };
 
 const DefaultStride = {
