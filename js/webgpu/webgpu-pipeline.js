@@ -47,6 +47,7 @@ export class WebGPUPipelineSystem extends System {
       const pipelineKey = this.pipelineKey(entity, gpuGeometry, material);
 
       let cachedPipeline = this.#pipelineCache.get(pipelineKey);
+      cachedPipeline = undefined; // TODO: NOT THIS.
       if (cachedPipeline) {
         gpuPipeline.pipeline = cachedPipeline.pipeline;
         gpuPipeline.pipelineId = cachedPipeline.pipelineId;
@@ -69,6 +70,7 @@ export class WebGPUDefaultPipelineSystem extends WebGPUPipelineSystem {
     const layout = gpuGeometry.layout;
 
     return gpu.device.createRenderPipeline({
+      label: `Default Pipeline (LayoutID: ${gpuGeometry.layoutId})`,
       layout: gpu.device.createPipelineLayout({
         bindGroupLayouts: [
           gpu.bindGroupLayouts.frame,

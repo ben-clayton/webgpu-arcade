@@ -109,13 +109,16 @@ class Gltf2Node {
 
   get worldMatrix() {
     if (this.#dirtyWorldMatrix) {
-      this.#dirtyWorldMatrix = false;
       if (!this.parent) {
+        if (!this.localMatrix) {
+          this.#localMatrix = mat4.create();
+        }
         return this.#localMatrix;
       }
       if (!this.#localMatrix) {
         return this.parent.worldMatrix;
       }
+      this.#dirtyWorldMatrix = false;
       if (!this.#worldMatrix) {
         this.#worldMatrix = mat4.create();
       }
@@ -274,6 +277,9 @@ export class Gltf2Loader {
         accessor.bufferViewIndex = accessor.bufferView;
         clientAccessor = resolveBufferView(accessor.bufferViewIndex).then(async (bufferView) => {
           accessor.bufferView = bufferView;
+          if (!bufferView.byteStride) {
+            bufferView.byteStride = getComponentTypeSize(accessor.componentType) * getComponentCount(accessor.type);
+          }
 
           if (bufferType) {
             let clientBufferTypes = clientBufferTypeMap[bufferType];
@@ -455,6 +461,10 @@ export class Gltf2Loader {
     function resolvePrimitive(mesh, index) {
       const primitive = mesh.primitives[index];
       const primitivePromises = [];
+
+      if (primitive.mode === undefined) {
+        primitive.mode = GL.TRIANGLES;
+      }
         
       primitivePromises.push(resolveMaterial(primitive.material).then(material => {
         primitive.material = material;

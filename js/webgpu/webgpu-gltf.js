@@ -114,6 +114,19 @@ export class WebGPUGltf2Client {
 
     const geometry = new Geometry(drawCount, ...attribBuffers.values());
 
+    switch (primitive.mode) {
+      case GL.TRIANGLES:
+        geometry.topology = 'triangle-list'; break;
+      case GL.TRIANGLE_STRIP:
+        geometry.topology = 'triangle-strip'; break;
+      case GL.LINES:
+        geometry.topology = 'line-list'; break;
+      case GL.LINE_STRIP:
+        geometry.topology = 'line-strip'; break;
+      case GL.POINTS:
+        geometry.topology = 'point-list'; break;
+    }
+
     if (primitive.indices) {
       geometry.indices = primitive.indices.clientIndexBuffer;
       switch (primitive.indices.componentType) {
@@ -138,7 +151,7 @@ export class WebGPUGltfSystem extends System {
       for (const primitive of node.mesh.primitives) {
         const transform = new Transform();
         transform.matrix = node.worldMatrix;
-        const nodeEntity = this.world.create(primitive);
+        const nodeEntity = this.world.create(primitive, transform);
       }
     }
 

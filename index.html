@@ -150,7 +150,9 @@
           }
           case 'flying': {
             camera.remove(OrbitControls);
-            camera.add(new FlyingControls());
+            const flyingControls = new FlyingControls();
+            flyingControls.speed = 100;
+            camera.add(flyingControls);
             break;
           }
         }

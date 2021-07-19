@@ -36,7 +36,7 @@ export function DefaultVertexSource(layout) {
         var output : VertexOutput;
         output.position = camera.projection * camera.view * model.matrix * vec4<f32>(input.position, 1.0);
 #if ${layout.locationsUsed.includes(AttributeLocation.normal)}
-        output.normal = normalize((mesh.matrix * vec4<f32>(input.normal, 0.0)).xyz);
+        output.normal = normalize((model.matrix * vec4<f32>(input.normal, 0.0)).xyz);
 #endif
 #if ${layout.locationsUsed.includes(AttributeLocation.texCoord)}
         output.texCoord = input.texCoord;
@@ -55,6 +55,7 @@ export function DefaultFragmentSource(layout) {
 
       struct VertexOutput {
         ${DefaultAttributes(layout)}
+        [[builtin(position)]] position : vec4<f32>;
       };
 
       [[stage(fragment)]]

@@ -13,7 +13,6 @@ export class GeometryLayoutCache {
       const resource = this.createLayout(geometry, id);
       this.#keyMap.set(key, id);
       this.#cache.set(id, resource);
-      return id;
     }
     return id;
   }
@@ -25,6 +24,7 @@ export class GeometryLayoutCache {
   getKey(geometry) {
     let key = `${geometry.buffers.length}[`;
     for (const buffer of geometry.buffers) {
+      if (!buffer.attributes.length) { continue; }
       const attributes = [];
       for (const attrib of buffer.attributes) {
         const offset = attrib.offset - buffer.minOffset
@@ -53,6 +53,7 @@ export class GeometryLayoutCache {
     const buffers = [];
     const locationsUsed = [];
     for (const buffer of geometry.buffers) {
+      if (!buffer.attributes.length) { continue; }
       const attributes = [];
       for (const attrib of buffer.attributes) {
         // Exact offset will be handled when setting the buffer.
