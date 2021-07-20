@@ -103,8 +103,11 @@ export class WebGPUGltf2Client {
 
   createMaterial(material) {
     let pbr = new PBRMaterial();
-    pbr.baseColorTexture = material.pbrMetallicRoughness?.baseColorTexture?.texture.image;
-    pbr.metallicRoughnessTexture = material.pbrMetallicRoughness?.metallicRoughnessTexture?.texture.image;
+    pbr.baseColorFactor = material.pbrMetallicRoughness.baseColorFactor;
+    pbr.baseColorTexture = material.pbrMetallicRoughness.baseColorTexture?.texture.image;
+    pbr.metallicRoughnessTexture = material.pbrMetallicRoughness.metallicRoughnessTexture?.texture.image;
+    pbr.metallicFactor = material.pbrMetallicRoughness.metallicFactor;
+    pbr.roughnessFactor = material.pbrMetallicRoughness.roughnessFactor;
     pbr.normalTexture = material.normalTexture?.texture.image;
     pbr.occlusionTexture = material.occlusionTexture?.texture.image;
     pbr.emissiveTexture = material.emissiveTexture?.texture.image;

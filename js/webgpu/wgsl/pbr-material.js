@@ -3,13 +3,13 @@ import { AttributeLocation } from '../../core/geometry.js';
 import { CameraStruct, ModelStruct, LightStruct, ColorConversions } from './common.js';
 import { ClusterLightsStruct, TileFunctions } from './clustered-light.js';
 
-export const MATERIAL_BUFFER_SIZE = 12 * Float32Array.BYTES_PER_ELEMENT;
+export const MATERIAL_BUFFER_SIZE = 10 * Float32Array.BYTES_PER_ELEMENT;
 export function MaterialStruct(group = 2) { return `
   [[block]] struct Material {
     baseColorFactor : vec4<f32>;
-    metallicRoughnessFactor : vec2<f32>;
     emissiveFactor : vec3<f32>;
     occlusionStrength : f32;
+    metallicRoughnessFactor : vec2<f32>;
   };
   [[group(${group}), binding(0)]] var<uniform> material : Material;
 
@@ -132,8 +132,8 @@ function PBRSurfaceInfo(layout) { return wgsl`
     if (baseColorMap.a < 0.05) {
       discard;
     }
-    //surface.baseColor = input.color * material.baseColorFactor * baseColorMap;
-    surface.baseColor = input.color * baseColorMap;
+    surface.baseColor = input.color * material.baseColorFactor * baseColorMap;
+    //surface.baseColor = input.color * baseColorMap;
 
     surface.albedo = surface.baseColor.rgb;
 

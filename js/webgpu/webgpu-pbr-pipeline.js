@@ -4,7 +4,7 @@ import { PBRVertexSource, PBRFragmentSource, MATERIAL_BUFFER_SIZE } from './wgsl
 import { vec4, vec3, vec2 } from 'gl-matrix';
 
 export class PBRMaterial {
-  baseColor = vec4.fromValues(1.0, 1.0, 1.0, 1.0);
+  baseColorFactor = vec4.fromValues(1.0, 1.0, 1.0, 1.0);
   baseColorTexture;
   normalTexture;
   metallicFactor = 0.0;
@@ -17,10 +17,10 @@ export class PBRMaterial {
 };
 
 // Can reuse these for every PBR material
-const materialArray = new Float32Array(12);
-const baseColor = new Float32Array(materialArray.buffer, 0, 4);
-const metallicRoughnessFactor = new Float32Array(materialArray.buffer, 4 * 4, 2);
-const emissiveFactor = new Float32Array(materialArray.buffer, 8 * 4, 3);
+const materialArray = new Float32Array(MATERIAL_BUFFER_SIZE / Float32Array.BYTES_PER_ELEMENT);
+const baseColorFactor = new Float32Array(materialArray.buffer, 0, 4);
+const emissiveFactor = new Float32Array(materialArray.buffer, 4 * 4, 3);
+const metallicRoughnessFactor = new Float32Array(materialArray.buffer, 8 * 4, 2);
 
 export class WebGPUPBRPipelineSystem extends WebGPUPipelineSystem {
   init(gpu) {
@@ -98,10 +98,11 @@ export class WebGPUPBRPipelineSystem extends WebGPUPipelineSystem {
   }
 
   createMaterialBindGroup(gpu, entity, material) {
-    vec4.copy(baseColor, material.baseColor);
+    vec4.copy(baseColorFactor, material.baseColorFactor);
     vec3.copy(emissiveFactor, material.emissiveFactor);
     metallicRoughnessFactor[0] = material.metallicFactor;
     metallicRoughnessFactor[1] = material.roughnessFactor;
+    materialArray[7] = material.occlusionStrength;
 
     const materialBuffer = gpu.device.createBuffer({
       size: MATERIAL_BUFFER_SIZE,
