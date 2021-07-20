@@ -239,7 +239,7 @@ fn lightRadiance(light : PuctualLight, surface : SurfaceInfo) -> vec3<f32> {
   return (kD * surface.albedo / vec3<f32>(PI, PI, PI) + specular) * radiance * NdotL;
 }`;
 
-export function PBRFragmentSource(layout) { return `
+export function PBRFragmentSource2(layout) { return `
   ${ColorConversions}
   ${CameraStruct()}
   ${ClusterLightsStruct()}
@@ -281,7 +281,7 @@ export function PBRFragmentSource(layout) { return `
 };
 
 // A non-clustered (slow) variant for testing.
-export function PBRFragmentSource2(layout) { return `
+export function PBRFragmentSource(layout) { return `
   ${ColorConversions}
   ${CameraStruct()}
   ${LightStruct()}
@@ -312,6 +312,7 @@ export function PBRFragmentSource2(layout) { return `
 
     let ambient = globalLights.ambient * surface.albedo * surface.ao;
     let color = linearTosRGB(Lo + ambient + surface.emissive);
+    //let color = textureSample(normalTexture, normalSampler, input.texcoord).rgb;
     return vec4<f32>(color, surface.baseColor.a);
   }`;
 };

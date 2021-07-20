@@ -19,7 +19,7 @@ export class WebGPUPBRPipelineSystem extends WebGPUPipelineSystem {
 
     this.blackTextureView = gpu.textureLoader.fromColor(0, 0, 0, 0).texture.createView();
     this.whiteTextureView = gpu.textureLoader.fromColor(1.0, 1.0, 1.0, 1.0).texture.createView();
-    this.blueTextureView = gpu.textureLoader.fromColor(0, 0, 1.0, 0).texture.createView();
+    this.defaultNormalTextureView = gpu.textureLoader.fromColor(0.5, 0.5, 1.0, 0).texture.createView();
     this.defaultSampler = gpu.device.createSampler({
       minFilter: 'linear',
       magFilter: 'linear',
@@ -114,7 +114,7 @@ export class WebGPUPBRPipelineSystem extends WebGPUPipelineSystem {
       },
       {
         binding: 3,
-        resource: material.normalTexture || this.blueTextureView,
+        resource: material.normalTexture || this.defaultNormalTextureView,
       },
       {
         binding: 4,
