@@ -123,14 +123,17 @@
 
       const cube = world.create(
         new Transform([0, 0, 0]),
+        new PointLight(0.3, 1.0, 0.3, 10),
         cubeGeometry,
       );
       const cube2 = world.create(
         new Transform([-3, 0, 0]),
+        new PointLight(0.3, 1.0, 0.3, 10),
         cubeGeometry,
       );
       const cube3 = world.create(
         new Transform([3, 0, 0]),
+        new PointLight(0.3, 1.0, 0.3, 10),
         cubeGeometry,
       );
 

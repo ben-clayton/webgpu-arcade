@@ -145,8 +145,7 @@ function PBRSurfaceInfo(layout) { return wgsl`
     surface.f0 = mix(dielectricSpec, surface.albedo, vec3<f32>(surface.metallic, surface.metallic, surface.metallic));
     
     let occlusionMap = textureSample(occlusionTexture, occlusionSampler, input.texcoord);
-    //surface.ao = material.occlusionStrength * occlusionMap.r;
-    surface.ao = occlusionMap.r;
+    surface.ao = material.occlusionStrength * occlusionMap.r;
 
     let emissiveMap = textureSample(emissiveTexture, emissiveSampler, input.texcoord);
     surface.emissive = material.emissiveFactor * emissiveMap.rgb;

@@ -1,17 +1,26 @@
 import { AttributeLocation } from '../core/geometry.js';
 import { WebGPUPipelineSystem } from './webgpu-pipeline.js';
 import { PBRVertexSource, PBRFragmentSource, MATERIAL_BUFFER_SIZE } from './wgsl/pbr-material.js';
+import { vec4, vec3, vec2 } from 'gl-matrix';
 
 export class PBRMaterial {
-  baseColor;
+  baseColor = vec4.fromValues(1.0, 1.0, 1.0, 1.0);
   baseColorTexture;
   normalTexture;
-  metallicRoughnessFactor;
+  metallicFactor = 0.0;
+  roughnessFactor = 1.0;
   metallicRoughnessTexture;
-  emmissiveFactor;
+  emissiveFactor = vec3.fromValues(0, 0, 0);
   emissiveTexture;
   occlusionTexture;
+  occlusionStrength = 1.0;
 };
+
+// Can reuse these for every PBR material
+const materialArray = new Float32Array(12);
+const baseColor = new Float32Array(materialArray.buffer, 0, 4);
+const metallicRoughnessFactor = new Float32Array(materialArray.buffer, 4 * 4, 2);
+const emissiveFactor = new Float32Array(materialArray.buffer, 8 * 4, 3);
 
 export class WebGPUPBRPipelineSystem extends WebGPUPipelineSystem {
   init(gpu) {
@@ -89,14 +98,16 @@ export class WebGPUPBRPipelineSystem extends WebGPUPipelineSystem {
   }
 
   createMaterialBindGroup(gpu, entity, material) {
-    //vec4.copy(baseColorFactor, material.baseColorFactor);
-    //vec2.copy(metallicRoughnessFactor, material.metallicRoughnessFactor);
-    //vec3.copy(emissiveFactor, material.emissiveFactor);
+    vec4.copy(baseColor, material.baseColor);
+    vec3.copy(emissiveFactor, material.emissiveFactor);
+    metallicRoughnessFactor[0] = material.metallicFactor;
+    metallicRoughnessFactor[1] = material.roughnessFactor;
 
     const materialBuffer = gpu.device.createBuffer({
       size: MATERIAL_BUFFER_SIZE,
       usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
     });
+    gpu.device.queue.writeBuffer(materialBuffer, 0, materialArray);
 
     return gpu.device.createBindGroup({
       layout: this.bindGroupLayout,
