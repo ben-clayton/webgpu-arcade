@@ -26,6 +26,10 @@ export class WebGPUWorld extends World {
 
     canvas = canvas || document.createElement('canvas');
     this.context = canvas.getContext('webgpu');
+    if (!this.context) {
+      // TODO: Remove once 'webgpu' is supported in Firefox
+      this.context = canvas.getContext('gpupresent');
+    }
 
     this.#gpuInitialized = this.#initWebGPU();
   }
@@ -38,8 +42,11 @@ export class WebGPUWorld extends World {
     // Determine which of the desired features can be enabled for this device.
     const requiredFeatures = desiredFeatures.filter(feature => adapter.features.has(feature));
     this.device = await adapter.requestDevice({requiredFeatures});
-
-    this.format = this.context.getPreferredFormat(adapter);
+    
+    // This function isn't available in Firefox, though it is in the spec.
+    if (this.context.getPreferredFormat) {
+      this.format = this.context.getPreferredFormat(adapter);
+    }
 
     this.bindGroupLayouts.frame = this.device.createBindGroupLayout({
       label: `Frame BindGroupLayout`,

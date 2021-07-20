@@ -12,5 +12,9 @@
         "gl-matrix": "github:toji/gl-matrix",
         "stats.js": "^0.17.0",
         "web-texture-tool": "github:toji/web-texture-tool"
+    },
+    "devDependencies": {
+        "esbuild": "^0.12.15",
+        "esbuild-plugin-import-map": "^2.1.0"
     }
 }
