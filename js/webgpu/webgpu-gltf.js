@@ -111,6 +111,7 @@ export class WebGPUGltf2Client {
     pbr.normalTexture = material.normalTexture?.texture.image;
     pbr.occlusionTexture = material.occlusionTexture?.texture.image;
     pbr.emissiveTexture = material.emissiveTexture?.texture.image;
+    pbr.emissiveFactor = material.emissiveFactor;
     pbr.occlusionStrength = material.occlusionTexture?.strength || 1.0;
     return pbr;
   }

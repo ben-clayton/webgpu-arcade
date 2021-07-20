@@ -99,6 +99,10 @@ world.create(
   new GltfScene('./media/models/dungeon/dungeon.glb')
 );
 
+world.create(
+  new GltfScene('./media/models/dragon/dragon.glb')
+);
+
 gui.add(appSettings, 'controls', {
   'Orbit': 'orbit',
   'Flying': 'flying',

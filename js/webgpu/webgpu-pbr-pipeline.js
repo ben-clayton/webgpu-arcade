@@ -150,7 +150,7 @@ export class WebGPUPBRPipelineSystem extends WebGPUPipelineSystem {
       },
       {
         binding: 9,
-        resource: material.emissiveTexture || this.blackTextureView,
+        resource: material.emissiveTexture || this.whiteTextureView,
       },
       {
         binding: 10,
