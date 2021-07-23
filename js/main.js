@@ -10,7 +10,11 @@ import { WebGPUWorld } from './webgpu/webgpu-world.js';
 import { WebGPULightSystem } from './webgpu/webgpu-light.js';
 import { WebGPUCameraSystem } from './webgpu/webgpu-camera.js';
 import { WebGPUClusteredLights } from './webgpu/webgpu-clustered-light.js';
-import { WebGPURenderer } from './webgpu/webgpu-renderer.js';
+import { 
+  WebGPUBeginRenderPasses,
+  WebGPUDefaultRenderPass,
+  WebGPUSubmitRenderPasses
+} from './webgpu/webgpu-render-pass.js';
 import { WebGPULightSpriteSystem } from './webgpu/webgpu-light-sprite.js';
 import { WebGPUGeometrySystem } from './webgpu/webgpu-geometry-system.js';
 import { WebGPUPBRPipelineSystem } from './webgpu/webgpu-pbr-pipeline.js';
@@ -47,7 +51,9 @@ world
   .registerGPUSystem(WebGPUGeometrySystem)
   .registerGPUSystem(WebGPUPBRPipelineSystem)
   .registerGPUSystem(WebGPUDefaultPipelineSystem)
-  .registerGPUSystem(WebGPURenderer);
+  .registerGPUSystem(WebGPUBeginRenderPasses)
+  .registerGPUSystem(WebGPUDefaultRenderPass)
+  .registerGPUSystem(WebGPUSubmitRenderPasses)
 
 await world.intialize();
 

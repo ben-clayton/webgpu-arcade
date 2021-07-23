@@ -17,30 +17,6 @@ export class WebGPUClusteredLights extends System {
   init(gpu) {
     const device = gpu.device;
 
-    // Bind group definitions
-    gpu.bindGroupLayouts.clusterBounds = device.createBindGroupLayout({
-      label: `Cluster Storage Bind Group Layout`,
-      entries: [{
-        binding: 0,
-        visibility: GPUShaderStage.COMPUTE,
-        buffer: { type: 'storage' }
-      }]
-    });
-
-
-    gpu.bindGroupLayouts.clusterLights = device.createBindGroupLayout({
-      label: `Cluster Bounds Bind Group Layout`,
-      entries: [{
-        binding: 0,
-        visibility: GPUShaderStage.COMPUTE,
-        buffer: { type: 'read-only-storage' }
-      }, {
-        binding: 1,
-        visibility: GPUShaderStage.COMPUTE,
-        buffer: { type: 'storage' }
-      }]
-    });
-
     // Pipeline creation
     device.createComputePipelineAsync({
       layout: device.createPipelineLayout({

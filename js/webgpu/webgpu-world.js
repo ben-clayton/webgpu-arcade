@@ -1,5 +1,6 @@
 import { World } from 'ecs';
 import { WebGPUBufferManager } from './webgpu-buffer.js';
+import { WebGPUBindGroupLayouts } from './webgpu-bind-group-layouts.js'
 import { WebGPUTextureLoader } from 'webgpu-texture-loader';
 
 const desiredFeatures = [
@@ -48,32 +49,7 @@ export class WebGPUWorld extends World {
       this.format = this.context.getPreferredFormat(adapter);
     }
 
-    this.bindGroupLayouts.frame = this.device.createBindGroupLayout({
-      label: `Frame BindGroupLayout`,
-      entries: [{
-        binding: 0, // Camera uniforms
-        visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT | GPUShaderStage.COMPUTE,
-        buffer: {},
-      }, {
-        binding: 1, // Light uniforms
-        visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT | GPUShaderStage.COMPUTE,
-        buffer: { type: 'read-only-storage' }
-      }, {
-        binding: 2, // Cluster Lights storage
-        visibility: GPUShaderStage.FRAGMENT | GPUShaderStage.COMPUTE,
-        buffer: { type: 'read-only-storage' }
-      }]
-    });
-
-    this.bindGroupLayouts.model = this.device.createBindGroupLayout({
-      label: `Model BindGroupLayout`,
-      entries: [{
-        binding: 0, // Model uniforms
-        visibility: GPUShaderStage.VERTEX,
-        buffer: {},
-      }]
-    });
-
+    this.bindGroupLayouts = new WebGPUBindGroupLayouts(this.device);
     this.bufferManager = new WebGPUBufferManager(this.device);
     this.textureLoader = new WebGPUTextureLoader(this.device);
 

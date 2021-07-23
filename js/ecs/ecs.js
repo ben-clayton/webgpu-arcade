@@ -138,13 +138,16 @@ export class World {
     }
 
     for (const system of this.#worldData.systems.values()) {
-      system.execute(delta, time);
+      if (system.enabled) {
+        system.execute(delta, time);
+      }
     }
   }
 }
 
 export class System {
   #worldData;
+  enabled = true;
 
   constructor(world, worldData) {
     this.world = world;
