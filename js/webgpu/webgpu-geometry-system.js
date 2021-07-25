@@ -42,8 +42,6 @@ export class WebGPUGeometrySystem extends System {
         };
       }
 
-      // TODO: Allow StaticGeometry to GC?
-
       entity.add(gpuGeometry);
     });
 

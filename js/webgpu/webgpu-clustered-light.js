@@ -36,7 +36,6 @@ export class WebGPUClusteredLights extends System {
     device.createComputePipelineAsync({
       layout: device.createPipelineLayout({
         bindGroupLayouts: [
-          gpu.bindGroupLayouts.frame,
           gpu.bindGroupLayouts.clusterLights,
         ]
       }),
@@ -49,7 +48,7 @@ export class WebGPUClusteredLights extends System {
     });
   }
 
-  updateClusterBounds(gpu, camera, passEncoder) {
+  updateClusterBounds(gpu, camera) {
     if (!this.boundsPipeline ||
       (this.#outputSize.width == gpu.size.width &&
       this.#outputSize.height == gpu.size.height)) {
@@ -59,39 +58,43 @@ export class WebGPUClusteredLights extends System {
     this.#outputSize.width = gpu.size.width;
     this.#outputSize.height = gpu.size.height;
 
+    const commandEncoder = gpu.device.createCommandEncoder();
+
+    const passEncoder = commandEncoder.beginComputePass();
     passEncoder.setPipeline(this.boundsPipeline);
+    passEncoder.setBindGroup(0, camera.bindGroup);
     passEncoder.setBindGroup(1, camera.clusterBoundsBindGroup);
     passEncoder.dispatch(...DISPATCH_SIZE);
+    passEncoder.endPass();
+
+    gpu.device.queue.submit([commandEncoder.finish()]);
   }
 
-  updateClusterLights(gpu, frameBindings, passEncoder) {
-    if (!this.clusterLightsPipeline) { return; }
+  updateClusterLights(gpu, camera) {
+    if (!this.lightsPipeline) { return; }
 
     // Reset the light offset counter to 0 before populating the light clusters.
-    device.queue.writeBuffer(camera.clusterLightsBuffer, 0, emptyArray);
+    gpu.device.queue.writeBuffer(camera.clusterLightsBuffer, 0, emptyArray);
+
+    const commandEncoder = gpu.device.createCommandEncoder();
 
     // Update the FrameUniforms buffer with the values that are used by every
     // program and don't change for the duration of the frame.
+    const passEncoder = commandEncoder.beginComputePass();
     passEncoder.setPipeline(this.lightsPipeline);
-    passEncoder.setBindGroup(1, camera.clusterLightsBindGroup);
+    passEncoder.setBindGroup(0, camera.clusterLightsBindGroup);
     passEncoder.dispatch(...DISPATCH_SIZE);
+    passEncoder.endPass();
+
+    gpu.device.queue.submit([commandEncoder.finish()]);
   }
 
   execute(delta, time) {
     const gpu = this.world;
 
     this.query(WebGPUCamera).forEach((entity, camera) => {
-      const commandEncoder = gpu.device.createCommandEncoder();
-      const passEncoder = commandEncoder.beginComputePass();
-      passEncoder.setBindGroup(0, camera.bindGroup);
-
-      this.updateClusterBounds(gpu, camera, passEncoder);
-      this.updateClusterLights(gpu, camera, passEncoder);
-
-      passEncoder.endPass();
-
-      gpu.device.queue.submit([commandEncoder.finish()]);
+      this.updateClusterBounds(gpu, camera);
+      this.updateClusterLights(gpu, camera);
     });
-    /*c*/
   }
 }

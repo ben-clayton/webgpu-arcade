@@ -41,13 +41,21 @@ export class WebGPUBindGroupLayouts {
     this.clusterLights = device.createBindGroupLayout({
       label: `Cluster Bounds BindGroupLayout`,
       entries: [{
-        binding: 0,
+        binding: 0, // Camera uniforms
+        visibility: GPUShaderStage.COMPUTE,
+        buffer: {},
+      }, {
+        binding: 1, // Cluster Bounds
         visibility: GPUShaderStage.COMPUTE,
         buffer: { type: 'read-only-storage' }
       }, {
-        binding: 1,
+        binding: 2, // Cluster Lights
         visibility: GPUShaderStage.COMPUTE,
         buffer: { type: 'storage' }
+      }, {
+        binding: 3, // Light uniforms
+        visibility: GPUShaderStage.COMPUTE,
+        buffer: { type: 'read-only-storage' }
       }]
     });
   }

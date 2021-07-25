@@ -21,7 +21,6 @@ export class WebGPUBeginRenderPasses extends System {
     const passGlobals = this.singleton.get(RenderPassGlobals);
     passGlobals.outputTexture = gpu.context.getCurrentTexture();
     passGlobals.commandEncoder = gpu.device.createCommandEncoder({});
-
   }
 }
 

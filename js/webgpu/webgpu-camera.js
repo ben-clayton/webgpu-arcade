@@ -50,10 +50,16 @@ export class WebGPUCamera {
       layout: gpu.bindGroupLayouts.clusterLights,
       entries: [{
         binding: 0,
-        resource: { buffer: this.clusterLightsBuffer },
+        resource: { buffer: this.cameraBuffer, },
       }, {
         binding: 1,
         resource: { buffer: this.clusterBoundsBuffer },
+      }, {
+        binding: 2,
+        resource: { buffer: this.clusterLightsBuffer },
+      }, {
+        binding: 3,
+        resource: { buffer: lights.buffer, },
       }],
     });
 

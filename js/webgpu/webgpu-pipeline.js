@@ -38,7 +38,7 @@ export class WebGPUPipelineSystem extends System {
   }
 
   pipelineKey(entity, gpuGeometry, material) {
-    return gpuGeometry.layout.layoutId;
+    return gpuGeometry.layoutId;
   }
 
   execute(delta, time) {
@@ -51,7 +51,7 @@ export class WebGPUPipelineSystem extends System {
       const pipelineKey = this.pipelineKey(entity, gpuGeometry, material);
 
       let cachedPipeline = this.#pipelineCache.get(pipelineKey);
-      cachedPipeline = undefined; // TODO: NOT THIS.
+      //cachedPipeline = undefined; // TODO: NOT THIS.
       if (!cachedPipeline) {
         const pipeline = this.createPipeline(gpu, entity, gpuGeometry, material);
         if (!pipeline) { return; }

@@ -16,7 +16,7 @@ export const CLUSTER_BOUNDS_SIZE = TOTAL_TILES * 32;
 // This limitation should be able to go away when we have atomic methods in WGSL.
 export const MAX_LIGHTS_PER_CLUSTER = 256;
 export const MAX_CLUSTERED_LIGHTS = TOTAL_TILES * 64;
-export const CLUSTER_LIGHTS_SIZE = (8 * TOTAL_TILES) + (4 * MAX_CLUSTERED_LIGHTS) + 4;
+export const CLUSTER_LIGHTS_SIZE = 4 + (8 * TOTAL_TILES) + (4 * MAX_CLUSTERED_LIGHTS);
 
 export function ClusterStruct(group, binding, access = 'read') { return `
   struct ClusterBounds {
@@ -126,9 +126,9 @@ export const ClusterBoundsSource = `
 
 export const ClusterLightsSource = `
   ${CameraStruct(0, 0)}
-  ${LightStruct(0, 1)}
-  ${ClusterStruct(1, 0, 'read')}
-  ${ClusterLightsStruct(1, 1, 'read_write')}
+  ${ClusterStruct(0, 1, 'read')}
+  ${ClusterLightsStruct(0, 2, 'read_write')}
+  ${LightStruct(0, 3)}
 
   ${TileFunctions}
 
