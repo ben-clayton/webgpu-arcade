@@ -2,6 +2,7 @@ import { Transform } from './core/transform.js';
 import { Camera } from './core/camera.js';
 import { PointLight, AmbientLight } from './core/light.js';
 import { InputSystem } from './core/input.js';
+import { Skybox } from './core/skybox.js';
 
 import { FlyingControls, FlyingControlsSystem } from './controls/flying-controls.js';
 import { OrbitControls, OrbitControlsSystem } from './controls/orbit-controls.js';
@@ -10,7 +11,7 @@ import { WebGPUWorld } from './webgpu/webgpu-world.js';
 import { WebGPULightSystem } from './webgpu/webgpu-light.js';
 import { WebGPUCameraSystem } from './webgpu/webgpu-camera.js';
 import { WebGPUClusteredLights } from './webgpu/webgpu-clustered-light.js';
-import { 
+import {
   WebGPUBeginRenderPasses,
   WebGPUDefaultRenderPass,
   WebGPUSubmitRenderPasses
@@ -18,6 +19,7 @@ import {
 import { WebGPULightSpriteSystem } from './webgpu/webgpu-light-sprite.js';
 import { WebGPUGeometrySystem } from './webgpu/webgpu-geometry-system.js';
 import { WebGPUPBRPipelineSystem } from './webgpu/webgpu-pbr-pipeline.js';
+import { WebGPUSkyboxSystem } from './webgpu/webgpu-skybox.js';
 import { WebGPUDefaultPipelineSystem } from './webgpu/webgpu-pipeline.js';
 import { GltfScene, WebGPUGltfSystem } from './webgpu/webgpu-gltf.js';
 
@@ -48,6 +50,7 @@ world
   .registerGPUSystem(WebGPUClusteredLights)
   .registerGPUSystem(WebGPULightSpriteSystem)
   .registerGPUSystem(WebGPUGltfSystem)
+  .registerGPUSystem(WebGPUSkyboxSystem)
   .registerGPUSystem(WebGPUGeometrySystem)
   .registerGPUSystem(WebGPUPBRPipelineSystem)
   .registerGPUSystem(WebGPUDefaultPipelineSystem)
@@ -84,6 +87,12 @@ const cube3 = world.create(
   new PointLight(0.3, 0.3, 1.0, 10),
   cubeGeometry,
 );
+
+// Add a skybox
+world.textureLoader.fromUrl('./media/textures/skybox/cube-basis-mipmap.ktx2').then((texture) => {
+  world.create(new Skybox(texture.texture));
+});
+
 
 // Add some lights
 world.create(

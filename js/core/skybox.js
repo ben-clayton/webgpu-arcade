@@ -1,3 +1,5 @@
 export class Skybox {
-  texture = null;
+  constructor(texture = null) {
+    this.texture = texture;
+  }
 }

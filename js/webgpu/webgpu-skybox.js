@@ -1,7 +1,8 @@
 import { System } from 'ecs';
 import { WebGPURenderGeometry } from './webgpu-geometry.js';
-import { WebGPURenderPipeline, RenderOrder } from './webgpu-pipeline.js';
-import { CameraStruct, ColorConversions } from './wgsl/common.js';
+import { WebGPURenderMaterial, WebGPURenderPipeline, RenderOrder } from './webgpu-pipeline.js';
+import { CameraStruct, ModelStruct, ColorConversions } from './wgsl/common.js';
+import { Skybox } from '../core/skybox.js';
 
 const SKYBOX_CUBE_VERTS = new Float32Array([
   1.0,  1.0,  1.0, // 0
@@ -41,51 +42,31 @@ const SKYBOX_CUBE_INDICES = new Uint16Array([
 ]);
 
 const SkyboxVertexSource = `
-  var<private> pos : array<vec2<f32>, 4> = array<vec2<f32>, 4>(
-    vec2<f32>(-1.0, 1.0), vec2<f32>(1.0, 1.0), vec2<f32>(-1.0, -1.0), vec2<f32>(1.0, -1.0)
-  );
-
+  ${ModelStruct()}
   ${CameraStruct(0, 0)}
-  ${LightStruct(0, 1)}
 
   struct VertexInput {
-    [[builtin(vertex_index)]] vertexIndex : u32;
-    [[builtin(instance_index)]] instanceIndex : u32;
+    [[location(0)]] position : vec4<f32>;
   };
 
   struct VertexOutput {
     [[builtin(position)]] position : vec4<f32>;
-    [[location(0)]] localPos : vec2<f32>;
-    [[location(1)]] color: vec3<f32>;
+    [[location(0)]] texCoord : vec3<f32>;
   };
 
   [[stage(vertex)]]
   fn vertexMain(input : VertexInput) -> VertexOutput {
     var output : VertexOutput;
+    output.texCoord = input.position.xyz;
 
-    let light = &globalLights.lights[input.instanceIndex];
-
-    output.localPos = pos[input.vertexIndex];
-    output.color = (*light).color * (*light).intensity;
-    let worldPos = vec3<f32>(output.localPos, 0.0) * (*light).range * 0.025;
-
-    // Generate a billboarded model view matrix
-    var bbModelViewMatrix : mat4x4<f32>;
-    bbModelViewMatrix[3] = vec4<f32>((*light).position, 1.0);
-    bbModelViewMatrix = camera.view * bbModelViewMatrix;
-    bbModelViewMatrix[0][0] = 1.0;
-    bbModelViewMatrix[0][1] = 0.0;
-    bbModelViewMatrix[0][2] = 0.0;
-
-    bbModelViewMatrix[1][0] = 0.0;
-    bbModelViewMatrix[1][1] = 1.0;
-    bbModelViewMatrix[1][2] = 0.0;
-
-    bbModelViewMatrix[2][0] = 0.0;
-    bbModelViewMatrix[2][1] = 0.0;
-    bbModelViewMatrix[2][2] = 1.0;
-
-    output.position = camera.projection * bbModelViewMatrix * vec4<f32>(worldPos, 1.0);
+    var modelView : mat4x4<f32> = camera.view * model.matrix;
+    // Drop the translation portion of the modelView matrix
+    modelView[3] = vec4<f32>(0.0, 0.0, 0.0, modelView[3].w);
+    output.position = camera.projection * modelView * input.position;
+    // Returning the W component for both Z and W forces the geometry depth to
+    // the far plane. When combined with a depth func of "less-equal" this makes
+    // the sky write to any depth fragment that has not been written to yet.
+    output.position = output.position.xyww;
     return output;
   }
 `;
@@ -94,27 +75,41 @@ const SkyboxFragmentSource = `
   ${ColorConversions}
 
   struct FragmentInput {
-    [[location(0)]] localPos : vec2<f32>;
-    [[location(1)]] color: vec3<f32>;
+    [[location(0)]] texCoord : vec3<f32>;
   };
+  [[group(2), binding(0)]] var skyboxTexture : texture_cube<f32>;
+  [[group(2), binding(1)]] var skyboxSampler : sampler;
 
   [[stage(fragment)]]
   fn fragmentMain(input : FragmentInput) -> [[location(0)]] vec4<f32> {
-    let distToCenter = length(input.localPos);
-    let fade = (1.0 - distToCenter) * (1.0 / (distToCenter * distToCenter));
-    return vec4<f32>(linearTosRGB(input.color * fade), fade);
+    let color = textureSample(skyboxTexture, skyboxSampler, input.texCoord);
+    return vec4<f32>(linearTosRGB(color.rgb), 1.0);
   }
 `;
 
 export class WebGPUSkyboxSystem extends System {
   init(gpu) {
     const vertexModule = gpu.device.createShaderModule({
-      code: LightSpriteVertexSource,
+      code: SkyboxVertexSource,
       label: 'Skybox Vertex'
     });
     const fragmentModule = gpu.device.createShaderModule({
-      code: LightSpriteFragmentSource,
+      code: SkyboxFragmentSource,
       label: 'Skybox Fragment'
+    });
+
+    this.bindGroupLayout = gpu.device.createBindGroupLayout({
+      label: 'Skybox BindGroupLayout',
+      entries: [{
+        binding: 0, // skyboxTexture
+        visibility: GPUShaderStage.FRAGMENT,
+        texture: { viewDimension: 'cube' }
+      },
+      {
+        binding: 1, // skyboxSampler
+        visibility: GPUShaderStage.FRAGMENT,
+        sampler: {}
+      }]
     });
 
     // Setup a render pipeline for drawing the skybox
@@ -123,6 +118,8 @@ export class WebGPUSkyboxSystem extends System {
       layout: gpu.device.createPipelineLayout({
         bindGroupLayouts: [
           gpu.bindGroupLayouts.frame,
+          gpu.bindGroupLayouts.model,
+          this.bindGroupLayout,
         ]
       }),
       vertex: {
@@ -149,7 +146,7 @@ export class WebGPUSkyboxSystem extends System {
       },
       depthStencil: {
         depthWriteEnabled: false,
-        depthCompare: 'less',
+        depthCompare: 'less-equal',
         format: gpu.depthFormat,
       },
       multisample: {
@@ -157,8 +154,8 @@ export class WebGPUSkyboxSystem extends System {
       }
     });
 
-    const vertexBuffer = this.device.createBuffer({
-      size: vertexArray.byteLength,
+    const vertexBuffer = gpu.device.createBuffer({
+      size: SKYBOX_CUBE_VERTS.byteLength,
       usage: GPUBufferUsage.VERTEX,
       mappedAtCreation: true,
     });
@@ -166,8 +163,8 @@ export class WebGPUSkyboxSystem extends System {
     vertexArray.set(SKYBOX_CUBE_VERTS);
     vertexBuffer.unmap();
 
-    const indexBuffer = this.device.createBuffer({
-      size: indexArray.byteLength,
+    const indexBuffer = gpu.device.createBuffer({
+      size: SKYBOX_CUBE_INDICES.byteLength,
       usage: GPUBufferUsage.INDEX,
       mappedAtCreation: true,
     });
@@ -175,23 +172,49 @@ export class WebGPUSkyboxSystem extends System {
     indexArray.set(SKYBOX_CUBE_INDICES);
     indexBuffer.unmap();
 
+    this.sampler = gpu.device.createSampler({
+      minFilter: 'linear',
+      magFilter: 'linear',
+      mipmapFilter: 'linear'
+    });
+
     this.gpuPipeline = new WebGPURenderPipeline();
     this.gpuPipeline.renderOrder = RenderOrder.Skybox;
     this.gpuPipeline.pipeline = this.pipeline;
 
     this.gpuGeometry = new WebGPURenderGeometry(gpu);
-    this.gpuGeometry.vertexBuffers = [vertexBuffer];
-    this.gpuGeometry.indexBuffer = indexBuffer;
+    this.gpuGeometry.vertexBuffers = [{
+      buffer: vertexBuffer,
+      slot: 0,
+      offset: 0
+    }];
+    this.gpuGeometry.indexBuffer = {
+      buffer: indexBuffer,
+      format: 'uint16'
+    };
     this.gpuGeometry.drawCount = 36;
 
-    this.skyboxQuery = this.query(Skybox).not(WebGPUGeometry);
-    this.entity = this.world.create(this.gpuPipeline, this.gpuGeometry);
+    this.skyboxQuery = this.query(Skybox).not(WebGPURenderGeometry);
   }
 
   execute(delta, time) {
-    this.skyboxQuery.forEach((entity, skybox) => {
-      // TODO: Create a material bind group.
-      entity.add(this.gpuPipeline, this.gpuGeometry);
+    const gpu = this.world;
+    this.skyboxQuery.forEach(async (entity, skybox) => {
+      const gpuMaterial = new WebGPURenderMaterial(
+        gpu.device.createBindGroup({
+          layout: this.bindGroupLayout,
+          entries: [{
+            binding: 0,
+            resource: skybox.texture.createView({ dimension: 'cube' }),
+          },
+          {
+            binding: 1,
+            resource: this.sampler,
+          }]
+        })
+      );
+
+      entity.add(this.gpuPipeline, this.gpuGeometry, gpuMaterial);
     });
   }
 }
