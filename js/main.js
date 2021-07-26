@@ -66,26 +66,14 @@ const projection = new Camera();
 projection.zNear = 1;
 projection.zFar = 1024;
 
-const camera = world.create(
-  new Transform([0, 0, 3]),
-  new OrbitControls(),
-  projection
-);
+const orbitControls = new OrbitControls();
+orbitControls.distance = 10;
+orbitControls.angle = [0.25, 0];
 
-const cube = world.create(
-  new Transform([0, 0, 0], [0, 0, 0, 1], [0.5, 0.5, 0.5]),
-  new PointLight(0.3, 0.3, 1.0, 10),
-  cubeGeometry,
-);
-const cube2 = world.create(
-  new Transform([-3, 0, 0], [0, 0, 0, 1], [0.5, 0.5, 0.5]),
-  new PointLight(0.3, 0.3, 1.0, 10),
-  cubeGeometry,
-);
-const cube3 = world.create(
-  new Transform([3, 0, 0], [0, 0, 0, 1], [0.5, 0.5, 0.5]),
-  new PointLight(0.3, 0.3, 1.0, 10),
-  cubeGeometry,
+const camera = world.create(
+  new Transform([0, 0, 10]),
+  orbitControls,
+  projection
 );
 
 // Add a skybox
@@ -103,6 +91,16 @@ world.create(
 world.create(
   new Transform([-3, 3, -2]),
   new PointLight(0.3, 1, 0.3, 10)
+);
+
+world.create(
+  new Transform([2, 3, 6]),
+  new PointLight(0.3, 0.3, 1, 10)
+);
+
+world.create(
+  new Transform([-2, 3, 6]),
+  new PointLight(1, 1, 0.3, 10)
 );
 
 world.create(
@@ -125,7 +123,7 @@ gui.add(appSettings, 'controls', {
   switch (appSettings.controls) {
     case 'orbit': {
       camera.remove(FlyingControls);
-      camera.add(new OrbitControls());
+      camera.add(orbitControls);
       break;
     }
     case 'flying': {
@@ -140,16 +138,6 @@ gui.add(appSettings, 'controls', {
 
 function onFrame() {
   requestAnimationFrame(onFrame);
-
-  let transform = cube.get(Transform);
-  transform.position[1] = Math.sin(Date.now() / 1000);
-
-  transform = cube2.get(Transform);
-  transform.position[1] = Math.sin((Date.now() - 1000) / 1000);
-
-  transform = cube3.get(Transform);
-  transform.position[1] = Math.sin((Date.now() + 1000) / 1000);
-
   stats.begin();
   world.execute();
   stats.end();
