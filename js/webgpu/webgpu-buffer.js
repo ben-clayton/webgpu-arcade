@@ -1,11 +1,13 @@
-import { StaticBuffer } from '../core/geometry.js';
+import { StaticBuffer, DynamicBuffer } from '../core/geometry.js';
 
 export class WebGPUStaticBuffer extends StaticBuffer {
+  #device;
   #arrayBuffer;
 
-  constructor(gpuBuffer, size, usage, mapped = false) {
+  constructor(device, gpuBuffer, size, usage, mapped = false) {
     super(size, usage);
 
+    this.#device = device;
     this.gpuBuffer = gpuBuffer;
 
     if (mapped) {
@@ -25,6 +27,67 @@ export class WebGPUStaticBuffer extends StaticBuffer {
   }
 }
 
+export class WebGPUDynamicBuffer extends DynamicBuffer {
+  #device;
+  #arrayBuffer;
+  #size;
+  #activeStagingBuffer;
+  #stagingBufferQueue = [];
+
+  constructor(device, gpuBuffer, size, usage, mapped = false) {
+    super(size, usage);
+
+    this.#device = device;
+    this.#size = size;
+    this.gpuBuffer = gpuBuffer;
+    this.#activeStagingBuffer = gpuBuffer;
+
+    if (mapped) {
+      // Static buffers are expected to be created with mappedAtCreation.
+      this.#arrayBuffer = gpuBuffer.getMappedRange();
+    }
+  }
+
+  #getOrCreateStagingBuffer() {
+    if (this.#stagingBufferQueue.length) {
+      return this.#stagingBufferQueue.pop();
+    }
+
+    return this.#device.createBuffer({
+      size: this.#size,
+      usage: GPUBufferUsage.COPY_SRC | GPUBufferUsage.MAP_WRITE,
+      mappedAtCreation: true,
+    });
+  }
+
+  get arrayBuffer() {
+    return this.#arrayBuffer;
+  }
+
+  beginUpdate() {
+    const stagingBuffer = this.#getOrCreateStagingBuffer();
+    this.#arrayBuffer = stagingBuffer.getMappedRange();
+  }
+
+  // For static buffers, once you call finish() the data cannot be updated again.
+  finish() {
+    this.#activeStagingBuffer.unmap();
+    this.#arrayBuffer = null;
+
+    if (this.#activeStagingBuffer !== this.gpuBuffer) {
+      const stagingBuffer = this.#activeStagingBuffer;
+      const commandEncoder = this.#device.createCommandEncoder({});
+      commandEncoder.copyBufferToBuffer(this.stagingBuffer, 0, this.gpuBuffer, 0, this.#size);
+      this.#device.queue.submit([commandEncoder.finish()]);
+
+      this.stagingBuffer.mapAsync(GPUMapMode.WRITE).then(() => {
+        this.#stagingBufferQueue.push(stagingBuffer);
+      });
+    }
+    this.#activeStagingBuffer = null;
+  }
+}
+
 function toGPUBufferUsage(usage) {
   switch (usage) {
     case 'vertex':
@@ -41,7 +104,7 @@ export class WebGPUBufferManager {
     this.device = device;
   }
 
-  createStaticBuffer(sizeOrArrayBuffer, usage) {
+  createBufferInternal(constructor, sizeOrArrayBuffer, usage) {
     let size;
     let arrayBufferView = null;
     if (typeof sizeOrArrayBuffer === 'number') {
@@ -59,10 +122,10 @@ export class WebGPUBufferManager {
 
     const gpuBuffer = this.device.createBuffer({
       size,
-      usage: toGPUBufferUsage(usage),
+      usage,
       mappedAtCreation: true,
     });
-    const buffer = new WebGPUStaticBuffer(gpuBuffer, size, usage, true);
+    const buffer = new constructor(this.device, gpuBuffer, size, usage, true);
 
     // If an ArrayBuffer or TypedArray was passed in, initialize the GPUBuffer
     // with it's data. Otherwise we'll leave it mapped for the used to populate.
@@ -73,5 +136,13 @@ export class WebGPUBufferManager {
     }
 
     return buffer;
+  }
+
+  createStaticBuffer(sizeOrArrayBuffer, usage) {
+    return this.createBufferInternal(WebGPUStaticBuffer, sizeOrArrayBuffer, toGPUBufferUsage(usage));
+  }
+
+  createDynamicBuffer(sizeOrArrayBuffer, usage) {
+    return this.createBufferInternal(WebGPUDynamicBuffer, sizeOrArrayBuffer, toGPUBufferUsage(usage) | GPUBufferUsage.COPY_DST);
   }
 }

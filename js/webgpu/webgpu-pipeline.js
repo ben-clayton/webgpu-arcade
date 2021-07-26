@@ -16,6 +16,12 @@ export class WebGPURenderPipeline {
   renderOrder = RenderOrder.Default;
 }
 
+export class WebGPURenderMaterial {
+  constructor(...bindGroups) {
+    this.bindGroups = bindGroups;
+  }
+}
+
 export class WebGPUPipelineSystem extends System {
   #nextPipelineId = 1;
   #pipelineCache = new Map();
@@ -55,7 +61,7 @@ export class WebGPUPipelineSystem extends System {
       if (!cachedPipeline) {
         const pipeline = this.createPipeline(gpu, entity, gpuGeometry, material);
         if (!pipeline) { return; }
-        
+
         cachedPipeline = {
           pipeline,
           pipelineId: this.#nextPipelineId++,
@@ -65,9 +71,12 @@ export class WebGPUPipelineSystem extends System {
 
       gpuPipeline.pipeline = cachedPipeline.pipeline;
       gpuPipeline.pipelineId = cachedPipeline.pipelineId;
-      gpuGeometry.materialBindGroup = this.createMaterialBindGroup(gpu, entity, material);
-
       entity.add(gpuPipeline);
+
+      const mbg = this.createMaterialBindGroup(gpu, entity, material);
+      if (mbg) {
+        entity.add(new WebGPURenderMaterial(mbg));
+      }
     });
   }
 }

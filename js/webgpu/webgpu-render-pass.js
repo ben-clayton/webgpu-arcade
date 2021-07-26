@@ -2,7 +2,7 @@ import { System } from 'ecs';
 
 import { WebGPURenderTargets } from './webgpu-render-targets.js';
 import { WebGPURenderGeometry } from './webgpu-geometry.js';
-import { WebGPURenderPipeline } from './webgpu-pipeline.js';
+import { WebGPURenderMaterial, WebGPURenderPipeline } from './webgpu-pipeline.js';
 import { WebGPUCamera } from './webgpu-camera.js';
 
 class RenderPassGlobals {
@@ -105,7 +105,7 @@ export class WebGPUDefaultRenderPass extends WebGPURenderPass {
         geometryList = [];
         pipelineGeometries.set(pipeline, geometryList);
       }
-      geometryList.push(geometry);
+      geometryList.push({geometry, material: entity.get(WebGPURenderMaterial)});
     });
 
     // Sort the pipelines by render order (e.g. so transparent objects are rendered last).
@@ -126,11 +126,14 @@ export class WebGPUDefaultRenderPass extends WebGPURenderPass {
       const geometryList = pipelineGeometries.get(pipeline);
       passEncoder.setPipeline(pipeline.pipeline);
 
-      for (const geometry of geometryList) {
+      for (const { geometry, material } of geometryList) {
         passEncoder.setBindGroup(1, geometry.bindGroup);
 
-        if (geometry.materialBindGroup) {
-          passEncoder.setBindGroup(2, geometry.materialBindGroup);
+        if (material) {
+          let i = 2;
+          for (const bindGroup of material.bindGroups) {
+            passEncoder.setBindGroup(i, bindGroup);
+          }
         }
 
         for (const vb of geometry.vertexBuffers) {

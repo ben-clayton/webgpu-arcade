@@ -97,7 +97,6 @@ export class WebGPURenderGeometry {
   instanceCount = 1;
   indexBuffer = null;
   vertexBuffers = [];
-  materialBindGroup = null;
 
   constructor(gpu) {
     this.modelBuffer = gpu.device.createBuffer({
