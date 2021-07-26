@@ -19,6 +19,7 @@ import {
 import { WebGPULightSpriteSystem } from './webgpu/webgpu-light-sprite.js';
 import { WebGPUGeometrySystem } from './webgpu/webgpu-geometry-system.js';
 import { WebGPUPBRPipelineSystem } from './webgpu/webgpu-pbr-pipeline.js';
+import { WebGPUUnlitPipelineSystem } from './webgpu/webgpu-unlit-pipeline.js';
 import { WebGPUSkyboxSystem } from './webgpu/webgpu-skybox.js';
 import { WebGPUDefaultPipelineSystem } from './webgpu/webgpu-pipeline.js';
 import { GltfScene, WebGPUGltfSystem } from './webgpu/webgpu-gltf.js';
@@ -53,14 +54,13 @@ world
   .registerGPUSystem(WebGPUSkyboxSystem)
   .registerGPUSystem(WebGPUGeometrySystem)
   .registerGPUSystem(WebGPUPBRPipelineSystem)
+  .registerGPUSystem(WebGPUUnlitPipelineSystem)
   .registerGPUSystem(WebGPUDefaultPipelineSystem)
   .registerGPUSystem(WebGPUBeginRenderPasses)
   .registerGPUSystem(WebGPUDefaultRenderPass)
   .registerGPUSystem(WebGPUSubmitRenderPasses)
 
 await world.intialize();
-
-const cubeGeometry = createCubeGeometry(world);
 
 const projection = new Camera();
 projection.zNear = 1;
@@ -114,6 +114,10 @@ world.create(
 
 world.create(
   new GltfScene('./media/models/dragon/dragon.glb')
+);
+
+world.create(
+  new GltfScene('./media/models/unlit/UnlitTest.glb')
 );
 
 gui.add(appSettings, 'controls', {

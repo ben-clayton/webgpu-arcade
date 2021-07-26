@@ -1,7 +1,7 @@
 import { AttributeLocation } from '../core/geometry.js';
 import { WebGPUPipelineSystem } from './webgpu-pipeline.js';
 import { PBRVertexSource, PBRFragmentSource, MATERIAL_BUFFER_SIZE } from './wgsl/pbr-material.js';
-import { vec4, vec3, vec2 } from 'gl-matrix';
+import { vec4, vec3 } from 'gl-matrix';
 
 export class PBRMaterial {
   baseColorFactor = vec4.fromValues(1.0, 1.0, 1.0, 1.0);

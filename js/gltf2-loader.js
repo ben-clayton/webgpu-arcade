@@ -353,7 +353,7 @@ export class Gltf2Loader {
 
       let clientSampler = clientSamplers[index];
       if (!clientSampler) {
-        // Resolve any sampler defaults 
+        // Resolve any sampler defaults
         const sampler = Object.assign({}, DEFAULT_SAMPLER, json.samplers[index]);
         clientSampler = client.createSampler(sampler, index);
         clientSamplers[index] = clientSampler;
@@ -395,7 +395,7 @@ export class Gltf2Loader {
       let clientMaterial = clientMaterials[index];
       if (!clientMaterial) {
         const material = Object.assign({}, DEFAULT_MATERIAL, json.materials[index]);
-        Object.assign(material.pbrMetallicRoughness, DEFAULT_METALLIC_ROUGHNESS, json.materials[index].pbrMetallicRoughness);
+        material.pbrMetallicRoughness = Object.assign({}, DEFAULT_METALLIC_ROUGHNESS, material.pbrMetallicRoughness);
 
         const texturePromises = [];
         const pbr = material.pbrMetallicRoughness;
@@ -480,11 +480,11 @@ export class Gltf2Loader {
       if (primitive.mode === undefined) {
         primitive.mode = GL.TRIANGLES;
       }
-        
+
       primitivePromises.push(resolveMaterial(primitive.material).then(material => {
         primitive.material = material;
       }));
-      
+
       const attributeBuffers = new Map();
       for (const name in primitive.attributes) {
         // TODO: Handle accessors with no bufferView (initialized to 0);
@@ -550,7 +550,7 @@ export class Gltf2Loader {
             skinPromises.inverseBindMatrices = accessor;
           }));
         }
-        
+
         clientSkin = Promise.all(skinPromises).then(() => {
           return client.createSkin(skin, index);
         });
@@ -605,7 +605,7 @@ export class Gltf2Loader {
             node.camera = camera;
           }));
         }
-        
+
         if (node.extensions?.KHR_lights_punctual) {
           nodePromises.push(resolveLight(node.extensions.KHR_lights_punctual.light).then(light => {
             node.light = light;

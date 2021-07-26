@@ -5,6 +5,7 @@ import { Gltf2Loader } from '../gltf2-loader.js';
 import { Transform } from '../core/transform.js';
 import { Geometry, InterleavedAttributes } from '../core/geometry.js';
 import { PBRMaterial } from './webgpu-pbr-pipeline.js';
+import { UnlitMaterial } from './webgpu-unlit-pipeline.js';
 
 
 // Used for comparing values from glTF files, which uses WebGL enums natively.
@@ -102,6 +103,13 @@ export class WebGPUGltf2Client {
   }
 
   createMaterial(material) {
+    if (material.extensions?.KHR_materials_unlit) {
+      let unlit = new UnlitMaterial();
+      unlit.baseColorFactor = material.pbrMetallicRoughness.baseColorFactor;
+      unlit.baseColorTexture = material.pbrMetallicRoughness.baseColorTexture?.texture.image;
+      return unlit;
+    }
+
     let pbr = new PBRMaterial();
     pbr.baseColorFactor = material.pbrMetallicRoughness.baseColorFactor;
     pbr.baseColorTexture = material.pbrMetallicRoughness.baseColorTexture?.texture.image;

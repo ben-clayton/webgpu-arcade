@@ -133,7 +133,6 @@ function PBRSurfaceInfo(layout) { return wgsl`
       discard;
     }
     surface.baseColor = input.color * material.baseColorFactor * baseColorMap;
-    //surface.baseColor = input.color * baseColorMap;
 
     surface.albedo = surface.baseColor.rgb;
 
@@ -143,7 +142,7 @@ function PBRSurfaceInfo(layout) { return wgsl`
 
     let dielectricSpec = vec3<f32>(0.04, 0.04, 0.04);
     surface.f0 = mix(dielectricSpec, surface.albedo, vec3<f32>(surface.metallic, surface.metallic, surface.metallic));
-    
+
     let occlusionMap = textureSample(occlusionTexture, occlusionSampler, input.texcoord);
     surface.ao = material.occlusionStrength * occlusionMap.r;
 
@@ -275,43 +274,6 @@ export function PBRFragmentSource(layout) { return `
 
     let ambient = globalLights.ambient * surface.albedo * surface.ao;
     let color = linearTosRGB(Lo + ambient + surface.emissive);
-    return vec4<f32>(color, surface.baseColor.a);
-  }`;
-};
-
-// A non-clustered (slow) variant for testing.
-export function PBRFragmentSource2(layout) { return `
-  ${ColorConversions}
-  ${CameraStruct()}
-  ${LightStruct()}
-
-  ${PBRSurfaceInfo(layout)}
-  ${PBRFunctions}
-
-  [[stage(fragment)]]
-  fn fragmentMain(input : VertexOutput) -> [[location(0)]] vec4<f32> {
-    let surface = GetSurfaceInfo(input);
-
-    // reflectance equation
-    var Lo = vec3<f32>(0.0, 0.0, 0.0);
-
-    for (var lightIndex = 0u; lightIndex < globalLights.lightCount; lightIndex = lightIndex + 1u) {
-      let i = lightIndex;
-
-      var light : PuctualLight;
-      light.lightType = LightType_Point;
-      light.pointToLight = globalLights.lights[i].position.xyz - input.worldPos;
-      light.range = globalLights.lights[i].range;
-      light.color = globalLights.lights[i].color;
-      light.intensity = globalLights.lights[i].intensity;
-
-      // calculate per-light radiance and add to outgoing radiance Lo
-      Lo = Lo + lightRadiance(light, surface);
-    }
-
-    let ambient = globalLights.ambient * surface.albedo * surface.ao;
-    let color = linearTosRGB(Lo + ambient + surface.emissive);
-    //let color = textureSample(normalTexture, normalSampler, input.texcoord).rgb;
     return vec4<f32>(color, surface.baseColor.a);
   }`;
 };
