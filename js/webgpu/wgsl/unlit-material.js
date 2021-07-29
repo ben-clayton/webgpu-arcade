@@ -2,10 +2,11 @@ import { wgsl } from './wgsl-utils.js';
 import { AttributeLocation } from '../../core/geometry.js';
 import { CameraStruct, ModelStruct, ColorConversions } from './common.js';
 
-export const MATERIAL_BUFFER_SIZE = 4 * Float32Array.BYTES_PER_ELEMENT;
+export const MATERIAL_BUFFER_SIZE = 5 * Float32Array.BYTES_PER_ELEMENT;
 export function MaterialStruct(group = 2) { return `
   [[block]] struct Material {
     baseColorFactor : vec4<f32>;
+    alphaCutoff : f32;
   };
   [[group(${group}), binding(0)]] var<uniform> material : Material;
 
@@ -80,7 +81,7 @@ export function UnlitFragmentSource(layout) { return `
   [[stage(fragment)]]
   fn fragmentMain(input : VertexOutput) -> [[location(0)]] vec4<f32> {
     let baseColorMap = textureSample(baseColorTexture, baseColorSampler, input.texcoord);
-    if (baseColorMap.a < 0.05) {
+    if (baseColorMap.a < material.alphaCutoff) {
       discard;
     }
     let baseColor = input.color * material.baseColorFactor * baseColorMap;

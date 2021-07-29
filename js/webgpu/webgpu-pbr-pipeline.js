@@ -6,14 +6,22 @@ import { vec4, vec3 } from 'gl-matrix';
 export class PBRMaterial {
   baseColorFactor = vec4.fromValues(1.0, 1.0, 1.0, 1.0);
   baseColorTexture;
+  baseColorSampler;
   normalTexture;
+  normalSampler;
   metallicFactor = 0.0;
   roughnessFactor = 1.0;
   metallicRoughnessTexture;
+  metallicRoughnessSampler;
   emissiveFactor = vec3.fromValues(0, 0, 0);
   emissiveTexture;
+  emissiveSampler;
   occlusionTexture;
+  occlusionSampler;
   occlusionStrength = 1.0;
+  transparent = false;
+  doubleSided = false;
+  alphaCutoff = 0.0;
 };
 
 // Can reuse these for every PBR material
@@ -25,17 +33,6 @@ const metallicRoughnessFactor = new Float32Array(materialArray.buffer, 8 * 4, 2)
 export class WebGPUPBRPipelineSystem extends WebGPUPipelineSystem {
   init(gpu) {
     super.init(gpu, PBRMaterial);
-
-    this.blackTextureView = gpu.textureLoader.fromColor(0, 0, 0, 0).texture.createView();
-    this.whiteTextureView = gpu.textureLoader.fromColor(1.0, 1.0, 1.0, 1.0).texture.createView();
-    this.defaultNormalTextureView = gpu.textureLoader.fromColor(0.5, 0.5, 1.0, 0).texture.createView();
-    this.defaultSampler = gpu.device.createSampler({
-      minFilter: 'linear',
-      magFilter: 'linear',
-      mipmapFilter: 'linear',
-      addressModeU: 'repeat',
-      addressModeV: 'repeat',
-    });
 
     this.bindGroupLayout = gpu.device.createBindGroupLayout({
       label: 'PBR Material BindGroupLayout',
@@ -103,6 +100,7 @@ export class WebGPUPBRPipelineSystem extends WebGPUPipelineSystem {
     metallicRoughnessFactor[0] = material.metallicFactor;
     metallicRoughnessFactor[1] = material.roughnessFactor;
     materialArray[7] = material.occlusionStrength;
+    materialArray[8] = material.alphaCutoff;
 
     const materialBuffer = gpu.device.createBuffer({
       size: MATERIAL_BUFFER_SIZE,
@@ -118,89 +116,58 @@ export class WebGPUPBRPipelineSystem extends WebGPUPipelineSystem {
       },
       {
         binding: 1,
-        resource: material.baseColorTexture || this.whiteTextureView,
+        resource: material.baseColorTexture || gpu.whiteTextureView,
       },
       {
         binding: 2,
-        resource: this.defaultSampler,
+        resource: material.baseColorSampler || gpu.defaultSampler,
       },
       {
         binding: 3,
-        resource: material.normalTexture || this.defaultNormalTextureView,
+        resource: material.normalTexture || gpu.defaultNormalTextureView,
       },
       {
         binding: 4,
-        resource: this.defaultSampler,
+        resource: material.normalSampler || gpu.defaultSampler,
       },
       {
         binding: 5,
-        resource: material.metallicRoughnessTexture || this.whiteTextureView,
+        resource: material.metallicRoughnessTexture || gpu.whiteTextureView,
       },
       {
         binding: 6,
-        resource: this.defaultSampler,
+        resource: material.metallicRoughnessSampler || gpu.defaultSampler,
       },
       {
         binding: 7,
-        resource: material.occlusionTexture || this.whiteTextureView,
+        resource: material.occlusionTexture || gpu.whiteTextureView,
       },
       {
         binding: 8,
-        resource: this.defaultSampler,
+        resource: material.occlusionSampler || gpu.defaultSampler,
       },
       {
         binding: 9,
-        resource: material.emissiveTexture || this.whiteTextureView,
+        resource: material.emissiveTexture || gpu.whiteTextureView,
       },
       {
         binding: 10,
-        resource: this.defaultSampler,
+        resource: material.emissiveSampler || gpu.defaultSampler,
       },]
     });
   }
 
-  createPipeline(gpu, entity, gpuGeometry) {
-    const layout = gpuGeometry.layout;
+  createVertexModule(gpu, entity, gpuGeometry, material) {
+    return {
+      module: gpu.device.createShaderModule({ code: PBRVertexSource(gpuGeometry.layout) }),
+      entryPoint: 'vertexMain',
+    };
+  }
 
-    if (!layout.locationsUsed.includes(AttributeLocation.position) ||
-        !layout.locationsUsed.includes(AttributeLocation.normal)) {
-      console.error('Cannot use PBRMaterial if the associated Geometry does not define at least a position and normal attribute.')
-      return null;
-    }
-
-    return gpu.device.createRenderPipeline({
-      label: `PBR Pipeline (LayoutID: ${gpuGeometry.layoutId})`,
-      layout: gpu.device.createPipelineLayout({
-        bindGroupLayouts: [
-          gpu.bindGroupLayouts.frame,
-          gpu.bindGroupLayouts.model,
-          this.bindGroupLayout,
-        ]
-      }),
-      vertex: {
-        module: gpu.device.createShaderModule({ code: PBRVertexSource(layout) }),
-        entryPoint: 'vertexMain',
-        buffers: layout.buffers,
-      },
-      fragment: {
-        module: gpu.device.createShaderModule({ code: PBRFragmentSource(layout) }),
-        entryPoint: 'fragmentMain',
-        targets: [{
-          format: gpu.format,
-        }],
-      },
-
-      primitive: {
-        topology: layout.primitive.topology,
-        stripIndexFormat: layout.primitive.stripIndexFormat,
-        cullMode: 'back',
-      },
-      depthStencil: {
-        format: gpu.depthFormat,
-        depthWriteEnabled: true,
-        depthCompare: 'less',
-      },
-      multisample: { count: gpu.sampleCount, },
-    });
+  createFragmentModule(gpu, entity, gpuGeometry, material) {
+    return {
+      module: gpu.device.createShaderModule({ code: PBRFragmentSource(gpuGeometry.layout) }),
+      entryPoint: 'fragmentMain',
+    };
   }
 }

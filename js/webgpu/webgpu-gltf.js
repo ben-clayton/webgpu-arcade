@@ -103,25 +103,41 @@ export class WebGPUGltf2Client {
   }
 
   createMaterial(material) {
+    let out;
     if (material.extensions?.KHR_materials_unlit) {
-      let unlit = new UnlitMaterial();
-      unlit.baseColorFactor = material.pbrMetallicRoughness.baseColorFactor;
-      unlit.baseColorTexture = material.pbrMetallicRoughness.baseColorTexture?.texture.image;
-      return unlit;
+      out = new UnlitMaterial();
+    } else {
+      out = new PBRMaterial();
+      out.metallicRoughnessTexture = material.pbrMetallicRoughness.metallicRoughnessTexture?.texture.image;
+      out.metallicRoughnessSampler = material.pbrMetallicRoughness.metallicRoughnessTexture?.texture.sampler;
+      out.metallicFactor = material.pbrMetallicRoughness.metallicFactor;
+      out.roughnessFactor = material.pbrMetallicRoughness.roughnessFactor;
+      out.normalTexture = material.normalTexture?.texture.image;
+      out.normalSampler = material.normalTexture?.texture.sampler;
+      out.occlusionTexture = material.occlusionTexture?.texture.image;
+      out.occlusionSampler = material.occlusionTexture?.texture.sampler;
+      out.occlusionStrength = material.occlusionTexture?.strength || 1.0;
+      out.emissiveTexture = material.emissiveTexture?.texture.image;
+      out.emissiveSampler = material.emissiveTexture?.texture.sampler;
+      out.emissiveFactor = material.emissiveFactor;
     }
 
-    let pbr = new PBRMaterial();
-    pbr.baseColorFactor = material.pbrMetallicRoughness.baseColorFactor;
-    pbr.baseColorTexture = material.pbrMetallicRoughness.baseColorTexture?.texture.image;
-    pbr.metallicRoughnessTexture = material.pbrMetallicRoughness.metallicRoughnessTexture?.texture.image;
-    pbr.metallicFactor = material.pbrMetallicRoughness.metallicFactor;
-    pbr.roughnessFactor = material.pbrMetallicRoughness.roughnessFactor;
-    pbr.normalTexture = material.normalTexture?.texture.image;
-    pbr.occlusionTexture = material.occlusionTexture?.texture.image;
-    pbr.emissiveTexture = material.emissiveTexture?.texture.image;
-    pbr.emissiveFactor = material.emissiveFactor;
-    pbr.occlusionStrength = material.occlusionTexture?.strength || 1.0;
-    return pbr;
+    // Common fields between unlit and PBR materials
+    out.baseColorFactor = material.pbrMetallicRoughness.baseColorFactor;
+    out.baseColorTexture = material.pbrMetallicRoughness.baseColorTexture?.texture.image;
+    out.baseColorSampler = material.pbrMetallicRoughness.baseColorTexture?.texture.sampler;
+    out.doubleSided = material.doubleSided;
+    switch (material.alphaMode) {
+      case 'BLEND':
+        out.transparent = true;
+        out.alphaCutoff = 0.05;
+        break;
+      case 'MASK':
+        out.alphaCutoff = material.alphaCutoff;
+        break;
+    }
+
+    return out;
   }
 
   createPrimitive(primitive) {

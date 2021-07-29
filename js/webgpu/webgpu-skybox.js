@@ -172,12 +172,6 @@ export class WebGPUSkyboxSystem extends System {
     indexArray.set(SKYBOX_CUBE_INDICES);
     indexBuffer.unmap();
 
-    this.sampler = gpu.device.createSampler({
-      minFilter: 'linear',
-      magFilter: 'linear',
-      mipmapFilter: 'linear'
-    });
-
     this.gpuPipeline = new WebGPURenderPipeline();
     this.gpuPipeline.renderOrder = RenderOrder.Skybox;
     this.gpuPipeline.pipeline = this.pipeline;
@@ -209,7 +203,7 @@ export class WebGPUSkyboxSystem extends System {
           },
           {
             binding: 1,
-            resource: this.sampler,
+            resource: gpu.defaultSampler,
           }]
         })
       );

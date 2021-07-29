@@ -39,12 +39,70 @@ export class WebGPUPipelineSystem extends System {
     return null; // Some materials may not require a given bind group.
   }
 
-  createPipeline(gpu, entity, gpuGeometry, material) {
-    throw new Error('Must override createPipeline() for each system that extends WebGPUPipelineSystem.');
+  pipelineKey(entity, gpuGeometry, material) {
+    return `${gpuGeometry.layoutId};${material?.transparent};${material?.doubleSided}`;
   }
 
-  pipelineKey(entity, gpuGeometry, material) {
-    return gpuGeometry.layoutId;
+  createVertexModule(gpu, entity, gpuGeometry, material) {
+    throw new Error('Must override createVertexModule() for each system that extends WebGPUPipelineSystem.');
+  }
+
+  createFragmentModule(gpu, entity, gpuGeometry, material) {
+    throw new Error('Must override createFragmentModule() for each system that extends WebGPUPipelineSystem.');
+  }
+
+  // Creates a pipeline with defaults settings and the overridden shaders.
+  // Can be customize if needed.
+  createPipeline(gpu, entity, gpuGeometry, material) {
+    const layout = gpuGeometry.layout;
+
+    const vertex = this.createVertexModule(gpu, entity, gpuGeometry, material);
+    const fragment = this.createFragmentModule(gpu, entity, gpuGeometry, material);
+
+    vertex.buffers = layout.buffers;
+
+    let blend;
+    if (material?.transparent) {
+      blend = {
+        color: {
+          srcFactor: 'src-alpha',
+          dstFactor: 'one-minus-src-alpha',
+        },
+        alpha: {
+          srcFactor: "one",
+          dstFactor: "one",
+        }
+      };
+    }
+
+    fragment.targets = [{
+      format: gpu.format,
+      blend,
+    }];
+
+    return gpu.device.createRenderPipeline({
+      label: `PBR Pipeline (LayoutID: ${gpuGeometry.layoutId})`,
+      layout: gpu.device.createPipelineLayout({
+        bindGroupLayouts: [
+          gpu.bindGroupLayouts.frame,
+          gpu.bindGroupLayouts.model,
+          this.bindGroupLayout,
+        ]
+      }),
+      vertex,
+      fragment,
+      primitive: {
+        topology: layout.primitive.topology,
+        stripIndexFormat: layout.primitive.stripIndexFormat,
+        cullMode: material?.doubleSided ? 'none' : 'back',
+      },
+      depthStencil: {
+        format: gpu.depthFormat,
+        depthWriteEnabled: true,
+        depthCompare: 'less',
+      },
+      multisample: { count: gpu.sampleCount, },
+    });
   }
 
   execute(delta, time) {
@@ -52,7 +110,7 @@ export class WebGPUPipelineSystem extends System {
 
     this.needsMaterialQuery.forEach((entity, gpuGeometry, material) => {
       const gpuPipeline = new WebGPURenderPipeline();
-      gpuPipeline.renderOrder = this.renderOrder;
+      gpuPipeline.renderOrder = material?.transparent ? RenderOrder.Transparent : this.renderOrder;
 
       const pipelineKey = this.pipelineKey(entity, gpuGeometry, material);
 

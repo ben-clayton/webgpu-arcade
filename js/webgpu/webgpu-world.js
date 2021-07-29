@@ -43,7 +43,7 @@ export class WebGPUWorld extends World {
     // Determine which of the desired features can be enabled for this device.
     const requiredFeatures = desiredFeatures.filter(feature => adapter.features.has(feature));
     this.device = await adapter.requestDevice({requiredFeatures});
-    
+
     // This function isn't available in Firefox, though it is in the spec.
     if (this.context.getPreferredFormat) {
       this.format = this.context.getPreferredFormat(adapter);
@@ -52,6 +52,17 @@ export class WebGPUWorld extends World {
     this.bindGroupLayouts = new WebGPUBindGroupLayouts(this.device);
     this.bufferManager = new WebGPUBufferManager(this.device);
     this.textureLoader = new WebGPUTextureLoader(this.device);
+
+    this.blackTextureView = this.textureLoader.fromColor(0, 0, 0, 0).texture.createView();
+    this.whiteTextureView = this.textureLoader.fromColor(1.0, 1.0, 1.0, 1.0).texture.createView();
+    this.defaultNormalTextureView = this.textureLoader.fromColor(0.5, 0.5, 1.0, 0).texture.createView();
+    this.defaultSampler = this.device.createSampler({
+      minFilter: 'linear',
+      magFilter: 'linear',
+      mipmapFilter: 'linear',
+      addressModeU: 'repeat',
+      addressModeV: 'repeat',
+    });
 
     return this;
   }
