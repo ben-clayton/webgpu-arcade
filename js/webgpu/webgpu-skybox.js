@@ -148,21 +148,23 @@ export class WebGPUSkyboxSystem extends System {
   execute(delta, time) {
     const gpu = this.world;
     this.skyboxQuery.forEach(async (entity, skybox) => {
-      const gpuMaterial = new WebGPURenderMaterial(
+      entity.add(this.gpuGeometry);
+
+      const skyboxTexture = await skybox.texture;
+
+      entity.add(this.gpuPipeline, new WebGPURenderMaterial(
         gpu.device.createBindGroup({
           layout: this.bindGroupLayout,
           entries: [{
             binding: 0,
-            resource: skybox.texture.createView({ dimension: 'cube' }),
+            resource: skyboxTexture.texture.createView({ dimension: 'cube' }),
           },
           {
             binding: 1,
             resource: gpu.defaultSampler,
           }]
         })
-      );
-
-      entity.add(this.gpuPipeline, this.gpuGeometry, gpuMaterial);
+      ));
     });
   }
 }

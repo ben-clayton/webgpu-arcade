@@ -16,7 +16,6 @@ import { WebGPUGeometrySystem } from './webgpu-geometry-system.js';
 import { WebGPUPBRPipelineSystem } from './webgpu-pbr-pipeline.js';
 import { WebGPUUnlitPipelineSystem } from './webgpu-unlit-pipeline.js';
 import { WebGPUSkyboxSystem } from './webgpu-skybox.js';
-import { WebGPUDefaultPipelineSystem } from './webgpu-pipeline.js';
 
 const desiredFeatures = [
   'texture-compression-bc'
@@ -58,7 +57,6 @@ export class WebGPUWorld extends World {
     this.registerGPUSystem(WebGPUGeometrySystem);
     this.registerGPUSystem(WebGPUPBRPipelineSystem);
     this.registerGPUSystem(WebGPUUnlitPipelineSystem);
-    this.registerGPUSystem(WebGPUDefaultPipelineSystem);
     this.registerGPUSystem(WebGPUBeginRenderPasses);
     this.registerGPUSystem(WebGPUDefaultRenderPass);
     this.registerGPUSystem(WebGPUSubmitRenderPasses);

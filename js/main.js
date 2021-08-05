@@ -50,10 +50,7 @@ const camera = world.create(
 );
 
 // Add a skybox
-world.textureLoader.fromUrl('./media/textures/skybox/cube-basis-mipmap.ktx2').then((texture) => {
-  world.create(new Skybox(texture.texture));
-});
-
+world.create(new Skybox(world.textureLoader.fromUrl('./media/textures/skybox/cube-basis-mipmap.ktx2')));
 
 // Add some lights
 world.create(
