@@ -1,16 +1,7 @@
-import { AttributeLocation } from '../core/geometry.js';
+import { UnlitMaterial } from '../core/materials.js';
 import { WebGPUPipelineSystem } from './webgpu-pipeline.js';
 import { UnlitVertexSource, UnlitFragmentSource, MATERIAL_BUFFER_SIZE } from './wgsl/unlit-material.js';
 import { vec4 } from 'gl-matrix';
-
-export class UnlitMaterial {
-  baseColorFactor = vec4.fromValues(1.0, 1.0, 1.0, 1.0);
-  baseColorTexture;
-  baseColorSampler;
-  transparent = false;
-  doubleSided = false;
-  alphaCutoff = 0.0;
-};
 
 // Can reuse these for every unlit material
 const materialArray = new Float32Array(MATERIAL_BUFFER_SIZE / Float32Array.BYTES_PER_ELEMENT);

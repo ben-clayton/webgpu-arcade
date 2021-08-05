@@ -1,28 +1,7 @@
-import { AttributeLocation } from '../core/geometry.js';
+import { PBRMaterial } from '../core/materials.js';
 import { WebGPUPipelineSystem } from './webgpu-pipeline.js';
 import { PBRVertexSource, PBRFragmentSource, MATERIAL_BUFFER_SIZE } from './wgsl/pbr-material.js';
 import { vec4, vec3 } from 'gl-matrix';
-
-export class PBRMaterial {
-  baseColorFactor = vec4.fromValues(1.0, 1.0, 1.0, 1.0);
-  baseColorTexture;
-  baseColorSampler;
-  normalTexture;
-  normalSampler;
-  metallicFactor = 0.0;
-  roughnessFactor = 1.0;
-  metallicRoughnessTexture;
-  metallicRoughnessSampler;
-  emissiveFactor = vec3.fromValues(0, 0, 0);
-  emissiveTexture;
-  emissiveSampler;
-  occlusionTexture;
-  occlusionSampler;
-  occlusionStrength = 1.0;
-  transparent = false;
-  doubleSided = false;
-  alphaCutoff = 0.0;
-};
 
 // Can reuse these for every PBR material
 const materialArray = new Float32Array(MATERIAL_BUFFER_SIZE / Float32Array.BYTES_PER_ELEMENT);

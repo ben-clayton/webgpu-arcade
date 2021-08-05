@@ -3,28 +3,12 @@ import { Camera } from './core/camera.js';
 import { PointLight, AmbientLight } from './core/light.js';
 import { InputSystem } from './core/input.js';
 import { Skybox } from './core/skybox.js';
+import { GltfScene, GltfSystem } from './core/gltf.js';
 
 import { FlyingControls, FlyingControlsSystem } from './controls/flying-controls.js';
 import { OrbitControls, OrbitControlsSystem } from './controls/orbit-controls.js';
 
 import { WebGPUWorld } from './webgpu/webgpu-world.js';
-import { WebGPULightSystem } from './webgpu/webgpu-light.js';
-import { WebGPUCameraSystem } from './webgpu/webgpu-camera.js';
-import { WebGPUClusteredLights } from './webgpu/webgpu-clustered-light.js';
-import {
-  WebGPUBeginRenderPasses,
-  WebGPUDefaultRenderPass,
-  WebGPUSubmitRenderPasses
-} from './webgpu/webgpu-render-pass.js';
-import { WebGPULightSpriteSystem } from './webgpu/webgpu-light-sprite.js';
-import { WebGPUGeometrySystem } from './webgpu/webgpu-geometry-system.js';
-import { WebGPUPBRPipelineSystem } from './webgpu/webgpu-pbr-pipeline.js';
-import { WebGPUUnlitPipelineSystem } from './webgpu/webgpu-unlit-pipeline.js';
-import { WebGPUSkyboxSystem } from './webgpu/webgpu-skybox.js';
-import { WebGPUDefaultPipelineSystem } from './webgpu/webgpu-pipeline.js';
-import { GltfScene, WebGPUGltfSystem } from './webgpu/webgpu-gltf.js';
-
-import { createCubeGeometry } from './cube-geometry.js';
 
 import dat from 'dat.gui';
 import Stats from 'stats.js';
@@ -40,25 +24,14 @@ document.body.appendChild(gui.domElement);
 const stats = new Stats();
 document.body.appendChild(stats.dom);
 
-const world = new WebGPUWorld(document.querySelector('canvas'));
+const canvas = document.querySelector('canvas');
+
+const world = new WebGPUWorld(canvas);
 world
   .registerSystem(InputSystem)
   .registerSystem(FlyingControlsSystem)
   .registerSystem(OrbitControlsSystem)
-  // Unfortunately the order of these systems is kind of delicate.
-  .registerGPUSystem(WebGPULightSystem)
-  .registerGPUSystem(WebGPUCameraSystem)
-  .registerGPUSystem(WebGPUClusteredLights)
-  .registerGPUSystem(WebGPULightSpriteSystem)
-  .registerGPUSystem(WebGPUGltfSystem)
-  .registerGPUSystem(WebGPUSkyboxSystem)
-  .registerGPUSystem(WebGPUGeometrySystem)
-  .registerGPUSystem(WebGPUPBRPipelineSystem)
-  .registerGPUSystem(WebGPUUnlitPipelineSystem)
-  .registerGPUSystem(WebGPUDefaultPipelineSystem)
-  .registerGPUSystem(WebGPUBeginRenderPasses)
-  .registerGPUSystem(WebGPUDefaultRenderPass)
-  .registerGPUSystem(WebGPUSubmitRenderPasses)
+  .registerGPUSystem(GltfSystem);
 
 await world.intialize();
 

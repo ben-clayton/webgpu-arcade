@@ -1,0 +1,25 @@
+import { vec4, vec3 } from 'gl-matrix';
+
+export class UnlitMaterial {
+  baseColorFactor = vec4.fromValues(1.0, 1.0, 1.0, 1.0);
+  baseColorTexture;
+  baseColorSampler;
+  transparent = false;
+  doubleSided = false;
+  alphaCutoff = 0.0;
+};
+
+export class PBRMaterial extends UnlitMaterial {
+  normalTexture;
+  normalSampler;
+  metallicFactor = 0.0;
+  roughnessFactor = 1.0;
+  metallicRoughnessTexture;
+  metallicRoughnessSampler;
+  emissiveFactor = vec3.fromValues(0, 0, 0);
+  emissiveTexture;
+  emissiveSampler;
+  occlusionTexture;
+  occlusionSampler;
+  occlusionStrength = 1.0;
+};

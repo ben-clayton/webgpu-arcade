@@ -1,7 +1,7 @@
 import { System } from 'ecs';
 import { WebGPURenderGeometry } from './webgpu-geometry.js';
 import { WebGPURenderMaterial, WebGPURenderPipeline, RenderOrder } from './webgpu-pipeline.js';
-import { CameraStruct, ModelStruct, ColorConversions } from './wgsl/common.js';
+import { SkyboxVertexSource, SkyboxFragmentSource } from './wgsl/skybox.js';
 import { Skybox } from '../core/skybox.js';
 
 const SKYBOX_CUBE_VERTS = new Float32Array([
@@ -40,52 +40,6 @@ const SKYBOX_CUBE_INDICES = new Uint16Array([
   6, 5, 4,
   5, 6, 7,
 ]);
-
-const SkyboxVertexSource = `
-  ${ModelStruct()}
-  ${CameraStruct(0, 0)}
-
-  struct VertexInput {
-    [[location(0)]] position : vec4<f32>;
-  };
-
-  struct VertexOutput {
-    [[builtin(position)]] position : vec4<f32>;
-    [[location(0)]] texCoord : vec3<f32>;
-  };
-
-  [[stage(vertex)]]
-  fn vertexMain(input : VertexInput) -> VertexOutput {
-    var output : VertexOutput;
-    output.texCoord = input.position.xyz;
-
-    var modelView : mat4x4<f32> = camera.view * model.matrix;
-    // Drop the translation portion of the modelView matrix
-    modelView[3] = vec4<f32>(0.0, 0.0, 0.0, modelView[3].w);
-    output.position = camera.projection * modelView * input.position;
-    // Returning the W component for both Z and W forces the geometry depth to
-    // the far plane. When combined with a depth func of "less-equal" this makes
-    // the sky write to any depth fragment that has not been written to yet.
-    output.position = output.position.xyww;
-    return output;
-  }
-`;
-
-const SkyboxFragmentSource = `
-  ${ColorConversions}
-
-  struct FragmentInput {
-    [[location(0)]] texCoord : vec3<f32>;
-  };
-  [[group(2), binding(0)]] var skyboxTexture : texture_cube<f32>;
-  [[group(2), binding(1)]] var skyboxSampler : sampler;
-
-  [[stage(fragment)]]
-  fn fragmentMain(input : FragmentInput) -> [[location(0)]] vec4<f32> {
-    let color = textureSample(skyboxTexture, skyboxSampler, input.texCoord);
-    return vec4<f32>(linearTosRGB(color.rgb), 1.0);
-  }
-`;
 
 export class WebGPUSkyboxSystem extends System {
   init(gpu) {

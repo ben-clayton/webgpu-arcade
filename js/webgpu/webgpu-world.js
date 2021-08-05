@@ -3,6 +3,21 @@ import { WebGPUBufferManager } from './webgpu-buffer.js';
 import { WebGPUBindGroupLayouts } from './webgpu-bind-group-layouts.js'
 import { WebGPUTextureLoader } from 'webgpu-texture-loader';
 
+import { WebGPULightSystem } from './webgpu-light.js';
+import { WebGPUCameraSystem } from './webgpu-camera.js';
+import { WebGPUClusteredLights } from './webgpu-clustered-light.js';
+import {
+  WebGPUBeginRenderPasses,
+  WebGPUDefaultRenderPass,
+  WebGPUSubmitRenderPasses
+} from './webgpu-render-pass.js';
+import { WebGPULightSpriteSystem } from './webgpu-light-sprite.js';
+import { WebGPUGeometrySystem } from './webgpu-geometry-system.js';
+import { WebGPUPBRPipelineSystem } from './webgpu-pbr-pipeline.js';
+import { WebGPUUnlitPipelineSystem } from './webgpu-unlit-pipeline.js';
+import { WebGPUSkyboxSystem } from './webgpu-skybox.js';
+import { WebGPUDefaultPipelineSystem } from './webgpu-pipeline.js';
+
 const desiredFeatures = [
   'texture-compression-bc'
 ];
@@ -33,6 +48,20 @@ export class WebGPUWorld extends World {
     }
 
     this.#gpuInitialized = this.#initWebGPU();
+
+    // Unfortunately the order of these systems is kind of delicate.
+    this.registerGPUSystem(WebGPULightSystem);
+    this.registerGPUSystem(WebGPUCameraSystem);
+    this.registerGPUSystem(WebGPUClusteredLights);
+    this.registerGPUSystem(WebGPULightSpriteSystem);
+    this.registerGPUSystem(WebGPUSkyboxSystem);
+    this.registerGPUSystem(WebGPUGeometrySystem);
+    this.registerGPUSystem(WebGPUPBRPipelineSystem);
+    this.registerGPUSystem(WebGPUUnlitPipelineSystem);
+    this.registerGPUSystem(WebGPUDefaultPipelineSystem);
+    this.registerGPUSystem(WebGPUBeginRenderPasses);
+    this.registerGPUSystem(WebGPUDefaultRenderPass);
+    this.registerGPUSystem(WebGPUSubmitRenderPasses);
   }
 
   async #initWebGPU() {
