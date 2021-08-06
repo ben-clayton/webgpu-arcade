@@ -36,7 +36,7 @@ export function ClusterLightsStruct(group=0, binding=2, access='read') { return 
     count : u32;
   };
   [[block]] struct ClusterLightGroup {
-    offset : atomic<u32>;
+    offset : ${access == 'read' ? 'u32' : 'atomic<u32>'};
     lights : [[stride(8)]] array<ClusterLights, ${TOTAL_TILES}>;
     indices : [[stride(4)]] array<u32, ${MAX_CLUSTERED_LIGHTS}>;
   };
@@ -48,8 +48,7 @@ export const TileFunctions = `
 let tileCount : vec3<u32> = vec3<u32>(${TILE_COUNT[0]}u, ${TILE_COUNT[1]}u, ${TILE_COUNT[2]}u);
 
 fn linearDepth(depthSample : f32) -> f32 {
-  let depthRange : f32 = 2.0 * depthSample - 1.0;
-  return 2.0 * camera.zNear * camera.zFar / (camera.zFar + camera.zNear - depthRange * (camera.zFar - camera.zNear));
+  return camera.zNear * camera.zFar / (camera.zFar + camera.zNear - depthSample * (camera.zFar - camera.zNear));
 }
 
 fn getTile(fragCoord : vec4<f32>) -> vec3<u32> {
@@ -105,8 +104,8 @@ export const ClusterBoundsSource = `
     let tileSize : vec2<f32> = vec2<f32>(camera.outputSize.x / f32(tileCount.x),
                                          camera.outputSize.y / f32(tileCount.y));
 
-    let maxPoint_sS : vec4<f32> = vec4<f32>(vec2<f32>(f32(global_id.x+1u), f32(global_id.y+1u)) * tileSize, -1.0, 1.0);
-    let minPoint_sS : vec4<f32> = vec4<f32>(vec2<f32>(f32(global_id.x), f32(global_id.y)) * tileSize, -1.0, 1.0);
+    let maxPoint_sS : vec4<f32> = vec4<f32>(vec2<f32>(f32(global_id.x+1u), f32(global_id.y+1u)) * tileSize, 0.0, 1.0);
+    let minPoint_sS : vec4<f32> = vec4<f32>(vec2<f32>(f32(global_id.x), f32(global_id.y)) * tileSize, 0.0, 1.0);
 
     let maxPoint_vS : vec3<f32> = screen2View(maxPoint_sS).xyz;
     let minPoint_vS : vec3<f32> = screen2View(minPoint_sS).xyz;
