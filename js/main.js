@@ -1,7 +1,6 @@
 import { Transform } from './core/transform.js';
 import { Camera } from './core/camera.js';
 import { PointLight, AmbientLight } from './core/light.js';
-import { InputSystem } from './core/input.js';
 import { Skybox } from './core/skybox.js';
 import { GltfScene, GltfSystem } from './core/gltf.js';
 
@@ -28,12 +27,10 @@ const canvas = document.querySelector('canvas');
 
 const world = new WebGPUWorld(canvas);
 world
-  .registerSystem(InputSystem)
   .registerSystem(FlyingControlsSystem)
-  .registerSystem(OrbitControlsSystem)
-  .registerGPUSystem(GltfSystem);
+  .registerSystem(OrbitControlsSystem);
 
-await world.intialize();
+const renderer = await world.renderer();
 
 const projection = new Camera();
 projection.zNear = 1;
@@ -50,7 +47,7 @@ const camera = world.create(
 );
 
 // Add a skybox
-world.create(new Skybox(world.textureLoader.fromUrl('./media/textures/skybox/cube-basis-mipmap.ktx2')));
+world.create(new Skybox(renderer.textureLoader.fromUrl('./media/textures/skybox/cube-basis-mipmap.ktx2')));
 
 // Add some lights
 world.create(

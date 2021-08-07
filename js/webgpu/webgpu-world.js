@@ -1,4 +1,4 @@
-import { World } from 'ecs';
+import { RenderWorld } from '../core/render-world.js';
 import { WebGPUBufferManager } from './webgpu-buffer.js';
 import { WebGPUBindGroupLayouts } from './webgpu-bind-group-layouts.js'
 import { WebGPUTextureLoader } from 'webgpu-texture-loader';
@@ -21,9 +21,7 @@ const desiredFeatures = [
   'texture-compression-bc'
 ];
 
-export class WebGPUWorld extends World {
-  #gpuInitialized;
-
+export class WebGPUWorld extends RenderWorld {
   device = null;
   format = 'bgra8unorm';
   depthFormat = 'depth24plus';
@@ -34,35 +32,32 @@ export class WebGPUWorld extends World {
 
   bindGroupLayouts = {};
   bufferManager = null;
-  textureLoader = null;
+  #textureLoader = null;
 
   constructor(canvas) {
-    super();
+    super(canvas);
 
-    canvas = canvas || document.createElement('canvas');
-    this.context = canvas.getContext('webgpu');
+    this.context = this.canvas.getContext('webgpu');
     if (!this.context) {
       // TODO: Remove once 'webgpu' is supported in Firefox
       this.context = canvas.getContext('gpupresent');
     }
 
-    this.#gpuInitialized = this.#initWebGPU();
-
     // Unfortunately the order of these systems is kind of delicate.
-    this.registerGPUSystem(WebGPULightSystem);
-    this.registerGPUSystem(WebGPUCameraSystem);
-    this.registerGPUSystem(WebGPUClusteredLights);
-    this.registerGPUSystem(WebGPULightSpriteSystem);
-    this.registerGPUSystem(WebGPUSkyboxSystem);
-    this.registerGPUSystem(WebGPUGeometrySystem);
-    this.registerGPUSystem(WebGPUPBRPipelineSystem);
-    this.registerGPUSystem(WebGPUUnlitPipelineSystem);
-    this.registerGPUSystem(WebGPUBeginRenderPasses);
-    this.registerGPUSystem(WebGPUDefaultRenderPass);
-    this.registerGPUSystem(WebGPUSubmitRenderPasses);
+    this.registerRenderSystem(WebGPULightSystem);
+    this.registerRenderSystem(WebGPUCameraSystem);
+    this.registerRenderSystem(WebGPUClusteredLights);
+    this.registerRenderSystem(WebGPULightSpriteSystem);
+    this.registerRenderSystem(WebGPUSkyboxSystem);
+    this.registerRenderSystem(WebGPUGeometrySystem);
+    this.registerRenderSystem(WebGPUPBRPipelineSystem);
+    this.registerRenderSystem(WebGPUUnlitPipelineSystem);
+    this.registerRenderSystem(WebGPUBeginRenderPasses);
+    this.registerRenderSystem(WebGPUDefaultRenderPass);
+    this.registerRenderSystem(WebGPUSubmitRenderPasses);
   }
 
-  async #initWebGPU() {
+  async intializeRenderer() {
     const adapter = await navigator.gpu.requestAdapter({
       powerPreference: "high-performance"
     });
@@ -78,11 +73,11 @@ export class WebGPUWorld extends World {
 
     this.bindGroupLayouts = new WebGPUBindGroupLayouts(this.device);
     this.bufferManager = new WebGPUBufferManager(this.device);
-    this.textureLoader = new WebGPUTextureLoader(this.device);
+    this.#textureLoader = new WebGPUTextureLoader(this.device);
 
-    this.blackTextureView = this.textureLoader.fromColor(0, 0, 0, 0).texture.createView();
-    this.whiteTextureView = this.textureLoader.fromColor(1.0, 1.0, 1.0, 1.0).texture.createView();
-    this.defaultNormalTextureView = this.textureLoader.fromColor(0.5, 0.5, 1.0, 0).texture.createView();
+    this.blackTextureView = this.#textureLoader.fromColor(0, 0, 0, 0).texture.createView();
+    this.whiteTextureView = this.#textureLoader.fromColor(1.0, 1.0, 1.0, 1.0).texture.createView();
+    this.defaultNormalTextureView = this.#textureLoader.fromColor(0.5, 0.5, 1.0, 0).texture.createView();
     this.defaultSampler = this.device.createSampler({
       minFilter: 'linear',
       magFilter: 'linear',
@@ -94,26 +89,20 @@ export class WebGPUWorld extends World {
     return this;
   }
 
-  async intialize() {
-    return await this.#gpuInitialized;
-  }
-
-  registerGPUSystem(systemType, ...initArgs) {
-    this.#gpuInitialized.then((gpu) => {
-      this.registerSystem(systemType, gpu, ...initArgs);
-    });
-    return this;
-  }
-
   get adapter() {
     return this.device?.adapter;
   }
 
-  get canvas() {
-    return this.context.canvas;
+  // RenderWorld overloads
+  get textureLoader() {
+    return this.#textureLoader;
   }
 
   createStaticBuffer(sizeOrArrayBuffer, usage = 'vertex') {
     return this.bufferManager.createStaticBuffer(sizeOrArrayBuffer, usage);
+  }
+
+  createDynamicBuffer(sizeOrArrayBuffer, usage = 'vertex') {
+    return this.bufferManager.createDynamicBuffer(sizeOrArrayBuffer, usage);
   }
 }

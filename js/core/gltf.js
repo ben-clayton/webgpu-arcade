@@ -1,11 +1,9 @@
 import { System } from 'ecs';
-import { mat4 } from 'gl-matrix';
 
 import { Gltf2Loader } from '../gltf2-loader.js';
 import { Transform } from '../core/transform.js';
 import { Geometry, InterleavedAttributes } from './geometry.js';
 import { UnlitMaterial, PBRMaterial } from './materials.js';
-
 
 // Used for comparing values from glTF files, which uses WebGL enums natively.
 const GL = WebGLRenderingContext;
@@ -20,8 +18,6 @@ const AttribMap = {
   JOINTS_0: 'joints',
   WEIGHTS_0: 'weights',
 };
-
-const IDENTITY_MATRIX = mat4.create();
 
 export class GltfScene {
   src = '';
