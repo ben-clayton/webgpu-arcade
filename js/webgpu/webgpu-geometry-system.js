@@ -48,7 +48,7 @@ export class WebGPUGeometrySystem extends System {
     // Update the geometry's bind group.
     this.query(WebGPURenderGeometry).forEach((entity, geometry) => {
       const transform = entity.get(Transform);
-      let modelMatrix = transform ? transform.matrix : IDENTITY_MATRIX;
+      let modelMatrix = transform ? transform.worldMatrix : IDENTITY_MATRIX;
       gpu.device.queue.writeBuffer(geometry.modelBuffer, 0, modelMatrix);
     });
   }

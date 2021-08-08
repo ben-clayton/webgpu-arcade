@@ -175,7 +175,7 @@ class GltfClient {
       }
     }
 
-    return { geometry, material: primitive.material };
+    return this.gpu.create(geometry, primitive.material);
   }
 }
 
@@ -185,17 +185,22 @@ export class GltfSystem extends System {
   }
 
   processNode(gpu, node) {
+    const transform = new Transform(node.translation, node.rotation, node.scale);
+    if (node.matrix) {
+      transform.matrix = node.matrix;
+    }
+
     if (node.mesh) {
       for (const primitive of node.mesh.primitives) {
-        const transform = new Transform();
-        transform.matrix = node.worldMatrix;
-        this.world.create(primitive.geometry, primitive.material, transform);
+        primitive.add(transform);
       }
     }
 
     for (const child of node.children) {
-      this.processNode(gpu, child);
+      transform.addChild(this.processNode(gpu, child));
     }
+
+    return transform;
   }
 
   execute(delta, time) {
