@@ -1,6 +1,7 @@
 class Entity {
   #worldData;
   #destroyed = false;
+  enabled = true;
 
   constructor(worldData, entityId) {
     this.id = entityId;
@@ -168,13 +169,14 @@ export class System {
 class Query {
   #worldData;
 
-  constructor(worldData, queryName, includedTypes, excludedTypes = []) {
+  constructor(worldData, queryName, includedTypes, excludedTypes = [], excludeDisabled=true) {
     this.#worldData = worldData;
     this.queryName = queryName;
     this.#worldData.queries[queryName] = this;
 
     this.include = includedTypes;
     this.exclude = excludedTypes;
+    this.excludeDisabled = excludeDisabled;
 
     // Sanity check to ensure you don't end up with invalid queries
     for (const type of excludedTypes) {
@@ -192,12 +194,21 @@ class Query {
     const queryName = this.queryName + '!' + componentNames.join(':!');
     const cachedQuery = this.#worldData.queries[queryName];
     if (cachedQuery !== undefined) { return cachedQuery; }
-    return new Query(this.#worldData, queryName, this.include, this.exclude.concat(componentTypes));
+    return new Query(this.#worldData, queryName, this.include, this.exclude.concat(componentTypes), this.excludeDisabled);
+  }
+
+  includeDisabled() {
+    const queryName = this.queryName + '+disabled';
+    const cachedQuery = this.#worldData.queries[queryName];
+    if (cachedQuery !== undefined) { return cachedQuery; }
+    return new Query(this.#worldData, queryName, this.include, this.exclude.concat(componentTypes), true);
   }
 
   forEach(callback) {
     const args = new Array(this.include.length);
     for (const entity of this.#worldData.entities.values()) {
+      if (this.excludeDisabled && !entity.enabled) { continue; }
+
       let excluded = false;
       for (const componentId of this.exclude) {
         if (entity.has(componentId)) {

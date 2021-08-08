@@ -175,7 +175,10 @@ class GltfClient {
       }
     }
 
-    return this.gpu.create(geometry, primitive.material);
+    const entity = this.gpu.create(geometry, primitive.material);
+    // Don't enable the entities till loading is complete. Prevents popping artifacts.
+    entity.enabled = false;
+    return entity;
   }
 }
 
@@ -191,8 +194,9 @@ export class GltfSystem extends System {
     }
 
     if (node.mesh) {
-      for (const primitive of node.mesh.primitives) {
-        primitive.add(transform);
+      for (const primitiveEntity of node.mesh.primitives) {
+        primitiveEntity.add(transform);
+        primitiveEntity.enabled = true;
       }
     }
 
