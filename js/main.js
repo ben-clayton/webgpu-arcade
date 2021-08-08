@@ -2,12 +2,14 @@ import { Transform } from './core/transform.js';
 import { Camera } from './core/camera.js';
 import { PointLight, AmbientLight } from './core/light.js';
 import { Skybox } from './core/skybox.js';
-import { GltfScene, GltfSystem } from './core/gltf.js';
+import { GltfScene } from './core/gltf.js';
 
 import { FlyingControls, FlyingControlsSystem } from './controls/flying-controls.js';
 import { OrbitControls, OrbitControlsSystem } from './controls/orbit-controls.js';
 
 import { WebGPUWorld } from './webgpu/webgpu-world.js';
+
+import { quat } from 'gl-matrix';
 
 import dat from 'dat.gui';
 import Stats from 'stats.js';
@@ -79,7 +81,9 @@ world.create(
   new GltfScene('./media/models/dungeon/dungeon.glb')
 );
 
+const dragonTransform = new Transform();
 world.create(
+  dragonTransform,
   new GltfScene('./media/models/dragon/dragon.glb')
 );
 
@@ -109,6 +113,9 @@ gui.add(appSettings, 'controls', {
 
 function onFrame() {
   requestAnimationFrame(onFrame);
+
+  quat.rotateY(dragonTransform.orientation, dragonTransform.orientation, 0.01);
+
   stats.begin();
   world.execute();
   stats.end();

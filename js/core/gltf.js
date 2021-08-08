@@ -211,12 +211,18 @@ export class GltfSystem extends System {
     const gpu = this.world;
 
     this.query(GltfScene).not(GltfRenderScene).forEach((entity, gltf) => {
+      let transform = entity.get(Transform);
+      if (!transform) {
+        transform = new Transform();
+        entity.add(transform);
+      }
+
       const gpuGltf = new GltfRenderScene();
       this.loader.loadFromUrl(gltf.src).then(scene => {
         gpuGltf.scene = scene;
 
         for (const node of scene.nodes) {
-          this.processNode(gpu, node);
+          transform.addChild(this.processNode(gpu, node));
         }
       });
       entity.add(gpuGltf);

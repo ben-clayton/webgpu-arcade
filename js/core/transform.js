@@ -124,8 +124,10 @@ export class Transform {
     if (this.#worldMatrixDirty) { return; }
     this.#worldMatrixDirty = true;
 
-    for (const child of this.#children) {
-      child.#makeDirty();
+    if (this.#children) {
+      for (const child of this.#children) {
+        child.#makeDirty();
+      }
     }
   }
 }
