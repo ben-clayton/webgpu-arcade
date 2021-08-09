@@ -141,7 +141,7 @@ export class WebGPUDefaultRenderPass extends WebGPURenderPass {
         }
         const ib = geometry.indexBuffer;
         if (ib) {
-          passEncoder.setIndexBuffer(ib.buffer, ib.format);
+          passEncoder.setIndexBuffer(ib.buffer, ib.format, ib.offset);
           passEncoder.drawIndexed(geometry.drawCount, geometry.instanceCount);
         } else {
           passEncoder.draw(geometry.drawCount, geometry.instanceCount);

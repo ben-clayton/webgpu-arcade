@@ -167,6 +167,7 @@ class GltfClient {
 
     if (primitive.indices) {
       geometry.indices = primitive.indices.clientIndexBuffer;
+      geometry.indexOffset = primitive.indices.byteOffset;
       switch (primitive.indices.componentType) {
         case GL.UNSIGNED_SHORT:
           geometry.indexFormat = 'uint16'; break;

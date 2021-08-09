@@ -7,7 +7,7 @@ export class GeometryLayoutCache {
 
   getId(geometry) {
     let key = this.getKey(geometry);
-    let id = this.#keyMap[key];
+    let id = this.#keyMap.get(key);
     if (id === undefined) {
       id = this.#nextId++;
       const resource = this.createLayout(geometry, id);

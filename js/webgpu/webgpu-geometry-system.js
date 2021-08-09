@@ -38,7 +38,8 @@ export class WebGPUGeometrySystem extends System {
       if (geometry.indices) {
         gpuGeometry.indexBuffer = {
           buffer: geometry.indices.gpuBuffer,
-          format: geometry.indexFormat
+          format: geometry.indexFormat,
+          offset: geometry.indexOffset,
         };
       }
 

@@ -131,6 +131,7 @@ export class Attribute extends InterleavedAttributes {
 export class Geometry {
   indices = null;
   indexFormat = 'uint32';
+  indexOffset = 0;
   buffers = [];
   drawCount = 0;
   topology = 'triangle-list';
