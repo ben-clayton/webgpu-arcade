@@ -1,7 +1,8 @@
 import { System } from 'ecs';
 
 import { Gltf2Loader } from '../gltf2-loader.js';
-import { Transform } from '../core/transform.js';
+import { Transform } from './transform.js';
+import { EntityGroup } from './entity-group.js';
 import { Geometry, InterleavedAttributes } from './geometry.js';
 import { UnlitMaterial, PBRMaterial } from './materials.js';
 
@@ -188,7 +189,7 @@ export class GltfSystem extends System {
     this.loader = new Gltf2Loader(new GltfClient(gpu));
   }
 
-  processNode(gpu, node) {
+  processNode(gpu, node, group) {
     const transform = new Transform(node.translation, node.rotation, node.scale);
     if (node.matrix) {
       transform.matrix = node.matrix;
@@ -199,10 +200,11 @@ export class GltfSystem extends System {
         primitiveEntity.add(transform);
         primitiveEntity.enabled = true;
       }
+      group.entities.push(...node.mesh.primitives);
     }
 
     for (const child of node.children) {
-      transform.addChild(this.processNode(gpu, child));
+      transform.addChild(this.processNode(gpu, child, group));
     }
 
     return transform;
@@ -219,14 +221,15 @@ export class GltfSystem extends System {
       }
 
       const gpuGltf = new GltfRenderScene();
+      const group = new EntityGroup();
       this.loader.loadFromUrl(gltf.src).then(scene => {
         gpuGltf.scene = scene;
 
         for (const node of scene.nodes) {
-          transform.addChild(this.processNode(gpu, node));
+          transform.addChild(this.processNode(gpu, node, group));
         }
       });
-      entity.add(gpuGltf);
+      entity.add(gpuGltf, group);
     });
   }
 }

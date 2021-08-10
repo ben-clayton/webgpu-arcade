@@ -130,10 +130,10 @@ function PBRSurfaceInfo(layout) { return wgsl`
 #endif
 
     let baseColorMap = textureSample(baseColorTexture, baseColorSampler, input.texcoord);
-    if (baseColorMap.a < material.alphaCutoff) {
+    surface.baseColor = input.color * material.baseColorFactor * baseColorMap;
+    if (surface.baseColor.a < material.alphaCutoff) {
       discard;
     }
-    surface.baseColor = input.color * material.baseColorFactor * baseColorMap;
 
     surface.albedo = surface.baseColor.rgb;
 

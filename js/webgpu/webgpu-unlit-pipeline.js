@@ -12,7 +12,7 @@ export class WebGPUUnlitPipelineSystem extends WebGPUPipelineSystem {
     super.init(gpu, UnlitMaterial);
 
     this.bindGroupLayout = gpu.device.createBindGroupLayout({
-      label: 'PBR Material BindGroupLayout',
+      label: 'Unlit Material BindGroupLayout',
       entries: [{
         binding: 0, // Uniform Buffer
         visibility: GPUShaderStage.FRAGMENT,

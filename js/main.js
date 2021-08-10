@@ -77,15 +77,19 @@ world.create(
 );
 
 // Load a scene
-world.create(
+const dungeon = world.create(
   new GltfScene('./media/models/dungeon/dungeon.glb')
 );
 
 const dragonTransform = new Transform();
-world.create(
+const dragon = world.create(
   dragonTransform,
   new GltfScene('./media/models/dragon/dragon.glb')
 );
+
+canvas.addEventListener('click', () => {
+  dungeon.enabled = !dungeon.enabled;
+});
 
 world.create(
   new GltfScene('./media/models/unlit/UnlitTest.glb')

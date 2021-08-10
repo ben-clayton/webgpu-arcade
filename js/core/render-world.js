@@ -1,6 +1,7 @@
 import { World } from 'ecs';
 
 import { InputSystem } from './input.js';
+import { EntityGroupSystem } from './entity-group.js';
 import { GltfSystem } from './gltf.js';
 
 export class RenderWorld extends World {
@@ -15,6 +16,7 @@ export class RenderWorld extends World {
     this.#rendererInitialized = this.intializeRenderer();
 
     this.registerSystem(InputSystem);
+    this.registerSystem(EntityGroupSystem);
     this.registerRenderSystem(GltfSystem);
   }
 

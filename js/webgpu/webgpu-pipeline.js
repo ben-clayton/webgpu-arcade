@@ -1,6 +1,5 @@
 import { System } from 'ecs';
 import { WebGPURenderGeometry } from './webgpu-geometry.js';
-import { DefaultVertexSource, DefaultFragmentSource } from './wgsl/default-material.js';
 
 export const RenderOrder = {
   First: 0,
@@ -138,44 +137,3 @@ export class WebGPUPipelineSystem extends System {
     });
   }
 }
-
-export class WebGPUDefaultPipelineSystem extends WebGPUPipelineSystem {
-  createPipeline(gpu, entity, gpuGeometry) {
-    const layout = gpuGeometry.layout;
-
-    return gpu.device.createRenderPipeline({
-      label: `Default Pipeline (LayoutID: ${gpuGeometry.layoutId})`,
-      layout: gpu.device.createPipelineLayout({
-        bindGroupLayouts: [
-          gpu.bindGroupLayouts.frame,
-          gpu.bindGroupLayouts.model
-        ]
-      }),
-      vertex: {
-        module: gpu.device.createShaderModule({ code: DefaultVertexSource(layout) }),
-        entryPoint: 'vertexMain',
-        buffers: layout.buffers,
-      },
-      fragment: {
-        module: gpu.device.createShaderModule({ code: DefaultFragmentSource(layout) }),
-        entryPoint: 'fragmentMain',
-        targets: [{
-          format: gpu.format,
-        }],
-      },
-
-      primitive: {
-        topology: layout.primitive.topology,
-        stripIndexFormat: layout.primitive.stripIndexFormat,
-        cullMode: 'back',
-      },
-      depthStencil: {
-        format: gpu.depthFormat,
-        depthWriteEnabled: true,
-        depthCompare: 'less',
-      },
-      multisample: { count: gpu.sampleCount, },
-    });
-  }
-}
-

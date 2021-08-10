@@ -74,6 +74,9 @@ export class WebGPUCamera {
       }, {
         binding: 2,
         resource: { buffer: this.clusterLightsBuffer, },
+      }, {
+        binding: 3,
+        resource: gpu.defaultSampler
       }],
     });
   }

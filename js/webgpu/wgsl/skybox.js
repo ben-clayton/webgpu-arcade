@@ -32,16 +32,16 @@ export const SkyboxVertexSource = `
 
 export const SkyboxFragmentSource = `
   ${ColorConversions}
+  [[group(0), binding(3)]] var defaultSampler : sampler;
 
   struct FragmentInput {
     [[location(0)]] texCoord : vec3<f32>;
   };
   [[group(2), binding(0)]] var skyboxTexture : texture_cube<f32>;
-  [[group(2), binding(1)]] var skyboxSampler : sampler;
 
   [[stage(fragment)]]
   fn fragmentMain(input : FragmentInput) -> [[location(0)]] vec4<f32> {
-    let color = textureSample(skyboxTexture, skyboxSampler, input.texCoord);
+    let color = textureSample(skyboxTexture, defaultSampler, input.texCoord);
     return vec4<f32>(linearTosRGB(color.rgb), 1.0);
   }
 `;

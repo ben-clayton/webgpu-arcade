@@ -16,6 +16,10 @@ export class WebGPUBindGroupLayouts {
         binding: 2, // Cluster Lights storage
         visibility: GPUShaderStage.FRAGMENT | GPUShaderStage.COMPUTE,
         buffer: { type: 'read-only-storage' }
+      }, {
+        binding: 3, // Default Sampler
+        visibility: GPUShaderStage.FRAGMENT,
+        sampler: {}
       }]
     });
 

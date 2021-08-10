@@ -58,11 +58,6 @@ export class WebGPUSkyboxSystem extends System {
         binding: 0, // skyboxTexture
         visibility: GPUShaderStage.FRAGMENT,
         texture: { viewDimension: 'cube' }
-      },
-      {
-        binding: 1, // skyboxSampler
-        visibility: GPUShaderStage.FRAGMENT,
-        sampler: {}
       }]
     });
 
@@ -158,10 +153,6 @@ export class WebGPUSkyboxSystem extends System {
           entries: [{
             binding: 0,
             resource: skyboxTexture.texture.createView({ dimension: 'cube' }),
-          },
-          {
-            binding: 1,
-            resource: gpu.defaultSampler,
           }]
         })
       ));
