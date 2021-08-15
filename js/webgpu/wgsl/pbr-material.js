@@ -73,7 +73,12 @@ export function PBRVertexSource(layout) { return wgsl`
   [[stage(vertex)]]
   fn vertexMain(input : VertexInputs) -> VertexOutput {
     var output : VertexOutput;
+
+#if ${layout.locationsUsed.includes(AttributeLocation.normal)}
     output.normal = normalize((model.matrix * vec4<f32>(input.normal, 0.0)).xyz);
+#else
+    output.normal = normalize((model.matrix * vec4<f32>(0.0, 0.0, 1.0, 0.0)).xyz);
+#endif
 
 #if ${layout.locationsUsed.includes(AttributeLocation.tangent)}
     output.tangent = normalize((model.matrix * vec4<f32>(input.tangent.xyz, 0.0)).xyz);

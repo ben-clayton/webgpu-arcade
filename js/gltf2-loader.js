@@ -44,6 +44,18 @@ function getComponentTypeSize(componentType) {
   }
 }
 
+function getComponentTypeArrayConstructor(componentType) {
+  switch (componentType) {
+    case GL.BYTE: return Int8Array;
+    case GL.UNSIGNED_BYTE: return Uint8Array;
+    case GL.SHORT: return Int16Array;
+    case GL.UNSIGNED_SHORT: return Uint16Array;
+    case GL.UNSIGNED_INT: return Uint32Array;
+    case GL.FLOAT: return Float32Array;
+    default: throw new Error(`Unexpected componentType: ${componentType}`);
+  }
+}
+
 function getAccessorGPUFormat(accessor) {
   const norm = accessor.normalized ? 'norm' : 'int';
   const count = getComponentCount(accessor.type);
@@ -71,7 +83,7 @@ const DEFAULT_METALLIC_ROUGHNESS = {
 
 const DEFAULT_MATERIAL = {
   pbrMetallicRoughness: DEFAULT_METALLIC_ROUGHNESS,
-  emissiveFactor:	[0,0,0],
+  emissiveFactor: [0,0,0],
   alphaMode: "OPAQUE",
   alphaCutoff: 0.5,
   doubleSided: false,
@@ -280,6 +292,59 @@ export class Gltf2Loader {
       }
       return clientBufferView;
     }
+    let nextBufferViewIndex = json.bufferViews.length;
+    // Creates a buffer view compatible with the given accessor, in case it doesn't specify a valid
+    // bufferView index. Also handles population of sparse values.
+    function createBufferView(accessor) {
+      const index = nextBufferViewIndex++;
+      const elementCount = getComponentCount(accessor.type);
+      const byteStride = getComponentTypeSize(accessor.componentType) * elementCount;
+      const byteLength = byteStride * accessor.count;
+      const buffer = new ArrayBuffer(byteLength);
+
+      const bufferView = {
+        byteOffset: 0,
+        byteStride,
+        byteLength,
+        buffer
+      };
+
+      // If the accessor contains sparse data populate it into the buffer now.
+      // TODO: Turns out this needs to apply to non-default accessors as well.
+      if (accessor.sparse) {
+        clientBufferViews[index] = Promise.all([
+          resolveBuffer(accessor.indices.bufferView),
+          resolveBuffer(accessor.values.bufferView)
+        ]).then((bufferViews) => {
+          const indexBufferView = bufferViews[0];
+          const valueBufferView = bufferViews[1];
+
+          const indexByteOffset = indexBufferView.byteOffset + (accessor.indices.byteOffset || 0);
+          const indexArrayType = getComponentTypeArrayConstructor(accessor.indices.componentType);
+          const indices = new indexArrayType(indexBufferView.buffer, indexByteOffset);
+
+          const valueByteOffset = valueBufferView.byteOffset + (accessor.values.byteOffset || 0);
+          const valueArrayType = getComponentTypeArrayConstructor(accessor.componentType);
+          const srcValues = new valueArrayType(indexBufferView.buffer, valueByteOffset);
+          const dstValues = new valueArrayType(buffer);
+
+          // Copy the sparse values into the newly created buffer
+          for (let i = 0; i < accessor.count; ++i) {
+            const dstIndex = indices[i] * elementCount;
+            const srcIndex = i * elementCount;
+            for (let j = 0; j < elementCount; ++j) {
+              dstValues[dstIndex + j] = srcValues[srcIndex + j];
+            }
+          }
+
+          return bufferView;
+        });
+      } else {
+        clientBufferViews[index] = Promise.resolve(bufferView);
+      }
+
+      return { bufferViewIndex: index, clientBufferView: clientBufferViews[index] };
+    }
 
     // Accessors
     const clientAccessors = [];
@@ -288,8 +353,21 @@ export class Gltf2Loader {
       let clientAccessor = clientAccessors[index];
       if (!clientAccessor) {
         const accessor = Object.assign({}, DEFAULT_ACCESSOR, json.accessors[index]);
-        accessor.bufferViewIndex = accessor.bufferView;
-        clientAccessor = resolveBufferView(accessor.bufferViewIndex).then(async (bufferView) => {
+
+        // Resolve the bufferView if specified, otherwise create one that suits the accessor.
+        let bufferViewPromise;
+        let sparseRequiresCopy = false;
+        if (accessor.bufferView == undefined) {
+          const { bufferViewIndex, clientBufferView } = createBufferView(accessor);
+          accessor.bufferViewIndex = bufferViewIndex;
+          bufferViewPromise = clientBufferView;
+        } else {
+          bufferViewPromise = resolveBufferView(accessor.bufferView);
+          sparseRequiresCopy = true;
+          accessor.bufferViewIndex = accessor.bufferView;
+        }
+
+        clientAccessor = bufferViewPromise.then(async (bufferView) => {
           accessor.bufferView = bufferView;
           accessor.gpuFormat = getAccessorGPUFormat(accessor);
           if (!bufferView.byteStride) {
@@ -389,7 +467,7 @@ export class Gltf2Loader {
         if (!defaultMaterial) {
           defaultMaterial = client.createMaterial(DEFAULT_MATERIAL);
         }
-        return defaultMaterial;
+        return Promise.resolve(defaultMaterial);
       }
 
       let clientMaterial = clientMaterials[index];
@@ -436,40 +514,6 @@ export class Gltf2Loader {
         clientMaterials[index] = clientMaterial;
       }
       return clientMaterial;
-    }
-
-    const clientVertexBuffers = [];
-    async function resolveVertexBuffer(index) {
-      const accessor = await resolveAccessor(index);
-      if (!accessor.vertexBuffer) {
-
-      }
-      let clientVertexBuffer = clientVertexBuffers[accessor.bufferView];
-      if (!clientVertexBuffer) {
-        clientVertexBuffer = resolveBufferView(accessor.bufferView).then(async (bufferView) => {
-          accessor.vertexBuffer = await client.createVertexBuffer(bufferView, index);
-          return accessor.vertexBuffer;
-        });
-        clientVertexBuffers[accessor.bufferView] = clientVertexBuffer;
-      }
-      return clientVertexBuffer;
-    }
-
-    const clientIndexBuffers = [];
-    async function resolveIndexBuffer(index) {
-      const accessor = await resolveAccessor(index);
-      if (accessor.indexBuffer) {
-        return accessor.indexBuffer;
-      }
-      let clientIndexBuffer = clientIndexBuffers[accessor.bufferView];
-      if (!clientIndexBuffer) {
-        clientIndexBuffer = resolveBufferView(accessor.bufferView).then(async (bufferView) => {
-          accessor.indexBuffer = await client.createIndexBuffer(bufferView, index);
-          return accessor.indexBuffer;
-        });
-        clientIndexBuffers[accessor.bufferView] = clientIndexBuffer;
-      }
-      return clientIndexBuffer;
     }
 
     // Primitives

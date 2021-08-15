@@ -58,6 +58,7 @@ export class WebGPUClusteredLights extends System {
       return;
     }
 
+    // TODO: This should really be updated for any change in the camera
     this.#outputSize.width = gpu.size.width;
     this.#outputSize.height = gpu.size.height;
     this.#zRange[0] = camera.zRange[0];

@@ -83,11 +83,10 @@ const dungeon = world.create(
 );
 
 const dragonTransform = new Transform();
-//const dragonGltf = new GltfScene('../glTF-Sample-Models/2.0/Duck/glTF-Binary/Duck.glb');
+//const dragonGltf = new GltfScene('../glTF-Sample-Models/2.0/DamagedHelmet/glTF-Binary/DamagedHelmet.glb')
 const dragonGltf = new GltfScene('./media/models/dragon/dragon.glb');
 const dragon = world.create(
-  dragonTransform,
-  dragonGltf
+  dragonTransform, dragonGltf
 );
 
 dragonGltf.loaded.then(() => {
@@ -109,9 +108,9 @@ dragonGltf.loaded.then(() => {
   );
 });
 
-world.create(
+/*world.create(
   new GltfScene('./media/models/unlit/UnlitTest.glb')
-);
+);*/
 
 gui.add(appSettings, 'controls', {
   'Orbit': 'orbit',
