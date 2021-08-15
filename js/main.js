@@ -2,6 +2,7 @@ import { Transform } from './core/transform.js';
 import { Camera } from './core/camera.js';
 import { PointLight, AmbientLight } from './core/light.js';
 import { Skybox } from './core/skybox.js';
+import { AABB } from './core/geometry.js';
 import { GltfScene } from './core/gltf.js';
 
 import { FlyingControls, FlyingControlsSystem } from './controls/flying-controls.js';
@@ -9,7 +10,7 @@ import { OrbitControls, OrbitControlsSystem } from './controls/orbit-controls.js
 
 import { WebGPUWorld } from './webgpu/webgpu-world.js';
 
-import { quat } from 'gl-matrix';
+import { vec3, quat } from 'gl-matrix';
 
 import dat from 'dat.gui';
 import Stats from 'stats.js';
@@ -82,13 +83,30 @@ const dungeon = world.create(
 );
 
 const dragonTransform = new Transform();
+//const dragonGltf = new GltfScene('../glTF-Sample-Models/2.0/Duck/glTF-Binary/Duck.glb');
+const dragonGltf = new GltfScene('./media/models/dragon/dragon.glb');
 const dragon = world.create(
   dragonTransform,
-  new GltfScene('./media/models/dragon/dragon.glb')
+  dragonGltf
 );
 
-canvas.addEventListener('click', () => {
-  dungeon.enabled = !dungeon.enabled;
+dragonGltf.loaded.then(() => {
+  const aabb = dragon.get(AABB);
+  console.log('Object Loaded. Min:', aabb.min, ' Max:', aabb.max);
+
+  const size = vec3.distance(aabb.max, aabb.min);
+
+  orbitControls.distance = size;
+  orbitControls.maxDistance = size * 5;
+  orbitControls.minDistance = Math.min(1, size / 2);
+  projection.zNear = size / 20;
+  projection.zFar = size * 20;
+
+  vec3.set(orbitControls.target,
+    (aabb.max[0] + aabb.min[0]) / 2,
+    (aabb.max[1] + aabb.min[1]) / 2,
+    (aabb.max[2] + aabb.min[2]) / 2,
+  );
 });
 
 world.create(

@@ -3,8 +3,9 @@ import { System } from 'ecs';
 import { Gltf2Loader } from '../gltf2-loader.js';
 import { Transform } from './transform.js';
 import { EntityGroup } from './entity-group.js';
-import { Geometry, InterleavedAttributes } from './geometry.js';
+import { Geometry, InterleavedAttributes, AABB } from './geometry.js';
 import { UnlitMaterial, PBRMaterial } from './materials.js';
+import { vec3 } from 'gl-matrix';
 
 // Used for comparing values from glTF files, which uses WebGL enums natively.
 const GL = WebGLRenderingContext;
@@ -22,14 +23,23 @@ const AttribMap = {
 
 export class GltfScene {
   src = '';
+  #loadedPromise;
+  #resolver;
 
   constructor(src) {
     this.src = src;
+    this.#loadedPromise = new Promise((resolve) => {
+      this.#resolver = resolve;
+    });
   }
-}
 
-export class GltfRenderScene {
-  scene = null;
+  setLoadedPromise(promise) {
+    this.#resolver(promise);
+  }
+
+  get loaded() {
+    return this.#loadedPromise;
+  }
 }
 
 class GltfClient {
@@ -137,6 +147,7 @@ class GltfClient {
   }
 
   createPrimitive(primitive) {
+    const aabb = new AABB();
     let drawCount = 0;
     const attribBuffers = new Map();
     for (const name in primitive.attributes) {
@@ -149,6 +160,11 @@ class GltfClient {
       }
 
       attribBuffer.addAttribute(AttribMap[name], accessor.byteOffset, accessor.gpuFormat);
+
+      if (name == "POSITION") {
+        vec3.copy(aabb.min, accessor.min);
+        vec3.copy(aabb.max, accessor.max);
+      }
     }
 
     const geometry = new Geometry(primitive.indices?.count || drawCount, ...attribBuffers.values());
@@ -177,7 +193,7 @@ class GltfClient {
       }
     }
 
-    const entity = this.gpu.create(geometry, primitive.material);
+    const entity = this.gpu.create(geometry, primitive.material, aabb);
     // Don't enable the entities till loading is complete. Prevents popping artifacts.
     entity.enabled = false;
     return entity;
@@ -213,23 +229,39 @@ export class GltfSystem extends System {
   execute(delta, time) {
     const gpu = this.world;
 
-    this.query(GltfScene).not(GltfRenderScene).forEach((entity, gltf) => {
+    this.query(GltfScene).not(EntityGroup).forEach((entity, gltf) => {
       let transform = entity.get(Transform);
       if (!transform) {
         transform = new Transform();
         entity.add(transform);
       }
 
-      const gpuGltf = new GltfRenderScene();
       const group = new EntityGroup();
-      this.loader.loadFromUrl(gltf.src).then(scene => {
-        gpuGltf.scene = scene;
-
+      entity.add(group);
+      gltf.setLoadedPromise(this.loader.loadFromUrl(gltf.src).then(scene => {
         for (const node of scene.nodes) {
           transform.addChild(this.processNode(gpu, node, group));
         }
-      });
-      entity.add(gpuGltf, group);
+
+        // Get an AABB that encompasses the entire scene.
+        const aabb = new AABB();
+        let aabbInitialized = false;
+        for (const entity of group.entities) {
+          const entityAABB = entity.get(AABB);
+          if (!entityAABB) { continue; }
+
+          // TODO: Take into account geometry transforms.
+          if (aabbInitialized) {
+            vec3.min(aabb.min, aabb.min, entityAABB.min);
+            vec3.max(aabb.max, aabb.max, entityAABB.max);
+          } else {
+            vec3.copy(aabb.min, entityAABB.min);
+            vec3.copy(aabb.max, entityAABB.max);
+            aabbInitialized = true;
+          }
+        }
+        entity.add(aabb);
+      }));
     });
   }
 }

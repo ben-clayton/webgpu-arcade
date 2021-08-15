@@ -13,6 +13,7 @@ const emptyArray = new Uint32Array(1);
 
 export class WebGPUClusteredLights extends System {
   #outputSize = {width: 0, height: 0};
+  #zRange = [0, 0];
 
   init(gpu) {
     const device = gpu.device;
@@ -51,12 +52,16 @@ export class WebGPUClusteredLights extends System {
   updateClusterBounds(gpu, camera) {
     if (!this.boundsPipeline ||
       (this.#outputSize.width == gpu.size.width &&
-      this.#outputSize.height == gpu.size.height)) {
+      this.#outputSize.height == gpu.size.height &&
+      this.#zRange[0] == camera.zRange[0] &&
+      this.#zRange[1] == camera.zRange[1])) {
       return;
     }
 
     this.#outputSize.width = gpu.size.width;
     this.#outputSize.height = gpu.size.height;
+    this.#zRange[0] = camera.zRange[0];
+    this.#zRange[1] = camera.zRange[1];
 
     const commandEncoder = gpu.device.createCommandEncoder();
 
