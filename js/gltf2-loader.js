@@ -295,42 +295,64 @@ export class Gltf2Loader {
     let nextBufferViewIndex = json.bufferViews.length;
     // Creates a buffer view compatible with the given accessor, in case it doesn't specify a valid
     // bufferView index. Also handles population of sparse values.
-    function createBufferView(accessor) {
+    function createSparseBufferView(accessor) {
       const index = nextBufferViewIndex++;
       const elementCount = getComponentCount(accessor.type);
       const byteStride = getComponentTypeSize(accessor.componentType) * elementCount;
-      const byteLength = byteStride * accessor.count;
-      const buffer = new ArrayBuffer(byteLength);
 
-      const bufferView = {
-        byteOffset: 0,
-        byteStride,
-        byteLength,
-        buffer
-      };
+      let bufferView;
+      if (accessor.bufferView === undefined) {
+        const byteLength = byteStride * accessor.count;
+        const buffer = new ArrayBuffer(byteLength);
+
+        bufferView = Promise.resolve({
+          byteOffset: 0,
+          byteStride,
+          byteLength,
+          buffer
+        });
+      } else {
+        bufferView = resolveBufferView(accessor.bufferView).then((srcBufferView) => {
+          // Make a copy of the bufferView data, since we'll be overwriting some of it.
+          const copyBuffer = new Uint8Array(srcBufferView.byteLength);
+          copyBuffer.set(new Uint8Array(srcBufferView.buffer, srcBufferView.byteOffset, srcBufferView.byteLength));
+
+          return {
+            byteOffset: 0,
+            byteStride: srcBufferView.byteStride || byteStride,
+            byteLength: srcBufferView.byteLength,
+            buffer: copyBuffer.buffer
+          };
+        });
+      }
 
       // If the accessor contains sparse data populate it into the buffer now.
       // TODO: Turns out this needs to apply to non-default accessors as well.
-      if (accessor.sparse) {
+      const sparse = accessor.sparse;
+      if (sparse) {
         clientBufferViews[index] = Promise.all([
-          resolveBuffer(accessor.indices.bufferView),
-          resolveBuffer(accessor.values.bufferView)
+          bufferView,
+          resolveBufferView(sparse.indices.bufferView),
+          resolveBufferView(sparse.values.bufferView)
         ]).then((bufferViews) => {
-          const indexBufferView = bufferViews[0];
-          const valueBufferView = bufferViews[1];
+          const dstBufferView = bufferViews[0];
+          const indexBufferView = bufferViews[1];
+          const valueBufferView = bufferViews[2];
 
-          const indexByteOffset = indexBufferView.byteOffset + (accessor.indices.byteOffset || 0);
-          const indexArrayType = getComponentTypeArrayConstructor(accessor.indices.componentType);
+          const indexByteOffset = indexBufferView.byteOffset + (sparse.indices.byteOffset || 0);
+          const indexArrayType = getComponentTypeArrayConstructor(sparse.indices.componentType);
           const indices = new indexArrayType(indexBufferView.buffer, indexByteOffset);
 
-          const valueByteOffset = valueBufferView.byteOffset + (accessor.values.byteOffset || 0);
+          const valueByteOffset = valueBufferView.byteOffset + (sparse.values.byteOffset || 0);
           const valueArrayType = getComponentTypeArrayConstructor(accessor.componentType);
           const srcValues = new valueArrayType(indexBufferView.buffer, valueByteOffset);
-          const dstValues = new valueArrayType(buffer);
+          const dstValues = new valueArrayType(dstBufferView.buffer);
+
+          const elementStride = dstBufferView.byteStride / valueArrayType.BYTES_PER_ELEMENT;
 
           // Copy the sparse values into the newly created buffer
-          for (let i = 0; i < accessor.count; ++i) {
-            const dstIndex = indices[i] * elementCount;
+          for (let i = 0; i < sparse.count; ++i) {
+            const dstIndex = indices[i] * elementStride;
             const srcIndex = i * elementCount;
             for (let j = 0; j < elementCount; ++j) {
               dstValues[dstIndex + j] = srcValues[srcIndex + j];
@@ -356,14 +378,12 @@ export class Gltf2Loader {
 
         // Resolve the bufferView if specified, otherwise create one that suits the accessor.
         let bufferViewPromise;
-        let sparseRequiresCopy = false;
-        if (accessor.bufferView == undefined) {
-          const { bufferViewIndex, clientBufferView } = createBufferView(accessor);
+        if (accessor.bufferView == undefined || accessor.sparse) {
+          const { bufferViewIndex, clientBufferView } = createSparseBufferView(accessor);
           accessor.bufferViewIndex = bufferViewIndex;
           bufferViewPromise = clientBufferView;
         } else {
           bufferViewPromise = resolveBufferView(accessor.bufferView);
-          sparseRequiresCopy = true;
           accessor.bufferViewIndex = accessor.bufferView;
         }
 

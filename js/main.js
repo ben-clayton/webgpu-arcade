@@ -84,6 +84,7 @@ const dungeon = world.create(
 
 const dragonTransform = new Transform();
 //const dragonGltf = new GltfScene('../glTF-Sample-Models/2.0/DamagedHelmet/glTF-Binary/DamagedHelmet.glb')
+//const dragonGltf = new GltfScene('../glTF-Sample-Models/2.0/SimpleSparseAccessor/glTF/SimpleSparseAccessor.gltf')
 const dragonGltf = new GltfScene('./media/models/dragon/dragon.glb');
 const dragon = world.create(
   dragonTransform, dragonGltf
@@ -95,7 +96,7 @@ dragonGltf.loaded.then(() => {
 
   const size = vec3.distance(aabb.max, aabb.min);
 
-  orbitControls.distance = size;
+  orbitControls.distance = size * 0.6;
   orbitControls.maxDistance = size * 5;
   orbitControls.minDistance = Math.min(1, size / 2);
   projection.zNear = size / 20;
@@ -135,7 +136,7 @@ gui.add(appSettings, 'controls', {
 function onFrame() {
   requestAnimationFrame(onFrame);
 
-  quat.rotateY(dragonTransform.orientation, dragonTransform.orientation, 0.01);
+  //quat.rotateY(dragonTransform.orientation, dragonTransform.orientation, 0.01);
 
   stats.begin();
   world.execute();
