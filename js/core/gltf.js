@@ -198,6 +198,25 @@ class GltfClient {
     entity.enabled = false;
     return entity;
   }
+
+  createNode(node) {
+    node.transform = new Transform(node.translation, node.rotation, node.scale);
+    if (node.matrix) {
+      node.transform.matrix = node.matrix;
+    }
+
+    if (node.mesh) {
+      for (const primitiveEntity of node.mesh.primitives) {
+        primitiveEntity.add(node.transform);
+      }
+    }
+
+    for (const child of node.children) {
+      node.transform.addChild(child.transform);
+    }
+
+    return node;
+  }
 }
 
 export class GltfSystem extends System {
@@ -205,25 +224,17 @@ export class GltfSystem extends System {
     this.loader = new Gltf2Loader(new GltfClient(gpu));
   }
 
-  processNode(gpu, node, group) {
-    const transform = new Transform(node.translation, node.rotation, node.scale);
-    if (node.matrix) {
-      transform.matrix = node.matrix;
-    }
-
+  addNodeToGroup(node, group) {
     if (node.mesh) {
       for (const primitiveEntity of node.mesh.primitives) {
-        primitiveEntity.add(transform);
+        group.entities.push(primitiveEntity);
         primitiveEntity.enabled = true;
       }
-      group.entities.push(...node.mesh.primitives);
     }
 
     for (const child of node.children) {
-      transform.addChild(this.processNode(gpu, child, group));
+      this.addNodeToGroup(child, group);
     }
-
-    return transform;
   }
 
   execute(delta, time) {
@@ -240,7 +251,8 @@ export class GltfSystem extends System {
       entity.add(group);
       gltf.setLoadedPromise(this.loader.loadFromUrl(gltf.src).then(scene => {
         for (const node of scene.nodes) {
-          transform.addChild(this.processNode(gpu, node, group));
+          transform.addChild(node.transform);
+          this.addNodeToGroup(node, group);
         }
 
         // Get an AABB that encompasses the entire scene.

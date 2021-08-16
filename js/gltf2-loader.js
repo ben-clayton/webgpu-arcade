@@ -1,5 +1,3 @@
-import { vec3, vec4, mat4 } from 'gl-matrix';
-
 // Used for comparing values from glTF files, which uses WebGL enums natively.
 const GL = WebGLRenderingContext;
 
@@ -9,9 +7,9 @@ const CHUNK_TYPE = {
   BIN: 0x004E4942,
 };
 
-const DEFAULT_TRANSLATION = vec3.fromValues(0, 0, 0);
-const DEFAULT_ROTATION = vec4.fromValues(0, 0, 0, 1);
-const DEFAULT_SCALE = vec3.fromValues(1, 1, 1);
+const DEFAULT_TRANSLATION = new Float32Array([0, 0, 0]);
+const DEFAULT_ROTATION = new Float32Array([0, 0, 0, 1]);
+const DEFAULT_SCALE = new Float32Array([1, 1, 1]);
 
 const absUriRegEx = new RegExp(`^${window.location.protocol}`, 'i');
 const dataUriRegEx = /^data:/;
@@ -105,85 +103,6 @@ const CLIENT_PROXY_HANDLER = {
     return key in target ? target[key] : IDENTITY_FUNC;
   }
 };
-
-/**
- * Gltf2Node
- * Represents a node in a glTF2 scene, and resolves the nodes world matrix.
- */
-
-class Gltf2Node {
-  index;
-  name;
-  children;
-  parent;
-  mesh;
-  camera;
-  light;
-
-  #dirtyWorldMatrix = true;
-  #worldMatrix;
-
-  #dirtyLocalMatrix = true;
-  #localMatrix;
-
-  constructor(index, jsonNode, children) {
-    Object.assign(this, jsonNode, { index, children });
-    for (const child of children) {
-      child.parent = this;
-    }
-  }
-
-  get worldMatrix() {
-    if (this.#dirtyWorldMatrix) {
-      if (!this.parent) {
-        if (!this.localMatrix) {
-          this.#localMatrix = mat4.create();
-        }
-        return this.localMatrix;
-      }
-      if (!this.localMatrix) {
-        return this.parent.worldMatrix;
-      }
-      this.#dirtyWorldMatrix = false;
-      if (!this.#worldMatrix) {
-        this.#worldMatrix = mat4.create();
-      }
-      mat4.mul(this.#worldMatrix, this.parent.worldMatrix, this.localMatrix);
-    }
-    return this.#worldMatrix;
-  }
-
-  get localMatrix() {
-    if (this.matrix) {
-      this.#dirtyLocalMatrix = false;
-      return this.matrix;
-    }
-
-    if (this.#dirtyLocalMatrix && (this.translation || this.rotation || this.scale)) {
-      if (!this.#localMatrix) {
-        this.#localMatrix = mat4.create();
-      }
-      mat4.fromRotationTranslationScale(
-        this.#localMatrix,
-        this.rotation || DEFAULT_ROTATION,
-        this.translation || DEFAULT_TRANSLATION,
-        this.scale || DEFAULT_SCALE);
-    }
-    this.#dirtyLocalMatrix = false;
-
-    return this.#localMatrix;
-  }
-
-  dirtyMatrix() {
-    this.#dirtyLocalMatrix = true;
-    if (!this.#dirtyWorldMatrix) {
-      this.#dirtyWorldMatrix = true;
-      for (const child of this.children) {
-        child.dirtyMatrix();
-      }
-    }
-  }
-}
 
 /**
  * Gltf2Loader
@@ -656,6 +575,8 @@ export class Gltf2Loader {
       let clientNode = clientNodes[index];
       if (!clientNode) {
         let node = json.nodes[index];
+        node.index = index;
+
         const nodePromises = [];
 
         if ('mesh' in node) {
@@ -685,7 +606,8 @@ export class Gltf2Loader {
         }
 
         clientNode = Promise.all(nodePromises).then(async () => {
-          return new Gltf2Node(index, node, await Promise.all(clientChildren));
+          node.children = await Promise.all(clientChildren);
+          return client.createNode(node);
         });
 
         clientNodes[index] = clientNode;
