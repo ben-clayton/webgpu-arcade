@@ -1,102 +1,15 @@
+import { System } from 'ecs';
+import { mat4 } from 'gl-matrix';
+
+import { Geometry } from '../core/geometry.js';
+import { Transform } from '../core/transform.js';
+
 import { MODEL_BUFFER_SIZE } from './wgsl/common.js';
 
-export class GeometryLayoutCache {
-  #nextId = 1;
-  #keyMap = new Map(); // Map of the given key to an ID
-  #cache = new Map();  // Map of ID to cached resource
-
-  getId(geometry) {
-    let key = this.getKey(geometry);
-    let id = this.#keyMap.get(key);
-    if (id === undefined) {
-      id = this.#nextId++;
-      const resource = this.createLayout(geometry, id);
-      this.#keyMap.set(key, id);
-      this.#cache.set(id, resource);
-    }
-    return id;
-  }
-
-  getLayout(id) {
-    return this.#cache.get(id);
-  }
-
-  getKey(geometry) {
-    let key = `${geometry.buffers.length}[`;
-    for (const buffer of geometry.buffers) {
-      if (!buffer.attributes.length) { continue; }
-      const attributes = [];
-      for (const attrib of buffer.attributes) {
-        const offset = attrib.offset - buffer.minOffset
-        attributes.push(`${attrib.shaderLocation},${attrib.format},${offset}`);
-      }
-
-      // TODO: Necessary? Will help more layout keys match but probably won't make much different in
-      // real-world use.
-      attributes.sort();
-
-      key += `${buffer.arrayStride},[${attributes.join(',')}]`;
-    }
-
-    key += `]${geometry.topology}`
-
-    switch(geometry.topology) {
-      case 'triangle-strip':
-      case 'line-strip':
-        key += `-${geometry.indexFormat}`;
-    }
-
-    return key;
-  }
-
-  createLayout(geometry, id) {
-    const buffers = [];
-    const locationsUsed = [];
-    for (const buffer of geometry.buffers) {
-      if (!buffer.attributes.length) { continue; }
-      const attributes = [];
-      for (const attrib of buffer.attributes) {
-        // Exact offset will be handled when setting the buffer.
-        const offset = attrib.offset - buffer.minOffset
-        attributes.push({
-          shaderLocation: attrib.shaderLocation,
-          format: attrib.format,
-          offset,
-        });
-        locationsUsed.push(attrib.shaderLocation);
-      }
-
-      buffers.push({
-        arrayStride: buffer.arrayStride,
-        attributes
-      });
-    }
-
-    const primitive = { topology: geometry.topology };
-    switch(geometry.topology) {
-      case 'triangle-strip':
-      case 'line-strip':
-        primitive.stripIndexFormat = geometry.indexFormat;
-    }
-
-    const layout = {
-      id,
-      buffers,
-      primitive,
-      locationsUsed,
-    };
-
-    return layout;
-  }
-}
+const IDENTITY_MATRIX = mat4.create();
 
 export class WebGPURenderGeometry {
-  layoutId = 0;
-  layout = null;
-  drawCount = 0;
   instanceCount = 1;
-  indexBuffer = null;
-  vertexBuffers = [];
 
   constructor(gpu) {
     this.modelBuffer = gpu.device.createBuffer({
@@ -110,6 +23,27 @@ export class WebGPURenderGeometry {
         binding: 0,
         resource: { buffer: this.modelBuffer },
       }]
+    });
+  }
+}
+
+export class WebGPUGeometrySystem extends System {
+  execute(delta, time) {
+    const gpu = this.world;
+
+    // For any entities with StaticGeometry but no WebGPURenderGeometry, create the WebGPU buffers
+    // for the geometry, fill it from the StaticGeometry attributes, then clear the StaticGeometry's
+    // attributes so the memory can be GCed if needed.
+    this.query(Geometry).not(WebGPURenderGeometry).forEach((entity, geometry) => {
+      const gpuGeometry = new WebGPURenderGeometry(gpu);
+      entity.add(gpuGeometry);
+    });
+
+    // Update the geometry's bind group.
+    this.query(WebGPURenderGeometry).forEach((entity, geometry) => {
+      const transform = entity.get(Transform);
+      let modelMatrix = transform ? transform.worldMatrix : IDENTITY_MATRIX;
+      gpu.device.queue.writeBuffer(geometry.modelBuffer, 0, modelMatrix);
     });
   }
 }

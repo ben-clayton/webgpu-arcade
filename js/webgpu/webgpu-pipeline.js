@@ -1,5 +1,5 @@
 import { System } from 'ecs';
-import { WebGPURenderGeometry } from './webgpu-geometry.js';
+import { Geometry } from '../core/geometry.js';
 
 export const RenderOrder = {
   First: 0,
@@ -27,7 +27,7 @@ export class WebGPUPipelineSystem extends System {
   renderOrder = RenderOrder.Default;
 
   async init(gpu, materialComponent) {
-    let queryArgs = [WebGPURenderGeometry];
+    let queryArgs = [Geometry];
     if (materialComponent) {
       queryArgs.push(materialComponent);
     }
@@ -107,16 +107,15 @@ export class WebGPUPipelineSystem extends System {
   execute(delta, time) {
     const gpu = this.world;
 
-    this.needsMaterialQuery.forEach((entity, gpuGeometry, material) => {
+    this.needsMaterialQuery.forEach((entity, geometry, material) => {
       const gpuPipeline = new WebGPURenderPipeline();
       gpuPipeline.renderOrder = material?.transparent ? RenderOrder.Transparent : this.renderOrder;
 
-      const pipelineKey = this.pipelineKey(entity, gpuGeometry, material);
+      const pipelineKey = this.pipelineKey(entity, geometry, material);
 
       let cachedPipeline = this.#pipelineCache.get(pipelineKey);
-      //cachedPipeline = undefined; // TODO: NOT THIS.
       if (!cachedPipeline) {
-        const pipeline = this.createPipeline(gpu, entity, gpuGeometry, material);
+        const pipeline = this.createPipeline(gpu, entity, geometry, material);
         if (!pipeline) { return; }
 
         cachedPipeline = {

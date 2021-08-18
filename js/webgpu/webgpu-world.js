@@ -12,7 +12,7 @@ import {
   WebGPUSubmitRenderPasses
 } from './webgpu-render-pass.js';
 import { WebGPULightSpriteSystem } from './webgpu-light-sprite.js';
-import { WebGPUGeometrySystem } from './webgpu-geometry-system.js';
+import { WebGPUGeometrySystem } from './webgpu-geometry.js';
 import { WebGPUPBRPipelineSystem } from './webgpu-pbr-pipeline.js';
 import { WebGPUUnlitPipelineSystem } from './webgpu-unlit-pipeline.js';
 import { WebGPUSkyboxSystem } from './webgpu-skybox.js';

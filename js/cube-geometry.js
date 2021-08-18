@@ -49,9 +49,12 @@ const VERTEX_COUNT = 36;
 
 export function createCubeGeometry(world) {
   const vertBuffer = world.createStaticBuffer(CUBE_VERTS);
-  const attribs = new InterleavedAttributes(vertBuffer, VERTEX_STRIDE);
-  attribs.addAttribute('position', 0);
-  attribs.addAttribute('color', 12);
-  attribs.addAttribute('texCoord', 28);
-  return new Geometry(VERTEX_COUNT, attribs);
+  const attributes = new InterleavedAttributes(vertBuffer, VERTEX_STRIDE);
+  attributes.addAttribute('position', 0);
+  attributes.addAttribute('color', 12);
+  attributes.addAttribute('texCoord', 28);
+  return new Geometry({
+    attributes,
+    drawCount: VERTEX_COUNT
+  });
 }

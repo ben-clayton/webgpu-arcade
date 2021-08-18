@@ -167,31 +167,38 @@ class GltfClient {
       }
     }
 
-    const geometry = new Geometry(primitive.indices?.count || drawCount, ...attribBuffers.values());
+    const geometryDescriptor = {
+      drawCount: primitive.indices?.count || drawCount,
+      attributes: attribBuffers.values(),
+    };
 
     switch (primitive.mode) {
       case GL.TRIANGLES:
-        geometry.topology = 'triangle-list'; break;
+        geometryDescriptor.topology = 'triangle-list'; break;
       case GL.TRIANGLE_STRIP:
-        geometry.topology = 'triangle-strip'; break;
+        geometryDescriptor.topology = 'triangle-strip'; break;
       case GL.LINES:
-        geometry.topology = 'line-list'; break;
+        geometryDescriptor.topology = 'line-list'; break;
       case GL.LINE_STRIP:
-        geometry.topology = 'line-strip'; break;
+        geometryDescriptor.topology = 'line-strip'; break;
       case GL.POINTS:
-        geometry.topology = 'point-list'; break;
+        geometryDescriptor.topology = 'point-list'; break;
     }
 
     if (primitive.indices) {
-      geometry.indices = primitive.indices.clientIndexBuffer;
-      geometry.indexOffset = primitive.indices.byteOffset;
+      geometryDescriptor.indices = {
+        buffer: primitive.indices.clientIndexBuffer,
+        offset: primitive.indices.byteOffset,
+      };
       switch (primitive.indices.componentType) {
         case GL.UNSIGNED_SHORT:
-          geometry.indexFormat = 'uint16'; break;
+          geometryDescriptor.indices.format = 'uint16'; break;
         case GL.UNSIGNED_INT:
-          geometry.indexFormat = 'uint32'; break;
+          geometryDescriptor.indices.format = 'uint32'; break;
       }
     }
+
+    const geometry = new Geometry(geometryDescriptor);
 
     const entity = this.gpu.create(geometry, primitive.material, aabb);
     // Don't enable the entities till loading is complete. Prevents popping artifacts.

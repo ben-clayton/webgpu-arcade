@@ -1,4 +1,5 @@
 import { System } from 'ecs';
+import { Geometry, Attribute } from '../core/geometry.js';
 import { WebGPURenderGeometry } from './webgpu-geometry.js';
 import { WebGPURenderMaterial, WebGPURenderPipeline, RenderOrder } from './webgpu-pipeline.js';
 import { SkyboxVertexSource, SkyboxFragmentSource } from './wgsl/skybox.js';
@@ -103,47 +104,28 @@ export class WebGPUSkyboxSystem extends System {
       }
     });
 
-    const vertexBuffer = gpu.device.createBuffer({
-      size: SKYBOX_CUBE_VERTS.byteLength,
-      usage: GPUBufferUsage.VERTEX,
-      mappedAtCreation: true,
-    });
-    const vertexArray = new Float32Array(vertexBuffer.getMappedRange());
-    vertexArray.set(SKYBOX_CUBE_VERTS);
-    vertexBuffer.unmap();
-
-    const indexBuffer = gpu.device.createBuffer({
-      size: SKYBOX_CUBE_INDICES.byteLength,
-      usage: GPUBufferUsage.INDEX,
-      mappedAtCreation: true,
-    });
-    const indexArray = new Uint16Array(indexBuffer.getMappedRange());
-    indexArray.set(SKYBOX_CUBE_INDICES);
-    indexBuffer.unmap();
+    const vertexBuffer = gpu.createStaticBuffer(SKYBOX_CUBE_VERTS, 'vertex');
+    const indexBuffer = gpu.createStaticBuffer(SKYBOX_CUBE_INDICES, 'index');
 
     this.gpuPipeline = new WebGPURenderPipeline();
     this.gpuPipeline.renderOrder = RenderOrder.Skybox;
     this.gpuPipeline.pipeline = this.pipeline;
 
-    this.gpuGeometry = new WebGPURenderGeometry(gpu);
-    this.gpuGeometry.vertexBuffers = [{
-      buffer: vertexBuffer,
-      slot: 0,
-      offset: 0
-    }];
-    this.gpuGeometry.indexBuffer = {
-      buffer: indexBuffer,
-      format: 'uint16'
-    };
-    this.gpuGeometry.drawCount = 36;
+    this.geometry = new Geometry({
+      drawCount: 36,
+      attributes: [ new Attribute('position', vertexBuffer) ],
+      indices: { buffer: indexBuffer, format: 'uint16' }
+    });
 
-    this.skyboxQuery = this.query(Skybox).not(WebGPURenderGeometry);
+    this.gpuGeometry = new WebGPURenderGeometry(gpu);
+
+    this.skyboxQuery = this.query(Skybox).not(Geometry);
   }
 
   execute(delta, time) {
     const gpu = this.world;
     this.skyboxQuery.forEach(async (entity, skybox) => {
-      entity.add(this.gpuGeometry);
+      entity.add(this.geometry, this.gpuGeometry);
 
       const skyboxTexture = await skybox.texture;
 

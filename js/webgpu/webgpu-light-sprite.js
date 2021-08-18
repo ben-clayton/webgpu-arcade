@@ -1,4 +1,5 @@
 import { System } from 'ecs';
+import { Geometry } from '../core/geometry.js';
 import { WebGPURenderGeometry } from './webgpu-geometry.js';
 import { WebGPURenderPipeline, RenderOrder } from './webgpu-pipeline.js';
 import { WebGPULightBuffer } from './webgpu-light.js';
@@ -62,11 +63,14 @@ export class WebGPULightSpriteSystem extends System {
     this.gpuPipeline.renderOrder = RenderOrder.Last;
     this.gpuPipeline.pipeline = this.pipeline;
 
+    const geometry = new Geometry({
+      drawCount: 4
+    });
+
     this.gpuGeometry = new WebGPURenderGeometry(gpu);
-    this.gpuGeometry.drawCount = 4;
     this.gpuGeometry.instanceCount = 0;
 
-    this.entity = this.world.create(this.gpuPipeline, this.gpuGeometry);
+    this.entity = this.world.create(geometry, this.gpuPipeline, this.gpuGeometry);
   }
 
   execute(delta, time) {

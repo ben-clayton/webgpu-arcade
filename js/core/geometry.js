@@ -79,6 +79,65 @@ export class StaticBuffer {
   }
 }
 
+class GeometryLayoutCache {
+  #nextId = 1;
+  #keyMap = new Map(); // Map of the given key to an ID
+  #cache = new Map();  // Map of ID to cached resource
+
+  getLayout(id) {
+    return this.#cache.get(id);
+  }
+
+  createLayout(attribBuffers, topology, indexFormat = 'uint32') {
+    const buffers = [];
+    const locationsUsed = [];
+    for (const buffer of attribBuffers) {
+      const attributes = [];
+      for (const attrib of buffer.attributes) {
+        // Exact offset will be handled when setting the buffer.
+        const offset = attrib.offset - buffer.minOffset
+        attributes.push({
+          shaderLocation: attrib.shaderLocation,
+          format: attrib.format,
+          offset,
+        });
+        locationsUsed.push(attrib.shaderLocation);
+      }
+
+      buffers.push({
+        arrayStride: buffer.arrayStride,
+        attributes
+      });
+    }
+
+    const primitive = { topology };
+    switch(topology) {
+      case 'triangle-strip':
+      case 'line-strip':
+        primitive.stripIndexFormat = indexFormat;
+    }
+
+    const layout = {
+      buffers,
+      primitive,
+    };
+
+    layout.key = JSON.stringify(layout);
+    layout.id = this.#keyMap.get(layout.key);
+    layout.locationsUsed = locationsUsed;
+
+    if (layout.id === undefined) {
+      layout.id = this.#nextId++;
+      this.#keyMap.set(layout.key, layout.id);
+      this.#cache.set(layout.id, layout);
+    }
+
+    return layout;
+  }
+}
+
+const LAYOUT_CACHE = new GeometryLayoutCache();
+
 export class DynamicBuffer extends StaticBuffer {
   beginUpdate() {
     throw new Error('beginUpdate() must be overriden in an extended class');
@@ -91,6 +150,7 @@ export class InterleavedAttributes {
     this.arrayStride = stride;
     this.attributes = [];
     this.minOffset = Number.MAX_SAFE_INTEGER;
+    this.minShaderLocation = Number.MAX_SAFE_INTEGER;
   }
 
   addAttribute(attribute, offset = 0, format) {
@@ -102,6 +162,7 @@ export class InterleavedAttributes {
       }
     }
     this.minOffset = Math.min(this.minOffset, offset);
+    this.minShaderLocation = Math.min(this.minShaderLocation, shaderLocation);
     this.attributes.push({attribute, shaderLocation, offset, format});
     return this;
   }
@@ -128,16 +189,49 @@ export class Attribute extends InterleavedAttributes {
 };
 
 export class Geometry {
-  indices = null;
-  indexFormat = 'uint32';
-  indexOffset = 0;
-  buffers = [];
+  vertexBuffers = [];
+  indexBuffer = null;
   drawCount = 0;
-  topology = 'triangle-list';
+  layoutId;
 
-  constructor(drawCount = 0, ...attributes) {
-    this.drawCount = drawCount;
-    this.buffers.push(...attributes);
+  constructor(options) {
+    // Sort the buffers/attributes by shaderLocation to aid in pipeline deduplication.
+    const attribBuffers = [];
+    if (options.attributes) {
+      for (const attribBuffer of options.attributes) {
+        if (!attribBuffer.attributes.length) { continue; }
+        attribBuffers.push(attribBuffer);
+      }
+      attribBuffers.sort((a, b) => a.minShaderLocation - b.minShaderLocation);
+      let i = 0;
+      for (const buffer of attribBuffers) {
+        this.vertexBuffers.push({
+          slot: i++,
+          buffer: buffer.buffer,
+          offset: buffer.minOffset
+        });
+        buffer.attributes.sort((a, b) => a.shaderLocation - b.shaderLocation);
+      }
+    }
+
+    if (options.indices?.buffer) {
+      this.indexBuffer = {
+        buffer: options.indices.buffer,
+        offset: options.indices.offset || 0,
+        format: options.indices.format || 'uint32'
+      };
+    }
+
+    const topology = options.topology || 'triangle-list';
+    const layout = LAYOUT_CACHE.createLayout(attribBuffers, topology, this.indexBuffer?.format);
+    this.layoutId = layout.id;
+
+    this.drawCount = options.drawCount || 0;
+    // TODO: If an explicit drawCount wasn't given, guess one from the given buffers.
+  }
+
+  get layout() {
+    return LAYOUT_CACHE.getLayout(this.layoutId);
   }
 }
 

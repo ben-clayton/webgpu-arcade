@@ -1,5 +1,5 @@
 import { System } from 'ecs';
-
+import { Geometry } from '../core/geometry.js';
 import { WebGPURenderTargets } from './webgpu-render-targets.js';
 import { WebGPURenderGeometry } from './webgpu-geometry.js';
 import { WebGPURenderMaterial, WebGPURenderPipeline } from './webgpu-pipeline.js';
@@ -35,7 +35,7 @@ export class WebGPUSubmitRenderPasses extends System {
 export class WebGPURenderPass extends System {
   async init(gpu) {
     this.cameras = this.query(WebGPUCamera);
-    this.renderables = this.query(WebGPURenderGeometry, WebGPURenderPipeline);
+    this.renderables = this.query(Geometry, WebGPURenderGeometry, WebGPURenderPipeline);
 
     this.colorAttachment = {
       // view is acquired and set in onResize.
@@ -99,13 +99,13 @@ export class WebGPUDefaultRenderPass extends WebGPURenderPass {
     const pipelineGeometries = new Map();
 
     // Loop through all the renderable entities and store them by pipeline.
-    this.renderables.forEach((entity, geometry, pipeline) => {
+    this.renderables.forEach((entity, geometry, instance, pipeline) => {
       let geometryList = pipelineGeometries.get(pipeline);
       if (!geometryList) {
         geometryList = [];
         pipelineGeometries.set(pipeline, geometryList);
       }
-      geometryList.push({geometry, material: entity.get(WebGPURenderMaterial)});
+      geometryList.push({geometry, instance, material: entity.get(WebGPURenderMaterial)});
     });
 
     // Sort the pipelines by render order (e.g. so transparent objects are rendered last).
@@ -126,8 +126,8 @@ export class WebGPUDefaultRenderPass extends WebGPURenderPass {
       const geometryList = pipelineGeometries.get(pipeline);
       passEncoder.setPipeline(pipeline.pipeline);
 
-      for (const { geometry, material } of geometryList) {
-        passEncoder.setBindGroup(1, geometry.bindGroup);
+      for (const { geometry, instance, material } of geometryList) {
+        passEncoder.setBindGroup(1, instance.bindGroup);
 
         if (material) {
           let i = 2;
@@ -137,14 +137,14 @@ export class WebGPUDefaultRenderPass extends WebGPURenderPass {
         }
 
         for (const vb of geometry.vertexBuffers) {
-          passEncoder.setVertexBuffer(vb.slot, vb.buffer, vb.offset);
+          passEncoder.setVertexBuffer(vb.slot, vb.buffer.gpuBuffer, vb.offset);
         }
         const ib = geometry.indexBuffer;
         if (ib) {
-          passEncoder.setIndexBuffer(ib.buffer, ib.format, ib.offset);
-          passEncoder.drawIndexed(geometry.drawCount, geometry.instanceCount);
+          passEncoder.setIndexBuffer(ib.buffer.gpuBuffer, ib.format, ib.offset);
+          passEncoder.drawIndexed(geometry.drawCount, instance.instanceCount);
         } else {
-          passEncoder.draw(geometry.drawCount, geometry.instanceCount);
+          passEncoder.draw(geometry.drawCount, instance.instanceCount);
         }
       }
     }
