@@ -1,7 +1,7 @@
 import { System } from 'ecs';
 
 import { Gltf2Loader } from '../gltf2-loader.js';
-import { Transform } from './transform.js';
+import { Transform, TransformPool } from './transform.js';
 import { EntityGroup } from './entity-group.js';
 import { Geometry, InterleavedAttributes, AABB } from './geometry.js';
 import { UnlitMaterial, PBRMaterial } from './materials.js';
@@ -199,10 +199,29 @@ class GltfClient {
     return entity;
   }
 
+  createSkin(skin) {
+    // Make sure that the transforms for each joint use sequential storage for their world matrices.
+    skin.jointPool = new TransformPool(skin.joints.length);
+    for (let i = 0; i < skin.joints.length; ++i) {
+      const joint = skin.joints[i];
+      skin.jointPool.setTransformAtIndex(i, joint.transform);
+    }
+
+    // TODO: What else needs to happen here?
+    // InverseBindMatrix extraction at least.
+
+    return skin;
+  }
+
   createNode(node) {
-    node.transform = new Transform(node.translation, node.rotation, node.scale);
     if (node.matrix) {
-      node.transform.matrix = node.matrix;
+      node.transform = new Transform({ matrix: node.matrix });
+    } else {
+      node.transform = new Transform({
+        position: node.translation,
+        orientation: node.rotation,
+        scale: node.scale
+      });
     }
 
     if (node.mesh) {

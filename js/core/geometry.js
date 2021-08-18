@@ -98,7 +98,6 @@ export class InterleavedAttributes {
     if (format === undefined) {
       format = DefaultAttributeFormat[attribute];
       if (!format) {
-        return;
         throw new Error(`Unable to determine attribute format for ${attribute}.`);
       }
     }

@@ -2,6 +2,7 @@ class Entity {
   #worldData;
   #destroyed = false;
   enabled = true;
+  name; // Just for debugging
 
   constructor(worldData, entityId) {
     this.id = entityId;
@@ -119,6 +120,10 @@ export class World {
       system.init(...initArgs);
     }
     return this;
+  }
+
+  getSystem(systemType) {
+    return this.#worldData.systems.get(systemType);
   }
 
   clear() {

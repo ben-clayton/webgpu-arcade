@@ -44,7 +44,7 @@ orbitControls.distance = 10;
 orbitControls.angle = [0.25, 0];
 
 const camera = world.create(
-  new Transform([0, 0, 10]),
+  new Transform({ position: [0, 0, 10] }),
   orbitControls,
   projection
 );
@@ -54,22 +54,22 @@ world.create(new Skybox(renderer.textureLoader.fromUrl('./media/textures/skybox/
 
 // Add some lights
 world.create(
-  new Transform([3, 3, -2]),
+  new Transform({ position: [3, 3, -2] }),
   new PointLight(1, 0.3, 0.3, 10)
 );
 
 world.create(
-  new Transform([-3, 3, -2]),
+  new Transform({ position: [-3, 3, -2] }),
   new PointLight(0.3, 1, 0.3, 10)
 );
 
 world.create(
-  new Transform([2, 3, 6]),
+  new Transform({ position: [2, 3, 6] }),
   new PointLight(0.3, 0.3, 1, 10)
 );
 
 world.create(
-  new Transform([-2, 3, 6]),
+  new Transform({ position: [-2, 3, 6] }),
   new PointLight(1, 1, 0.3, 10)
 );
 

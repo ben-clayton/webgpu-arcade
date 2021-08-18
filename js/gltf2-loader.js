@@ -514,6 +514,12 @@ export class Gltf2Loader {
         const skin = json.skins[index];
         const skinPromises = [];
 
+        if ('skeleton' in skin) {
+          skinPromises.push(resolveNode(skin.skeleton).then(skeleton => {
+            skin.skeleton = skeleton;
+          }));
+        }
+
         const jointPromises = [];
         for (const joint of skin.joints) {
           jointPromises.push(resolveNode(joint));
@@ -521,12 +527,6 @@ export class Gltf2Loader {
         skinPromises.push(Promise.all(jointPromises).then(joints => {
           skin.joints = joints;
         }));
-
-        if ('skeleton' in skin) {
-          skinPromises.push(resolveNode(skin.skeleton).then(skeleton => {
-            skin.skeleton = skeleton;
-          }));
-        }
 
         if ('inverseBindMatrices' in skin) {
           skinPromises.push(resolveAccessor(skin.inverseBindMatrices, 'InverseBindMatrices').then(accessor => {
@@ -575,8 +575,6 @@ export class Gltf2Loader {
       let clientNode = clientNodes[index];
       if (!clientNode) {
         let node = json.nodes[index];
-        node.index = index;
-
         const nodePromises = [];
 
         if ('mesh' in node) {
@@ -588,6 +586,12 @@ export class Gltf2Loader {
         if ('camera' in node) {
           nodePromises.push(resolveCamera(node.camera).then(camera => {
             node.camera = camera;
+          }));
+        }
+
+        if ('skin' in node) {
+          nodePromises.push(resolveSkin(node.skin).then(skin => {
+            node.skin = skin;
           }));
         }
 
@@ -607,7 +611,7 @@ export class Gltf2Loader {
 
         clientNode = Promise.all(nodePromises).then(async () => {
           node.children = await Promise.all(clientChildren);
-          return client.createNode(node);
+          return client.createNode(node, index);
         });
 
         clientNodes[index] = clientNode;

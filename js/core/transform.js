@@ -4,25 +4,45 @@ const DEFAULT_ORIENTATION = quat.create();
 const DEFAULT_SCALE = vec3.fromValues(1, 1, 1);
 
 export class Transform {
-  #array = new Float32Array(42);
-  #position = new Float32Array(this.#array.buffer, 0, 3);
-  #orientation = new Float32Array(this.#array.buffer, 3 * Float32Array.BYTES_PER_ELEMENT, 4);
-  #scale = new Float32Array(this.#array.buffer, 7 * Float32Array.BYTES_PER_ELEMENT, 3);
+  #buffer;
+  #position;
+  #orientation;
+  #scale;
+  #matrix;
+  #worldMatrix;
 
   #useMatrix = false;
-  #matrix = new Float32Array(this.#array.buffer, 10 * Float32Array.BYTES_PER_ELEMENT, 16);
   #matrixDirty = true;
-  #worldMatrix = new Float32Array(this.#array.buffer, 26 * Float32Array.BYTES_PER_ELEMENT, 16);
   #worldMatrixDirty = true;
   #parent = null;
   #children;
 
-  constructor(position, orientation, scale) {
-    if (position) {
-      this.#position.set(position);
+  constructor(options = {}) {
+    // Allocate storage for all the transform elements
+    if (options.worldMatrixStorage) {
+      this.#buffer = new Float32Array(26).buffer;
+      this.#worldMatrix = options.worldMatrixStorage;
+    } else {
+      this.#buffer = new Float32Array(42).buffer;
+      this.#worldMatrix = new Float32Array(this.#buffer, 26 * Float32Array.BYTES_PER_ELEMENT, 16);
     }
-    this.#orientation.set(orientation ? orientation : DEFAULT_ORIENTATION);
-    this.#scale.set(scale ? scale : DEFAULT_SCALE);
+
+    this.#position = new Float32Array(this.#buffer, 0, 3);
+    this.#orientation = new Float32Array(this.#buffer, 3 * Float32Array.BYTES_PER_ELEMENT, 4);
+    this.#scale = new Float32Array(this.#buffer, 7 * Float32Array.BYTES_PER_ELEMENT, 3);
+    this.#matrix = new Float32Array(this.#buffer, 10 * Float32Array.BYTES_PER_ELEMENT, 16);
+
+    if (options.matrix) {
+      this.#useMatrix = true;
+      this.#matrixDirty = false;
+      this.#matrix.set(options.matrix);
+    } else {
+      if (options.position) {
+        this.#position.set(options.position);
+      }
+      this.#orientation.set(options.orientation ? options.orientation : DEFAULT_ORIENTATION);
+      this.#scale.set(options.scale ? options.scale : DEFAULT_SCALE);
+    }
   }
 
   get position() {
@@ -82,6 +102,11 @@ export class Transform {
   }
 
   get worldMatrix() {
+    this.resolveWorldMatrix();
+    return this.#worldMatrix;
+  }
+
+  resolveWorldMatrix(recursive = false) {
     if (this.#worldMatrixDirty) {
       if (!this.parent) {
         this.#worldMatrix.set(this.matrix);
@@ -90,7 +115,17 @@ export class Transform {
       }
       this.#worldMatrixDirty = false;
     }
-    return this.#worldMatrix;
+  
+    if (recursive && this.#children) {
+      for (const child of this.#children) {
+        child.resolveWorldMatrix(recursive);
+      }
+    }
+  }
+
+  replaceWorldMatrixStorage(worldMatrixStorage) {
+    this.#worldMatrix = worldMatrixStorage;
+    this.#makeDirty();
   }
 
   addChild(transform) {
@@ -129,5 +164,56 @@ export class Transform {
         child.#makeDirty();
       }
     }
+  }
+}
+
+export class TransformPool {
+  #matrixStorage;
+  #matrices = [];
+  #transforms = [];
+  
+  constructor(count) {
+    this.#matrixStorage = new Float32Array(16 * count);
+    const buffer = this.#matrixStorage.buffer;
+    for (let i = 0; i < count; ++i) {
+      const offset = i * 16 * Float32Array.BYTES_PER_ELEMENT;
+      const matrix = new Float32Array(buffer, offset, 16);
+      mat4.identity(matrix);
+      this.#matrices[i] = matrix;
+    }
+  }
+
+  getTransform(index) {
+    if (index >= this.#matrices.length) {
+      throw new Error(`Transform index ${index} is out of bounds`);
+    }
+
+    if (this.#transforms[index] == undefined) {
+      this.#transforms[index] = new Transform({ worldMatrixStorage: this.#matrices[index] });
+    }
+    return this.#transforms[index];
+  }
+
+  // Places the given transform at the given index, replacing it's worldMatrix storage with the
+  // pooled storage.
+  setTransformAtIndex(index, transform) {
+    if (index >= this.#matrices.length) {
+      throw new Error(`Transform index ${index} is out of bounds`);
+    }
+    // TODO: Could end up with multiple transforms with a shared world matrix by doing this.
+    // Do we need to replace the storage of any old transform at the same index?
+    transform.replaceWorldMatrixStorage(this.#matrices[index]);
+    this.#transforms[index] = transform;
+  }
+
+  resolveWorldMatrices() {
+    for (const transform of this.#transforms) {
+      transform.resolveWorldMatrix();
+    }
+  }
+
+  get worldMatrixArray() {
+    this.resolveWorldMatrices();
+    return this.#matrixStorage;
   }
 }
