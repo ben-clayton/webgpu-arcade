@@ -47,6 +47,7 @@ const INSTANCE_BUFFER_LAYOUT = {
 export class WebGPUPipelineSystem extends System {
   #nextPipelineId = 1;
   #pipelineCache = new Map();
+  #materialCache = new Map();
   renderOrder = RenderOrder.Default;
 
   async init(gpu, materialComponent) {
@@ -123,13 +124,10 @@ export class WebGPUPipelineSystem extends System {
     const gpu = this.world;
 
     this.needsMaterialQuery.forEach((entity, geometry, material) => {
-      const gpuPipeline = new WebGPURenderPipeline();
-      gpuPipeline.renderOrder = material?.transparent ? RenderOrder.Transparent : this.renderOrder;
-
       const pipelineKey = this.pipelineKey(entity, geometry, material);
 
-      let cachedPipeline = this.#pipelineCache.get(pipelineKey);
-      if (!cachedPipeline) {
+      let gpuPipeline = this.#pipelineCache.get(pipelineKey);
+      if (!gpuPipeline) {
         const layout = geometry.layout;
         const vertex = this.createVertexModule(gpu, entity, layout, material);
         const fragment = this.createFragmentModule(gpu, entity, layout, material);
@@ -142,23 +140,22 @@ export class WebGPUPipelineSystem extends System {
         const pipeline = this.createPipeline(gpu, entity, layout, vertex, fragment, material);
         if (!pipeline) { return; }
 
-        cachedPipeline = {
-          pipeline,
-          pipelineId: this.#nextPipelineId++,
-          instanceSlot: layout.buffers.length
-        };
-        this.#pipelineCache.set(pipelineKey, cachedPipeline);
+        gpuPipeline = new WebGPURenderPipeline();
+        gpuPipeline.renderOrder = material?.transparent ? RenderOrder.Transparent : this.renderOrder;
+        gpuPipeline.pipeline = pipeline;
+        gpuPipeline.pipelineId = this.#nextPipelineId++;
+        gpuPipeline.instanceSlot = layout.buffers.length;
+        this.#pipelineCache.set(pipelineKey, gpuPipeline);
       }
 
-      gpuPipeline.pipeline = cachedPipeline.pipeline;
-      gpuPipeline.pipelineId = cachedPipeline.pipelineId;
-      gpuPipeline.instanceSlot = cachedPipeline.instanceSlot;
-      entity.add(gpuPipeline);
-
-      const mbg = this.createMaterialBindGroup(gpu, entity, material);
-      if (mbg) {
-        entity.add(new WebGPURenderMaterial(mbg));
+      let gpuMaterial = this.#materialCache.get(material);
+      if (!gpuMaterial) {
+        const mbg = this.createMaterialBindGroup(gpu, entity, material);
+        gpuMaterial = new WebGPURenderMaterial(mbg);
+        this.#materialCache.set(material, gpuMaterial);
       }
+
+      entity.add(gpuPipeline, gpuMaterial);
     });
   }
 }

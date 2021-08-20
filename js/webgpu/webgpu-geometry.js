@@ -7,7 +7,7 @@ import { WebGPURenderMaterial, WebGPURenderPipeline } from './webgpu-pipeline.js
 
 import { INSTANCE_BUFFER_SIZE } from './wgsl/common.js';
 
-const MAX_INSTANCE_COUNT = 128;
+const MAX_INSTANCE_COUNT = 512;
 const IDENTITY_MATRIX = mat4.create();
 
 export class WebGPUManualInstances {
@@ -89,7 +89,7 @@ export class WebGPUGeometrySystem extends System {
         }
       }
     }
-    gpu.device.queue.writeBuffer(this.instanceBuffer, 0, this.instanceArray, 0, arrayOffset * Float32Array.BYTES_PER_ELEMENT);
+    gpu.device.queue.writeBuffer(this.instanceBuffer, 0, this.instanceArray, 0, arrayOffset);
 
     // Sort the pipelines by render order (e.g. so transparent objects are rendered last).
     renderBatch.sortedPipelines = Array.from(renderBatch.pipelineGeometries.keys())

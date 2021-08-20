@@ -4,11 +4,14 @@ import { PointLight, AmbientLight } from './core/light.js';
 import { Skybox } from './core/skybox.js';
 import { AABB } from './core/geometry.js';
 import { GltfScene } from './core/gltf.js';
+import { PBRMaterial } from './core/materials.js';
 
 import { FlyingControls, FlyingControlsSystem } from './controls/flying-controls.js';
 import { OrbitControls, OrbitControlsSystem } from './controls/orbit-controls.js';
 
 import { WebGPUWorld } from './webgpu/webgpu-world.js';
+
+import { createCubeGeometry } from './cube-geometry.js';
 
 import { vec3, quat } from 'gl-matrix';
 
@@ -76,6 +79,24 @@ world.create(
 world.create(
   new AmbientLight(0.1, 0.1, 0.1)
 );
+
+// Create a WHOLE BUNCH of cube instances to stress the instancing system.
+const cubeGeometry = new createCubeGeometry(world);
+const cubeMaterial = new PBRMaterial();
+
+for (let x = 0; x < 5; ++x) {
+  for (let y = 0; y < 5; ++y) {
+    for (let z = 0; z < 5; ++z) {
+      world.create(
+        new Transform({ position: [
+          (x-2) * 2.5,
+          (y-2) * 2.5,
+          (z-2) * 2.5] }),
+        cubeGeometry, cubeMaterial
+      );
+    }
+  }
+}
 
 // Load a scene
 const dungeon = world.create(

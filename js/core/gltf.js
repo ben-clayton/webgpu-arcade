@@ -204,7 +204,7 @@ class GltfClient {
       aabb
     };*/
 
-    const entity = this.gpu.create(geometry, primitive.material, aabb);
+    const entity = this.gpu.create(new Geometry(geometryDescriptor), primitive.material, aabb);
     // Don't enable the entities till loading is complete. Prevents popping artifacts.
     entity.enabled = false;
     return entity;
