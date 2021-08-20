@@ -7,6 +7,7 @@ export const AttributeLocation = {
   color: 5,
   joints: 6,
   weights: 7,
+  maxAttributeLocation: 8,
 };
 
 const DefaultAttributeFormat = {

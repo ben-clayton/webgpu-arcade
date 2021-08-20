@@ -123,12 +123,14 @@ export class WebGPUDefaultRenderPass extends WebGPURenderPass {
           }
 
           for (const [material, instances] of materialList) {
-            passEncoder.setBindGroup(1, renderBatch.instanceBindGroup, [instances.bindGroupOffset]);
+            if (pipeline.instanceSlot >= 0) {
+              passEncoder.setVertexBuffer(pipeline.instanceSlot, renderBatch.instanceBuffer, instances.bufferOffset);
+            }
 
             if (material) {
-              let i = 2;
+              let i = 1;
               for (const bindGroup of material.bindGroups) {
-                passEncoder.setBindGroup(i, bindGroup);
+                passEncoder.setBindGroup(i++, bindGroup);
               }
             }
 
@@ -141,33 +143,6 @@ export class WebGPUDefaultRenderPass extends WebGPURenderPass {
         }
       }
     });
-
-    /*for (const pipeline of sortedPipelines) {
-      const geometryList = pipelineGeometries.get(pipeline);
-      passEncoder.setPipeline(pipeline.pipeline);
-
-      for (const { geometry, instance, material } of geometryList) {
-        passEncoder.setBindGroup(1, instance.bindGroup);
-
-        if (material) {
-          let i = 2;
-          for (const bindGroup of material.bindGroups) {
-            passEncoder.setBindGroup(i, bindGroup);
-          }
-        }
-
-        for (const vb of geometry.vertexBuffers) {
-          passEncoder.setVertexBuffer(vb.slot, vb.buffer.gpuBuffer, vb.offset);
-        }
-        const ib = geometry.indexBuffer;
-        if (ib) {
-          passEncoder.setIndexBuffer(ib.buffer.gpuBuffer, ib.format, ib.offset);
-          passEncoder.drawIndexed(geometry.drawCount, instance.instanceCount);
-        } else {
-          passEncoder.draw(geometry.drawCount, instance.instanceCount);
-        }
-      }
-    }*/
 
     passEncoder.endPass();
   }

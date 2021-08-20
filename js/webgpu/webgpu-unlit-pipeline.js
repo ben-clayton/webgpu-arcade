@@ -58,16 +58,16 @@ export class WebGPUUnlitPipelineSystem extends WebGPUPipelineSystem {
     });
   }
 
-  createVertexModule(gpu, entity, gpuGeometry, material) {
+  createVertexModule(gpu, entity, geometryLayout, material) {
     return {
-      module: gpu.device.createShaderModule({ code: UnlitVertexSource(gpuGeometry.layout) }),
+      module: gpu.device.createShaderModule({ code: UnlitVertexSource(geometryLayout) }),
       entryPoint: 'vertexMain',
     };
   }
 
-  createFragmentModule(gpu, entity, gpuGeometry, material) {
+  createFragmentModule(gpu, entity, geometryLayout, material) {
     return {
-      module: gpu.device.createShaderModule({ code: UnlitFragmentSource(gpuGeometry.layout) }),
+      module: gpu.device.createShaderModule({ code: UnlitFragmentSource(geometryLayout) }),
       entryPoint: 'fragmentMain',
     };
   }

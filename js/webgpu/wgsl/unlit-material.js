@@ -1,9 +1,9 @@
 import { wgsl } from './wgsl-utils.js';
 import { AttributeLocation } from '../../core/geometry.js';
-import { CameraStruct, InstanceStruct, ColorConversions } from './common.js';
+import { CameraStruct, ColorConversions, DefaultVertexInput, GetInstanceMatrix } from './common.js';
 
 export const MATERIAL_BUFFER_SIZE = 5 * Float32Array.BYTES_PER_ELEMENT;
-export function MaterialStruct(group = 2) { return `
+export function MaterialStruct(group = 1) { return `
   [[block]] struct Material {
     baseColorFactor : vec4<f32>;
     alphaCutoff : f32;
@@ -43,18 +43,18 @@ function VertexOutput(layout) { return wgsl`
 
 export function UnlitVertexSource(layout) { return wgsl`
   ${CameraStruct()}
-  ${InstanceStruct()}
 
-  struct VertexInputs {
-    [[builtin(instance_index)]] instanceIndex : u32;
-    ${DefaultAttributes(layout)}
-  };
+  ${DefaultVertexInput(layout)}
 
   ${VertexOutput(layout)}
+
+  ${GetInstanceMatrix}
 
   [[stage(vertex)]]
   fn vertexMain(input : VertexInputs) -> VertexOutput {
     var output : VertexOutput;
+
+    let instanceMatrix = getInstanceMatrix(input);
 
 #if ${layout.locationsUsed.includes(AttributeLocation.color)}
     output.color = input.color;
@@ -69,7 +69,6 @@ export function UnlitVertexSource(layout) { return wgsl`
     output.texcoord2 = input.texcoord2;
 #endif
 
-    let instanceMatrix = instance.matrix[input.instanceIndex];
     output.position = camera.projection * camera.view * instanceMatrix * input.position;
     return output;
   }`;

@@ -1,7 +1,6 @@
-import { CameraStruct, InstanceStruct, ColorConversions } from './common.js';
+import { CameraStruct, ColorConversions } from './common.js';
 
 export const SkyboxVertexSource = `
-  ${InstanceStruct()}
   ${CameraStruct(0, 0)}
 
   struct VertexInput {
@@ -19,8 +18,8 @@ export const SkyboxVertexSource = `
     var output : VertexOutput;
     output.texCoord = input.position.xyz;
 
-    let instanceMatrix = instance.matrix[input.instanceIndex];
-    var modelView : mat4x4<f32> = camera.view * instanceMatrix;
+    //let instanceMatrix = instance.matrix[input.instanceIndex];
+    var modelView : mat4x4<f32> = camera.view; // * instanceMatrix;
     // Drop the translation portion of the modelView matrix
     modelView[3] = vec4<f32>(0.0, 0.0, 0.0, modelView[3].w);
     output.position = camera.projection * modelView * input.position;
@@ -39,7 +38,7 @@ export const SkyboxFragmentSource = `
   struct FragmentInput {
     [[location(0)]] texCoord : vec3<f32>;
   };
-  [[group(2), binding(0)]] var skyboxTexture : texture_cube<f32>;
+  [[group(1), binding(0)]] var skyboxTexture : texture_cube<f32>;
 
   [[stage(fragment)]]
   fn fragmentMain(input : FragmentInput) -> [[location(0)]] vec4<f32> {

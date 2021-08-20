@@ -1,5 +1,5 @@
 import { System } from 'ecs';
-import { Geometry } from '../core/geometry.js';
+import { Geometry, AttributeLocation } from '../core/geometry.js';
 
 export const RenderOrder = {
   First: 0,
@@ -13,6 +13,7 @@ export class WebGPURenderPipeline {
   pipelineId = 0;
   pipeline = null;
   renderOrder = RenderOrder.Default;
+  instanceSlot = -1;
 }
 
 export class WebGPURenderMaterial {
@@ -20,6 +21,28 @@ export class WebGPURenderMaterial {
     this.bindGroups = bindGroups;
   }
 }
+
+const INSTANCE_BUFFER_LAYOUT = {
+  arrayStride: 64,
+  stepMode: 'instance',
+  attributes: [{
+    format: 'float32x4',
+    offset: 0,
+    shaderLocation: AttributeLocation.maxAttributeLocation,
+  }, {
+    format: 'float32x4',
+    offset: 16,
+    shaderLocation: AttributeLocation.maxAttributeLocation+1,
+  }, {
+    format: 'float32x4',
+    offset: 32,
+    shaderLocation: AttributeLocation.maxAttributeLocation+2,
+  }, {
+    format: 'float32x4',
+    offset: 48,
+    shaderLocation: AttributeLocation.maxAttributeLocation+3,
+  }]
+};
 
 export class WebGPUPipelineSystem extends System {
   #nextPipelineId = 1;
@@ -42,24 +65,17 @@ export class WebGPUPipelineSystem extends System {
     return `${gpuGeometry.layoutId};${material?.transparent};${material?.doubleSided}`;
   }
 
-  createVertexModule(gpu, entity, gpuGeometry, material) {
+  createVertexModule(gpu, entity, geometryLayout, material) {
     throw new Error('Must override createVertexModule() for each system that extends WebGPUPipelineSystem.');
   }
 
-  createFragmentModule(gpu, entity, gpuGeometry, material) {
+  createFragmentModule(gpu, entity, geometryLayout, material) {
     throw new Error('Must override createFragmentModule() for each system that extends WebGPUPipelineSystem.');
   }
 
   // Creates a pipeline with defaults settings and the overridden shaders.
   // Can be customize if needed.
-  createPipeline(gpu, entity, gpuGeometry, material) {
-    const layout = gpuGeometry.layout;
-
-    const vertex = this.createVertexModule(gpu, entity, gpuGeometry, material);
-    const fragment = this.createFragmentModule(gpu, entity, gpuGeometry, material);
-
-    vertex.buffers = layout.buffers;
-
+  createPipeline(gpu, entity, layout, vertex, fragment, material) {
     let blend;
     if (material?.transparent) {
       blend = {
@@ -80,11 +96,10 @@ export class WebGPUPipelineSystem extends System {
     }];
 
     return gpu.device.createRenderPipeline({
-      label: `PBR Pipeline (LayoutID: ${gpuGeometry.layoutId})`,
+      label: `PBR Pipeline (LayoutID: ${layout.id})`,
       layout: gpu.device.createPipelineLayout({
         bindGroupLayouts: [
           gpu.bindGroupLayouts.frame,
-          gpu.bindGroupLayouts.model,
           this.bindGroupLayout,
         ]
       }),
@@ -115,18 +130,29 @@ export class WebGPUPipelineSystem extends System {
 
       let cachedPipeline = this.#pipelineCache.get(pipelineKey);
       if (!cachedPipeline) {
-        const pipeline = this.createPipeline(gpu, entity, geometry, material);
+        const layout = geometry.layout;
+        const vertex = this.createVertexModule(gpu, entity, layout, material);
+        const fragment = this.createFragmentModule(gpu, entity, layout, material);
+
+        vertex.buffers = new Array(...layout.buffers);
+
+        // Add a vertexSlot for the instance array
+        vertex.buffers.push(INSTANCE_BUFFER_LAYOUT);
+
+        const pipeline = this.createPipeline(gpu, entity, layout, vertex, fragment, material);
         if (!pipeline) { return; }
 
         cachedPipeline = {
           pipeline,
           pipelineId: this.#nextPipelineId++,
+          instanceSlot: layout.buffers.length
         };
         this.#pipelineCache.set(pipelineKey, cachedPipeline);
       }
 
       gpuPipeline.pipeline = cachedPipeline.pipeline;
       gpuPipeline.pipelineId = cachedPipeline.pipelineId;
+      gpuPipeline.instanceSlot = cachedPipeline.instanceSlot;
       entity.add(gpuPipeline);
 
       const mbg = this.createMaterialBindGroup(gpu, entity, material);

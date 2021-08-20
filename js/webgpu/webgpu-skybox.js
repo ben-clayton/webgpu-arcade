@@ -67,7 +67,6 @@ export class WebGPUSkyboxSystem extends System {
       layout: gpu.device.createPipelineLayout({
         bindGroupLayouts: [
           gpu.bindGroupLayouts.frame,
-          gpu.bindGroupLayouts.model,
           this.bindGroupLayout,
         ]
       }),

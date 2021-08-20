@@ -1,4 +1,5 @@
 import { wgsl } from './wgsl-utils.js';
+import { AttributeLocation } from '../../core/geometry.js';
 
 export const CAMERA_BUFFER_SIZE = 56 * Float32Array.BYTES_PER_ELEMENT;
 export function CameraStruct(group = 0, binding = 0) { return `
@@ -35,13 +36,39 @@ export function LightStruct(group = 0, binding = 1) { return `
 }
 
 export const INSTANCE_BUFFER_SIZE = 16 * Float32Array.BYTES_PER_ELEMENT;
-export function InstanceStruct(group = 1, binding = 0) { return `
-  [[block]] struct Instance {
-    matrix : [[stride(64)]] array<mat4x4<f32>, 4>;
-  };
-  [[group(${group}), binding(${binding})]] var<uniform> instance : Instance;
+
+export function DefaultVertexInput(layout) {
+  let inputs = layout.locationsUsed.map((location) => {
+      switch(location) {
+      case AttributeLocation.position: return `[[location(${AttributeLocation.position})]] position : vec4<f32>;`;
+      case AttributeLocation.normal: return `[[location(${AttributeLocation.normal})]] normal : vec3<f32>;`;
+      case AttributeLocation.tangent: return `[[location(${AttributeLocation.tangent})]] tangent : vec4<f32>;`;
+      case AttributeLocation.texcoord: return `[[location(${AttributeLocation.texcoord})]] texcoord : vec2<f32>;`;
+      case AttributeLocation.texcoord2: return `[[location(${AttributeLocation.texcoord2})]] texcoord2 : vec2<f32>;`;
+      case AttributeLocation.color: return `[[location(${AttributeLocation.color})]] color : vec4<f32>;`;
+      }
+  });
+
+  inputs.push(`[[location(${AttributeLocation.maxAttributeLocation})]] instance0 : vec4<f32>;`);
+  inputs.push(`[[location(${AttributeLocation.maxAttributeLocation+1})]] instance1 : vec4<f32>;`);
+  inputs.push(`[[location(${AttributeLocation.maxAttributeLocation+2})]] instance2 : vec4<f32>;`);
+  inputs.push(`[[location(${AttributeLocation.maxAttributeLocation+3})]] instance3 : vec4<f32>;`);
+
+  return `struct VertexInput {
+    ${inputs.join('\n')}
+  };`;
+};
+
+export const GetInstanceMatrix = `
+  fn getInstanceMatrix(input : VertexInput) -> mat4x4<f32> {
+    return mat4x4<f32>(
+      input.instance0,
+      input.instance1,
+      input.instance2,
+      input.instance3
+    );
+  }
 `;
-}
 
 const APPROXIMATE_SRGB = true;
 export const ColorConversions = wgsl`

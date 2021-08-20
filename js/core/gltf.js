@@ -198,7 +198,11 @@ class GltfClient {
       }
     }
 
-    const geometry = new Geometry(geometryDescriptor);
+    /*return {
+      geometry: new Geometry(geometryDescriptor),
+      material: primitive.material,
+      aabb
+    };*/
 
     const entity = this.gpu.create(geometry, primitive.material, aabb);
     // Don't enable the entities till loading is complete. Prevents popping artifacts.

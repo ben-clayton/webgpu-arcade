@@ -1,10 +1,10 @@
 import { wgsl } from './wgsl-utils.js';
 import { AttributeLocation } from '../../core/geometry.js';
-import { CameraStruct, InstanceStruct, LightStruct, ColorConversions } from './common.js';
+import { CameraStruct, LightStruct, ColorConversions, DefaultVertexInput, GetInstanceMatrix } from './common.js';
 import { ClusterLightsStruct, TileFunctions } from './clustered-light.js';
 
 export const MATERIAL_BUFFER_SIZE = 11 * Float32Array.BYTES_PER_ELEMENT;
-export function MaterialStruct(group = 2) { return `
+export function MaterialStruct(group = 1) { return `
   [[block]] struct Material {
     baseColorFactor : vec4<f32>;
     emissiveFactor : vec3<f32>;
@@ -27,21 +27,6 @@ export function MaterialStruct(group = 2) { return `
 `;
 }
 
-function DefaultAttributes(layout) {
-  let inputs = layout.locationsUsed.map((location) => {
-      switch(location) {
-      case AttributeLocation.position: return `[[location(${AttributeLocation.position})]] position : vec4<f32>;`;
-      case AttributeLocation.normal: return `[[location(${AttributeLocation.normal})]] normal : vec3<f32>;`;
-      case AttributeLocation.tangent: return `[[location(${AttributeLocation.tangent})]] tangent : vec4<f32>;`;
-      case AttributeLocation.texcoord: return `[[location(${AttributeLocation.texcoord})]] texcoord : vec2<f32>;`;
-      case AttributeLocation.texcoord2: return `[[location(${AttributeLocation.texcoord2})]] texcoord2 : vec2<f32>;`;
-      case AttributeLocation.color: return `[[location(${AttributeLocation.color})]] color : vec4<f32>;`;
-      }
-  });
-
-  return inputs.join('\n');
-};
-
 function VertexOutput(layout) { return wgsl`
   struct VertexOutput {
     [[builtin(position)]] position : vec4<f32>;
@@ -62,20 +47,18 @@ function VertexOutput(layout) { return wgsl`
 
 export function PBRVertexSource(layout) { return wgsl`
   ${CameraStruct()}
-  ${InstanceStruct()}
 
-  struct VertexInputs {
-    [[builtin(instance_index)]] instanceIndex : u32;
-    ${DefaultAttributes(layout)}
-  };
+  ${DefaultVertexInput(layout)}
 
   ${VertexOutput(layout)}
 
+  ${GetInstanceMatrix}
+
   [[stage(vertex)]]
-  fn vertexMain(input : VertexInputs) -> VertexOutput {
+  fn vertexMain(input : VertexInput) -> VertexOutput {
     var output : VertexOutput;
 
-    let instanceMatrix = instance.matrix[input.instanceIndex];
+    let instanceMatrix = getInstanceMatrix(input);
 
 #if ${layout.locationsUsed.includes(AttributeLocation.normal)}
     output.normal = normalize((instanceMatrix * vec4<f32>(input.normal, 0.0)).xyz);

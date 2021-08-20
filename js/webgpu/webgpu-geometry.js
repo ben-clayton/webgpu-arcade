@@ -17,7 +17,7 @@ export class WebGPUManualInstances {
 export class WebGPURenderBatch {
   pipelineGeometries = new Map();
   sortedPipelines;
-  instanceBindGroup;
+  instanceBuffer;
 }
 
 export class WebGPUGeometrySystem extends System {
@@ -26,16 +26,16 @@ export class WebGPUGeometrySystem extends System {
     this.instanceArray = new Float32Array(16 * MAX_INSTANCE_COUNT);
     this.instanceBuffer = gpu.device.createBuffer({
       size: INSTANCE_BUFFER_SIZE * MAX_INSTANCE_COUNT,
-      usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+      usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST
     });
 
-    this.bindGroup = gpu.device.createBindGroup({
+    /*this.bindGroup = gpu.device.createBindGroup({
       layout: gpu.bindGroupLayouts.instance,
       entries: [{
         binding: 0,
         resource: { buffer: this.instanceBuffer, size: 256 },
       }]
-    });
+    });*/
 
     this.renderables = this.query(Geometry, WebGPURenderPipeline);
 
@@ -63,7 +63,7 @@ export class WebGPUGeometrySystem extends System {
       let material = entity.get(WebGPURenderMaterial);
       let instances = materialInstances.get(material);
       if (!instances) {
-        instances = {instanceCount: 0, transforms: [], bindGroupOffset: 0};
+        instances = {instanceCount: 0, transforms: [], bufferOffset: 0};
         materialInstances.set(material, instances);
       }
       const transform = entity.get(Transform);
@@ -79,13 +79,13 @@ export class WebGPUGeometrySystem extends System {
     for (const geometryMaterials of renderBatch.pipelineGeometries.values()) {
       for (const materialInstances of geometryMaterials.values()) {
         for (const instances of materialInstances.values()) {
-          instances.bindGroupOffset = arrayOffset * Float32Array.BYTES_PER_ELEMENT;
+          instances.bufferOffset = arrayOffset * Float32Array.BYTES_PER_ELEMENT;
           for (const transform of instances.transforms) {
             this.instanceArray.set(transform, arrayOffset);
             arrayOffset += 16;
           }
           // Make sure our binding offsets fall on 256 byte boundaries.
-          arrayOffset = Math.ceil(arrayOffset / 64) * 64;
+          //arrayOffset = Math.ceil(arrayOffset / 64) * 64;
         }
       }
     }
@@ -95,7 +95,7 @@ export class WebGPUGeometrySystem extends System {
     renderBatch.sortedPipelines = Array.from(renderBatch.pipelineGeometries.keys())
     renderBatch.sortedPipelines.sort((a, b) => a.renderOrder - b.renderOrder);
 
-    renderBatch.instanceBindGroup = this.bindGroup;
+    renderBatch.instanceBuffer = this.instanceBuffer;
     this.renderBatchEntity.add(renderBatch);
   }
 }

@@ -136,16 +136,16 @@ export class WebGPUPBRPipelineSystem extends WebGPUPipelineSystem {
     });
   }
 
-  createVertexModule(gpu, entity, geometry, material) {
+  createVertexModule(gpu, entity, geometryLayout, material) {
     return {
-      module: gpu.device.createShaderModule({ code: PBRVertexSource(geometry.layout) }),
+      module: gpu.device.createShaderModule({ code: PBRVertexSource(geometryLayout) }),
       entryPoint: 'vertexMain',
     };
   }
 
-  createFragmentModule(gpu, entity, geometry, material) {
+  createFragmentModule(gpu, entity, geometryLayout, material) {
     return {
-      module: gpu.device.createShaderModule({ code: PBRFragmentSource(geometry.layout) }),
+      module: gpu.device.createShaderModule({ code: PBRFragmentSource(geometryLayout) }),
       entryPoint: 'fragmentMain',
     };
   }
