@@ -29,14 +29,6 @@ export class WebGPUGeometrySystem extends System {
       usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST
     });
 
-    /*this.bindGroup = gpu.device.createBindGroup({
-      layout: gpu.bindGroupLayouts.instance,
-      entries: [{
-        binding: 0,
-        resource: { buffer: this.instanceBuffer, size: 256 },
-      }]
-    });*/
-
     this.renderables = this.query(Geometry, WebGPURenderPipeline);
 
     this.renderBatchEntity = gpu.create();
@@ -84,8 +76,6 @@ export class WebGPUGeometrySystem extends System {
             this.instanceArray.set(transform, arrayOffset);
             arrayOffset += 16;
           }
-          // Make sure our binding offsets fall on 256 byte boundaries.
-          //arrayOffset = Math.ceil(arrayOffset / 64) * 64;
         }
       }
     }
