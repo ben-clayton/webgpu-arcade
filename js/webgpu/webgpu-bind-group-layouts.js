@@ -23,12 +23,15 @@ export class WebGPUBindGroupLayouts {
       }]
     });
 
-    this.model = device.createBindGroupLayout({
-      label: `Model BindGroupLayout`,
+    this.instance = this.model = device.createBindGroupLayout({
+      label: `Instance BindGroupLayout`,
       entries: [{
-        binding: 0, // Model uniforms
+        binding: 0, // Instance uniforms
         visibility: GPUShaderStage.VERTEX,
-        buffer: {},
+        buffer: {
+          hasDynamicOffset: true,
+          minBindingSize: 16 * Float32Array.BYTES_PER_ELEMENT * 4
+        },
       }]
     });
 

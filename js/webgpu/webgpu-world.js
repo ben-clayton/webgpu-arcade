@@ -22,6 +22,7 @@ const desiredFeatures = [
 ];
 
 export class WebGPUWorld extends RenderWorld {
+  adapter = null;
   device = null;
   format = 'bgra8unorm';
   depthFormat = 'depth24plus';
@@ -58,17 +59,17 @@ export class WebGPUWorld extends RenderWorld {
   }
 
   async intializeRenderer() {
-    const adapter = await navigator.gpu.requestAdapter({
+    this.adapter = await navigator.gpu.requestAdapter({
       powerPreference: "high-performance"
     });
 
     // Determine which of the desired features can be enabled for this device.
-    const requiredFeatures = desiredFeatures.filter(feature => adapter.features.has(feature));
-    this.device = await adapter.requestDevice({requiredFeatures});
+    const requiredFeatures = desiredFeatures.filter(feature => this.adapter.features.has(feature));
+    this.device = await this.adapter.requestDevice({requiredFeatures});
 
     // This function isn't available in Firefox, though it is in the spec.
     if (this.context.getPreferredFormat) {
-      this.format = this.context.getPreferredFormat(adapter);
+      this.format = this.context.getPreferredFormat(this.adapter);
     }
 
     this.bindGroupLayouts = new WebGPUBindGroupLayouts(this.device);
@@ -87,10 +88,6 @@ export class WebGPUWorld extends RenderWorld {
     });
 
     return this;
-  }
-
-  get adapter() {
-    return this.device?.adapter;
   }
 
   // RenderWorld overloads

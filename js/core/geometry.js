@@ -188,7 +188,10 @@ export class Attribute extends InterleavedAttributes {
   }
 };
 
+let nextGeometryId = 1;
+
 export class Geometry {
+  id = nextGeometryId++;
   vertexBuffers = [];
   indexBuffer = null;
   drawCount = 0;

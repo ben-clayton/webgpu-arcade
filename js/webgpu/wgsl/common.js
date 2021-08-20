@@ -34,12 +34,12 @@ export function LightStruct(group = 0, binding = 1) { return `
 `;
 }
 
-export const MODEL_BUFFER_SIZE = 16 * Float32Array.BYTES_PER_ELEMENT;
-export function ModelStruct(group = 1, binding = 0) { return `
-  [[block]] struct Model {
-    matrix : mat4x4<f32>;
+export const INSTANCE_BUFFER_SIZE = 16 * Float32Array.BYTES_PER_ELEMENT;
+export function InstanceStruct(group = 1, binding = 0) { return `
+  [[block]] struct Instance {
+    matrix : [[stride(64)]] array<mat4x4<f32>, 4>;
   };
-  [[group(${group}), binding(${binding})]] var<uniform> model : Model;
+  [[group(${group}), binding(${binding})]] var<uniform> instance : Instance;
 `;
 }
 

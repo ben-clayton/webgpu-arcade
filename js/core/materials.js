@@ -1,4 +1,7 @@
+let nextMaterialId = 1;
+
 export class UnlitMaterial {
+  id = nextMaterialId++;
   baseColorFactor = new Float32Array([1.0, 1.0, 1.0, 1.0]);
   baseColorTexture;
   baseColorSampler;

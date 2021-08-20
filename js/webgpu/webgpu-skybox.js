@@ -1,6 +1,5 @@
 import { System } from 'ecs';
 import { Geometry, Attribute } from '../core/geometry.js';
-import { WebGPURenderGeometry } from './webgpu-geometry.js';
 import { WebGPURenderMaterial, WebGPURenderPipeline, RenderOrder } from './webgpu-pipeline.js';
 import { SkyboxVertexSource, SkyboxFragmentSource } from './wgsl/skybox.js';
 import { Skybox } from '../core/skybox.js';
@@ -117,15 +116,13 @@ export class WebGPUSkyboxSystem extends System {
       indices: { buffer: indexBuffer, format: 'uint16' }
     });
 
-    this.gpuGeometry = new WebGPURenderGeometry(gpu);
-
     this.skyboxQuery = this.query(Skybox).not(Geometry);
   }
 
   execute(delta, time) {
     const gpu = this.world;
     this.skyboxQuery.forEach(async (entity, skybox) => {
-      entity.add(this.geometry, this.gpuGeometry);
+      entity.add(this.geometry);
 
       const skyboxTexture = await skybox.texture;
 

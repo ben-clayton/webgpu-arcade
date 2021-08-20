@@ -1,6 +1,6 @@
 import { System } from 'ecs';
 import { Geometry } from '../core/geometry.js';
-import { WebGPURenderGeometry } from './webgpu-geometry.js';
+import { WebGPUManualInstances } from './webgpu-geometry.js';
 import { WebGPURenderPipeline, RenderOrder } from './webgpu-pipeline.js';
 import { WebGPULightBuffer } from './webgpu-light.js';
 import { LightSpriteVertexSource, LightSpriteFragmentSource } from './wgsl/light-sprite.js';
@@ -67,14 +67,14 @@ export class WebGPULightSpriteSystem extends System {
       drawCount: 4
     });
 
-    this.gpuGeometry = new WebGPURenderGeometry(gpu);
-    this.gpuGeometry.instanceCount = 0;
+    this.instances = new WebGPUManualInstances(gpu);
+    this.instances.instanceCount = 0;
 
-    this.entity = this.world.create(geometry, this.gpuPipeline, this.gpuGeometry);
+    this.entity = this.world.create(geometry, this.gpuPipeline, this.instances);
   }
 
   execute(delta, time) {
     const lights = this.singleton.get(WebGPULightBuffer);
-    this.gpuGeometry.instanceCount = lights.lightCount;
+    this.instances.instanceCount = lights.lightCount;
   }
 }

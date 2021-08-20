@@ -1,10 +1,11 @@
-import { CameraStruct, ModelStruct, ColorConversions } from './common.js';
+import { CameraStruct, InstanceStruct, ColorConversions } from './common.js';
 
 export const SkyboxVertexSource = `
-  ${ModelStruct()}
+  ${InstanceStruct()}
   ${CameraStruct(0, 0)}
 
   struct VertexInput {
+    [[builtin(instance_index)]] instanceIndex : u32;
     [[location(0)]] position : vec4<f32>;
   };
 
@@ -18,7 +19,8 @@ export const SkyboxVertexSource = `
     var output : VertexOutput;
     output.texCoord = input.position.xyz;
 
-    var modelView : mat4x4<f32> = camera.view * model.matrix;
+    let instanceMatrix = instance.matrix[input.instanceIndex];
+    var modelView : mat4x4<f32> = camera.view * instanceMatrix;
     // Drop the translation portion of the modelView matrix
     modelView[3] = vec4<f32>(0.0, 0.0, 0.0, modelView[3].w);
     output.position = camera.projection * modelView * input.position;

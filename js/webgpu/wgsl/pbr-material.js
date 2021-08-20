@@ -1,6 +1,6 @@
 import { wgsl } from './wgsl-utils.js';
 import { AttributeLocation } from '../../core/geometry.js';
-import { CameraStruct, ModelStruct, LightStruct, ColorConversions } from './common.js';
+import { CameraStruct, InstanceStruct, LightStruct, ColorConversions } from './common.js';
 import { ClusterLightsStruct, TileFunctions } from './clustered-light.js';
 
 export const MATERIAL_BUFFER_SIZE = 11 * Float32Array.BYTES_PER_ELEMENT;
@@ -62,9 +62,10 @@ function VertexOutput(layout) { return wgsl`
 
 export function PBRVertexSource(layout) { return wgsl`
   ${CameraStruct()}
-  ${ModelStruct()}
+  ${InstanceStruct()}
 
   struct VertexInputs {
+    [[builtin(instance_index)]] instanceIndex : u32;
     ${DefaultAttributes(layout)}
   };
 
@@ -74,14 +75,16 @@ export function PBRVertexSource(layout) { return wgsl`
   fn vertexMain(input : VertexInputs) -> VertexOutput {
     var output : VertexOutput;
 
+    let instanceMatrix = instance.matrix[input.instanceIndex];
+
 #if ${layout.locationsUsed.includes(AttributeLocation.normal)}
-    output.normal = normalize((model.matrix * vec4<f32>(input.normal, 0.0)).xyz);
+    output.normal = normalize((instanceMatrix * vec4<f32>(input.normal, 0.0)).xyz);
 #else
-    output.normal = normalize((model.matrix * vec4<f32>(0.0, 0.0, 1.0, 0.0)).xyz);
+    output.normal = normalize((instanceMatrix * vec4<f32>(0.0, 0.0, 1.0, 0.0)).xyz);
 #endif
 
 #if ${layout.locationsUsed.includes(AttributeLocation.tangent)}
-    output.tangent = normalize((model.matrix * vec4<f32>(input.tangent.xyz, 0.0)).xyz);
+    output.tangent = normalize((instanceMatrix * vec4<f32>(input.tangent.xyz, 0.0)).xyz);
     output.bitangent = cross(output.normal, output.tangent) * input.tangent.w;
 #endif
 
@@ -98,7 +101,7 @@ export function PBRVertexSource(layout) { return wgsl`
     output.texcoord2 = input.texcoord2;
 #endif
 
-    let modelPos = model.matrix * input.position;
+    let modelPos = instanceMatrix * input.position;
     output.worldPos = modelPos.xyz;
     output.view = camera.position - modelPos.xyz;
     output.position = camera.projection * camera.view * modelPos;
