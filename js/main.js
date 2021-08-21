@@ -2,9 +2,8 @@ import { Transform } from './core/transform.js';
 import { Camera } from './core/camera.js';
 import { PointLight, AmbientLight } from './core/light.js';
 import { Skybox } from './core/skybox.js';
-import { AABB } from './core/geometry.js';
+import { Mesh, AABB } from './core/geometry.js';
 import { GltfScene } from './core/gltf.js';
-import { PBRMaterial } from './core/materials.js';
 
 import { FlyingControls, FlyingControlsSystem } from './controls/flying-controls.js';
 import { OrbitControls, OrbitControlsSystem } from './controls/orbit-controls.js';
@@ -12,6 +11,7 @@ import { OrbitControls, OrbitControlsSystem } from './controls/orbit-controls.js
 import { WebGPUWorld } from './webgpu/webgpu-world.js';
 
 import { createCubeGeometry } from './cube-geometry.js';
+import { PBRMaterial, UnlitMaterial } from './core/materials.js';
 
 import { vec3, quat } from 'gl-matrix';
 
@@ -80,9 +80,11 @@ world.create(
   new AmbientLight(0.1, 0.1, 0.1)
 );
 
-// Create a WHOLE BUNCH of cube instances to stress the instancing system.
+// Create a grid of cube instances to test the instancing system.
 const cubeGeometry = new createCubeGeometry(world);
 const cubeMaterial = new PBRMaterial();
+
+const cubeMesh = new Mesh({ geometry: cubeGeometry, material: cubeMaterial });
 
 for (let x = 0; x < 5; ++x) {
   for (let y = 0; y < 5; ++y) {
@@ -92,7 +94,7 @@ for (let x = 0; x < 5; ++x) {
           (x-2) * 2.5,
           (y-2) * 2.5,
           (z-2) * 2.5] }),
-        cubeGeometry, cubeMaterial
+          cubeGeometry, cubeMaterial, cubeMesh
       );
     }
   }

@@ -1,6 +1,6 @@
 import { wgsl } from './wgsl-utils.js';
 import { AttributeLocation } from '../../core/geometry.js';
-import { CameraStruct, LightStruct, ColorConversions, DefaultVertexInput, GetInstanceMatrix } from './common.js';
+import { CameraStruct, LightStruct, ColorConversions, DefaultVertexOutput } from './common.js';
 import { ClusterLightsStruct, TileFunctions } from './clustered-light.js';
 
 export const MATERIAL_BUFFER_SIZE = 11 * Float32Array.BYTES_PER_ELEMENT;
@@ -27,73 +27,8 @@ export function MaterialStruct(group = 1) { return `
 `;
 }
 
-function VertexOutput(layout) { return wgsl`
-  struct VertexOutput {
-    [[builtin(position)]] position : vec4<f32>;
-    [[location(0)]] worldPos : vec3<f32>;
-    [[location(1)]] view : vec3<f32>; // Vector from vertex to camera.
-    [[location(2)]] texcoord : vec2<f32>;
-    [[location(3)]] texcoord2 : vec2<f32>;
-    [[location(4)]] color : vec4<f32>;
-    [[location(5)]] normal : vec3<f32>;
-
-#if ${layout.locationsUsed.includes(AttributeLocation.tangent)}
-    [[location(6)]] tangent : vec3<f32>;
-    [[location(7)]] bitangent : vec3<f32>;
-#endif
-  };
-`;
-}
-
-export function PBRVertexSource(layout) { return wgsl`
-  ${CameraStruct()}
-
-  ${DefaultVertexInput(layout)}
-
-  ${VertexOutput(layout)}
-
-  ${GetInstanceMatrix}
-
-  [[stage(vertex)]]
-  fn vertexMain(input : VertexInput) -> VertexOutput {
-    var output : VertexOutput;
-
-    let instanceMatrix = getInstanceMatrix(input);
-
-#if ${layout.locationsUsed.includes(AttributeLocation.normal)}
-    output.normal = normalize((instanceMatrix * vec4<f32>(input.normal, 0.0)).xyz);
-#else
-    output.normal = normalize((instanceMatrix * vec4<f32>(0.0, 0.0, 1.0, 0.0)).xyz);
-#endif
-
-#if ${layout.locationsUsed.includes(AttributeLocation.tangent)}
-    output.tangent = normalize((instanceMatrix * vec4<f32>(input.tangent.xyz, 0.0)).xyz);
-    output.bitangent = cross(output.normal, output.tangent) * input.tangent.w;
-#endif
-
-#if ${layout.locationsUsed.includes(AttributeLocation.color)}
-    output.color = input.color;
-#else
-    output.color = vec4<f32>(1.0, 1.0, 1.0, 1.0);
-#endif
-
-#if ${layout.locationsUsed.includes(AttributeLocation.texcoord)}
-    output.texcoord = input.texcoord;
-#endif
-#if ${layout.locationsUsed.includes(AttributeLocation.texcoord2)}
-    output.texcoord2 = input.texcoord2;
-#endif
-
-    let modelPos = instanceMatrix * input.position;
-    output.worldPos = modelPos.xyz;
-    output.view = camera.position - modelPos.xyz;
-    output.position = camera.projection * camera.view * modelPos;
-    return output;
-  }`;
-}
-
 function PBRSurfaceInfo(layout) { return wgsl`
-  ${VertexOutput(layout)}
+  ${DefaultVertexOutput(layout)}
   ${MaterialStruct()}
 
   struct SurfaceInfo {

@@ -1,6 +1,6 @@
 import { UnlitMaterial } from '../core/materials.js';
 import { WebGPUPipelineSystem } from './webgpu-pipeline.js';
-import { UnlitVertexSource, UnlitFragmentSource, MATERIAL_BUFFER_SIZE } from './wgsl/unlit-material.js';
+import { UnlitFragmentSource, MATERIAL_BUFFER_SIZE } from './wgsl/unlit-material.js';
 import { vec4 } from 'gl-matrix';
 
 // Can reuse these for every unlit material
@@ -56,13 +56,6 @@ export class WebGPUUnlitPipelineSystem extends WebGPUPipelineSystem {
         resource: material.baseColorSampler || gpu.defaultSampler,
       }]
     });
-  }
-
-  createVertexModule(gpu, entity, geometryLayout, material) {
-    return {
-      module: gpu.device.createShaderModule({ code: UnlitVertexSource(geometryLayout) }),
-      entryPoint: 'vertexMain',
-    };
   }
 
   createFragmentModule(gpu, entity, geometryLayout, material) {

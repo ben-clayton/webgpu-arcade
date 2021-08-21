@@ -1,5 +1,6 @@
 import { System } from 'ecs';
 import { Geometry, AttributeLocation } from '../core/geometry.js';
+import { DefaultVertexSource } from './wgsl/default-vertex.js';
 
 export const RenderOrder = {
   First: 0,
@@ -63,11 +64,14 @@ export class WebGPUPipelineSystem extends System {
   }
 
   pipelineKey(entity, gpuGeometry, material) {
-    return `${gpuGeometry.layoutId};${material?.transparent};${material?.doubleSided}`;
+    return `${gpuGeometry.layoutId};${material.constructor.name};${material?.transparent};${material?.doubleSided}`;
   }
 
   createVertexModule(gpu, entity, geometryLayout, material) {
-    throw new Error('Must override createVertexModule() for each system that extends WebGPUPipelineSystem.');
+    return {
+      module: gpu.device.createShaderModule({ code: DefaultVertexSource(geometryLayout) }),
+      entryPoint: 'vertexMain',
+    };
   }
 
   createFragmentModule(gpu, entity, geometryLayout, material) {

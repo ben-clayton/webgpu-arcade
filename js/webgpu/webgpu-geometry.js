@@ -1,7 +1,7 @@
 import { System } from 'ecs';
 import { mat4 } from 'gl-matrix';
 
-import { Geometry } from '../core/geometry.js';
+import { Mesh, Geometry } from '../core/geometry.js';
 import { Transform } from '../core/transform.js';
 import { WebGPURenderMaterial, WebGPURenderPipeline } from './webgpu-pipeline.js';
 

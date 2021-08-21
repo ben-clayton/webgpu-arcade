@@ -1,6 +1,6 @@
 import { PBRMaterial } from '../core/materials.js';
 import { WebGPUPipelineSystem } from './webgpu-pipeline.js';
-import { PBRVertexSource, PBRFragmentSource, MATERIAL_BUFFER_SIZE } from './wgsl/pbr-material.js';
+import { PBRFragmentSource, MATERIAL_BUFFER_SIZE } from './wgsl/pbr-material.js';
 import { vec4, vec3 } from 'gl-matrix';
 
 // Can reuse these for every PBR material
@@ -134,13 +134,6 @@ export class WebGPUPBRPipelineSystem extends WebGPUPipelineSystem {
         resource: material.emissiveSampler || gpu.defaultSampler,
       },]
     });
-  }
-
-  createVertexModule(gpu, entity, geometryLayout, material) {
-    return {
-      module: gpu.device.createShaderModule({ code: PBRVertexSource(geometryLayout) }),
-      entryPoint: 'vertexMain',
-    };
   }
 
   createFragmentModule(gpu, entity, geometryLayout, material) {

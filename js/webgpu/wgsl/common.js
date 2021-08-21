@@ -59,6 +59,24 @@ export function DefaultVertexInput(layout) {
   };`;
 };
 
+export function DefaultVertexOutput(layout) { return wgsl`
+  struct VertexOutput {
+    [[builtin(position)]] position : vec4<f32>;
+    [[location(0)]] worldPos : vec3<f32>;
+    [[location(1)]] view : vec3<f32>; // Vector from vertex to camera.
+    [[location(2)]] texcoord : vec2<f32>;
+    [[location(3)]] texcoord2 : vec2<f32>;
+    [[location(4)]] color : vec4<f32>;
+    [[location(5)]] normal : vec3<f32>;
+
+#if ${layout.locationsUsed.includes(AttributeLocation.tangent)}
+    [[location(6)]] tangent : vec3<f32>;
+    [[location(7)]] bitangent : vec3<f32>;
+#endif
+  };
+`;
+}
+
 export const GetInstanceMatrix = `
   fn getInstanceMatrix(input : VertexInput) -> mat4x4<f32> {
     return mat4x4<f32>(

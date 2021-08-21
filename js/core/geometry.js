@@ -243,3 +243,20 @@ export class AABB {
   min = new Float32Array(3);
   max = new Float32Array(3);
 }
+
+// A mesh is a collection of geometry/material pairs. Only meshes should be used as components for
+// an entity. (This allows entities to have multiple geometries, whereas otherwise they would only
+// be able to have a single geometry and material, which would be limiting cases in which
+// an object consisting of multiple parts need to function as a single entity.)
+export class Mesh {
+  primitives = []; // Borrowing the term from glTF, but it's clunky.
+
+  constructor(...primitives) {
+    for (const primitive of primitives) {
+      if (!primitive.geometry || !primitive.material) {
+        throw new Error('Primitive specified for mesh that lacks geometry or material');
+      }
+    }
+    this.primitives.push(...primitives);
+  }
+}
