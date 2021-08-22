@@ -1,8 +1,6 @@
 import { System } from 'ecs';
-import { Geometry } from '../core/geometry.js';
 import { WebGPURenderTargets } from './webgpu-render-targets.js';
-import { WebGPURenderBatch } from './webgpu-geometry.js';
-import { WebGPURenderMaterial, WebGPURenderPipeline } from './webgpu-pipeline.js';
+import { WebGPURenderBatch } from './webgpu-instancing.js';
 import { WebGPUCamera } from './webgpu-camera.js';
 
 class RenderPassGlobals {

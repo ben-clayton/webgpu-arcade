@@ -1,7 +1,8 @@
 import { System } from 'ecs';
 import { Geometry } from '../core/geometry.js';
-import { WebGPUManualInstances } from './webgpu-geometry.js';
-import { WebGPURenderPipeline, RenderOrder } from './webgpu-pipeline.js';
+import { WebGPUManualInstances } from './webgpu-instancing.js';
+import { WebGPUMesh, WebGPUMeshPrimitive } from './webgpu-mesh.js';
+import { WebGPUMaterialPipeline, RenderOrder } from './materials/webgpu-materials.js';
 import { WebGPULightBuffer } from './webgpu-light.js';
 import { LightSpriteVertexSource, LightSpriteFragmentSource } from './wgsl/light-sprite.js';
 
@@ -59,18 +60,22 @@ export class WebGPULightSpriteSystem extends System {
       }
     });
 
-    this.gpuPipeline = new WebGPURenderPipeline();
-    this.gpuPipeline.renderOrder = RenderOrder.Last;
-    this.gpuPipeline.pipeline = this.pipeline;
-
-    const geometry = new Geometry({
-      drawCount: 4
+    const gpuPipeline = new WebGPUMaterialPipeline({
+      pipeline: this.pipeline,
+      renderOrder: RenderOrder.Last
     });
+
+    const lightMesh = new WebGPUMesh(
+      new WebGPUMeshPrimitive(
+        new Geometry({ drawCount: 4 }),
+        gpuPipeline
+      )
+    );
 
     this.instances = new WebGPUManualInstances(gpu);
     this.instances.instanceCount = 0;
 
-    this.entity = this.world.create(geometry, this.gpuPipeline, this.instances);
+    this.entity = this.world.create(lightMesh, this.instances);
   }
 
   execute(delta, time) {

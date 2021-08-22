@@ -9,19 +9,21 @@ export const RenderOrder = {
   Last: 4
 };
 
+let nextPipelineId = 1;
+
 export class WebGPUMaterialPipeline {
-  pipelineId = 0;
-  pipeline = null;
-  renderOrder = RenderOrder.Default;
-  instanceSlot = -1;
+  constructor(options) {
+    this.pipelineId = nextPipelineId++;
+    this.pipeline = options?.pipeline ?? null;
+    this.renderOrder = options?.renderOrder ?? RenderOrder.Default
+    this.instanceSlot = options?.instanceSlot ?? -1;
+  }
 }
 
-export class WebGPUBindGroups {
+export class WebGPUMaterialBindGroups {
   bindGroups = [];
-  constructor(bg) {
-    if (bg) {
-      this.bindGroups.push(bg);
-    }
+  constructor(...bg) {
+    this.bindGroups.push(...bg);
   }
 }
 
@@ -47,7 +49,7 @@ const INSTANCE_BUFFER_LAYOUT = {
   }]
 };
 
-let nextPipelineId = 1;
+
 
 const materialFactories = new Map();
 
@@ -81,11 +83,11 @@ export class WebGPUMaterialFactory {
       const pipeline = this.createPipeline(gpu, geometryLayout, vertex, fragment, material);
       if (!pipeline) { return; }
 
-      gpuPipeline = new WebGPUMaterialPipeline();
-      gpuPipeline.renderOrder = material.transparent ? RenderOrder.Transparent : this.renderOrder;
-      gpuPipeline.pipeline = pipeline;
-      gpuPipeline.pipelineId = nextPipelineId++;
-      gpuPipeline.instanceSlot = geometryLayout.buffers.length;
+      gpuPipeline = new WebGPUMaterialPipeline({
+        pipeline,
+        renderOrder: material.transparent ? RenderOrder.Transparent : this.renderOrder,
+        instanceSlot: geometryLayout.buffers.length
+      });
       this.#pipelineCache.set(key, gpuPipeline);
     }
     return gpuPipeline;
@@ -94,7 +96,7 @@ export class WebGPUMaterialFactory {
   getBindGroup(gpu, material) {
     let bindGroup = this.#materialCache.get(material);
     if (!bindGroup) {
-      bindGroup = new WebGPUBindGroups(this.createBindGroup(gpu, material));
+      bindGroup = new WebGPUMaterialBindGroups(this.createBindGroup(gpu, material));
       this.#materialCache.set(material, bindGroup);
     }
     return bindGroup;

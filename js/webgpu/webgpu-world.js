@@ -12,13 +12,11 @@ import {
   WebGPUSubmitRenderPasses
 } from './webgpu-render-pass.js';
 import { WebGPULightSpriteSystem } from './webgpu-light-sprite.js';
-import { WebGPUGeometrySystem } from './webgpu-geometry.js';
+import { WebGPUInstancingSystem } from './webgpu-instancing.js';
 import { WebGPUPBRPipelineSystem } from './webgpu-pbr-pipeline.js';
 import { WebGPUUnlitPipelineSystem } from './webgpu-unlit-pipeline.js';
 import { WebGPUSkyboxSystem } from './webgpu-skybox.js';
-
-import './materials/webgpu-materials.js'
-import { WebGPUMeshMaterialSystem } from './webgpu-mesh-material.js'
+import { WebGPUMeshSystem } from './webgpu-mesh.js'
 
 const desiredFeatures = [
   'texture-compression-bc'
@@ -53,10 +51,10 @@ export class WebGPUWorld extends RenderWorld {
     this.registerRenderSystem(WebGPUClusteredLights);
     this.registerRenderSystem(WebGPULightSpriteSystem);
     this.registerRenderSystem(WebGPUSkyboxSystem);
-    this.registerRenderSystem(WebGPUGeometrySystem);
-    this.registerRenderSystem(WebGPUMeshMaterialSystem);
+    this.registerRenderSystem(WebGPUMeshSystem);
     this.registerRenderSystem(WebGPUPBRPipelineSystem);
     this.registerRenderSystem(WebGPUUnlitPipelineSystem);
+    this.registerRenderSystem(WebGPUInstancingSystem);
     this.registerRenderSystem(WebGPUBeginRenderPasses);
     this.registerRenderSystem(WebGPUDefaultRenderPass);
     this.registerRenderSystem(WebGPUSubmitRenderPasses);
