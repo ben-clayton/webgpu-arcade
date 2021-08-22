@@ -13,8 +13,6 @@ import {
 } from './webgpu-render-pass.js';
 import { WebGPULightSpriteSystem } from './webgpu-light-sprite.js';
 import { WebGPUInstancingSystem } from './webgpu-instancing.js';
-import { WebGPUPBRPipelineSystem } from './webgpu-pbr-pipeline.js';
-import { WebGPUUnlitPipelineSystem } from './webgpu-unlit-pipeline.js';
 import { WebGPUSkyboxSystem } from './webgpu-skybox.js';
 import { WebGPUMeshSystem } from './webgpu-mesh.js'
 
@@ -52,8 +50,6 @@ export class WebGPUWorld extends RenderWorld {
     this.registerRenderSystem(WebGPULightSpriteSystem);
     this.registerRenderSystem(WebGPUSkyboxSystem);
     this.registerRenderSystem(WebGPUMeshSystem);
-    this.registerRenderSystem(WebGPUPBRPipelineSystem);
-    this.registerRenderSystem(WebGPUUnlitPipelineSystem);
     this.registerRenderSystem(WebGPUInstancingSystem);
     this.registerRenderSystem(WebGPUBeginRenderPasses);
     this.registerRenderSystem(WebGPUDefaultRenderPass);

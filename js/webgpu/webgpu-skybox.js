@@ -1,6 +1,7 @@
 import { System } from 'ecs';
 import { Geometry, Attribute } from '../core/geometry.js';
-import { WebGPURenderMaterial, WebGPURenderPipeline, RenderOrder } from './webgpu-pipeline.js';
+import { WebGPUMesh, WebGPUMeshPrimitive } from './webgpu-mesh.js';
+import { WebGPUMaterialPipeline, RenderOrder, WebGPUMaterialBindGroups } from './materials/webgpu-materials.js';
 import { SkyboxVertexSource, SkyboxFragmentSource } from './wgsl/skybox.js';
 import { Skybox } from '../core/skybox.js';
 
@@ -105,9 +106,10 @@ export class WebGPUSkyboxSystem extends System {
     const vertexBuffer = gpu.createStaticBuffer(SKYBOX_CUBE_VERTS, 'vertex');
     const indexBuffer = gpu.createStaticBuffer(SKYBOX_CUBE_INDICES, 'index');
 
-    this.gpuPipeline = new WebGPURenderPipeline();
-    this.gpuPipeline.renderOrder = RenderOrder.Skybox;
-    this.gpuPipeline.pipeline = this.pipeline;
+    this.gpuPipeline = new WebGPUMaterialPipeline({
+      pipeline: this.pipeline,
+      renderOrder: RenderOrder.Skybox
+    });
 
     this.geometry = new Geometry({
       drawCount: 36,
@@ -125,14 +127,20 @@ export class WebGPUSkyboxSystem extends System {
 
       const skyboxTexture = await skybox.texture;
 
-      entity.add(this.gpuPipeline, new WebGPURenderMaterial(
-        gpu.device.createBindGroup({
-          layout: this.bindGroupLayout,
-          entries: [{
-            binding: 0,
-            resource: skyboxTexture.texture.createView({ dimension: 'cube' }),
-          }]
-        })
+      const bindGroup = gpu.device.createBindGroup({
+        layout: this.bindGroupLayout,
+        entries: [{
+          binding: 0,
+          resource: skyboxTexture.texture.createView({ dimension: 'cube' }),
+        }]
+      });
+
+      entity.add(new WebGPUMesh(
+        new WebGPUMeshPrimitive(
+          this.geometry,
+          this.gpuPipeline,
+          new WebGPUMaterialBindGroups(bindGroup)
+        )
       ));
     });
   }

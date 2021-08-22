@@ -3,7 +3,7 @@ import { System } from 'ecs';
 import { Gltf2Loader } from '../gltf2-loader.js';
 import { Transform, TransformPool } from './transform.js';
 import { EntityGroup } from './entity-group.js';
-import { Geometry, InterleavedAttributes, AABB } from './geometry.js';
+import { Mesh, Geometry, InterleavedAttributes, AABB } from './geometry.js';
 import { UnlitMaterial, PBRMaterial } from './materials.js';
 import { vec3 } from 'gl-matrix';
 
@@ -198,25 +198,29 @@ class GltfClient {
       }
     }
 
-    /*return {
+    return {
       geometry: new Geometry(geometryDescriptor),
       material: primitive.material,
       aabb
-    };*/
+    };
 
-    const entity = this.gpu.create(new Geometry(geometryDescriptor), primitive.material, aabb);
+    /*const entity = this.gpu.create(new Geometry(geometryDescriptor), primitive.material, aabb);
     // Don't enable the entities till loading is complete. Prevents popping artifacts.
     entity.enabled = false;
-    return entity;
+    return entity;*/
+  }
+
+  createMesh(mesh) {
+    return new Mesh(...mesh.primitives);
   }
 
   createSkin(skin) {
     // Make sure that the transforms for each joint use sequential storage for their world matrices.
-    skin.jointPool = new TransformPool(skin.joints.length);
+    /*skin.jointPool = new TransformPool(skin.joints.length);
     for (let i = 0; i < skin.joints.length; ++i) {
       const joint = skin.joints[i];
       skin.jointPool.setTransformAtIndex(i, joint.transform);
-    }
+    }*/
 
     // TODO: What else needs to happen here?
     // InverseBindMatrix extraction at least.
@@ -235,17 +239,35 @@ class GltfClient {
       });
     }
 
+    const entity = this.gpu.create(node.transform);
+
     if (node.mesh) {
-      for (const primitiveEntity of node.mesh.primitives) {
-        primitiveEntity.add(node.transform);
+      const aabb = new AABB();
+      let aabbInitialized = false;
+
+      for (const primitive of node.mesh.primitives) {
+        if (aabbInitialized) {
+          vec3.min(aabb.min, aabb.min, primitive.aabb.min);
+          vec3.max(aabb.max, aabb.max, primitive.aabb.max);
+        } else {
+          vec3.copy(aabb.min, primitive.aabb.min);
+          vec3.copy(aabb.max, primitive.aabb.max);
+          aabbInitialized = true;
+        }
       }
+
+      // TODO: Take into account geometry transforms.
+      entity.add(node.mesh, aabb);
     }
 
     for (const child of node.children) {
-      node.transform.addChild(child.transform);
+      const childTransform = child.get(Transform);
+      if (childTransform) {
+        node.transform.addChild(childTransform);
+      }
     }
 
-    return node;
+    return entity;
   }
 }
 
@@ -255,12 +277,7 @@ export class GltfSystem extends System {
   }
 
   addNodeToGroup(node, group) {
-    if (node.mesh) {
-      for (const primitiveEntity of node.mesh.primitives) {
-        group.entities.push(primitiveEntity);
-        primitiveEntity.enabled = true;
-      }
-    }
+    group.entities.push(node);
 
     for (const child of node.children) {
       this.addNodeToGroup(child, group);
@@ -280,19 +297,19 @@ export class GltfSystem extends System {
       const group = new EntityGroup();
       entity.add(group);
       gltf.setLoadedPromise(this.loader.loadFromUrl(gltf.src).then(scene => {
-        for (const node of scene.nodes) {
-          transform.addChild(node.transform);
+        /*for (const node of scene.nodes) {
+          const childTransform = node.get(Transform);
+          transform.addChild(childTransform);
           this.addNodeToGroup(node, group);
-        }
+        }*/
 
-        // Get an AABB that encompasses the entire scene.
         const aabb = new AABB();
         let aabbInitialized = false;
-        for (const entity of group.entities) {
-          const entityAABB = entity.get(AABB);
+
+        /*for (const childEntity of group.entities) {
+          const entityAABB = childEntity.get(AABB);
           if (!entityAABB) { continue; }
 
-          // TODO: Take into account geometry transforms.
           if (aabbInitialized) {
             vec3.min(aabb.min, aabb.min, entityAABB.min);
             vec3.max(aabb.max, aabb.max, entityAABB.max);
@@ -301,7 +318,9 @@ export class GltfSystem extends System {
             vec3.copy(aabb.max, entityAABB.max);
             aabbInitialized = true;
           }
-        }
+        }*/
+
+        // TODO: Take into account geometry transforms.
         entity.add(aabb);
       }));
     });

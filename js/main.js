@@ -44,6 +44,7 @@ projection.zFar = 1024;
 
 const orbitControls = new OrbitControls();
 orbitControls.distance = 10;
+orbitControls.maxDistance = 50;
 orbitControls.angle = [0.25, 0];
 
 const camera = world.create(
@@ -114,7 +115,7 @@ const dragon = world.create(
 );
 
 dragonGltf.loaded.then(() => {
-  const aabb = dragon.get(AABB);
+  /*const aabb = dragon.get(AABB);
   console.log('Object Loaded. Min:', aabb.min, ' Max:', aabb.max);
 
   const size = vec3.distance(aabb.max, aabb.min);
@@ -129,7 +130,7 @@ dragonGltf.loaded.then(() => {
     (aabb.max[0] + aabb.min[0]) / 2,
     (aabb.max[1] + aabb.min[1]) / 2,
     (aabb.max[2] + aabb.min[2]) / 2,
-  );
+  );*/
 });
 
 /*world.create(
