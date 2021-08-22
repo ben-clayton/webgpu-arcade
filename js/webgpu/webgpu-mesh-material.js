@@ -2,17 +2,27 @@ import { System } from 'ecs';
 import { Mesh } from '../core/geometry.js';
 import { WebGPUMaterialFactory } from './materials/webgpu-materials.js';
 
-export class WebGPUMeshMaterial {
-  // One entry in each of these for each primitive in the original mesh.
-  pipelines = [];
-  bindGroups = [];
+export class WebGPUMeshPrimitive {
+  constructor(geometry, pipeline, bindGroups) {
+    this.geometry = geometry;
+    this.pipeline = pipeline;
+    this.bindGroups = bindGroups;
+  }
+}
+
+export class WebGPUMesh {
+  primitives = [];
+
+  constructor(...gpuPrimitives) {
+    this.primitives.push(...gpuPrimitives);
+  }
 }
 
 export class WebGPUMeshMaterialSystem extends System {
   #factories = new Map();
 
   async init(gpu) {
-    this.needsMaterialQuery = this.query(Mesh).not(WebGPUMeshMaterial);
+    this.needsMaterialQuery = this.query(Mesh).not(WebGPUMesh);
 
     const materialFactories = WebGPUMaterialFactory.getFactories();
     for (const [material, factoryConstructor] of materialFactories) {
@@ -26,7 +36,7 @@ export class WebGPUMeshMaterialSystem extends System {
     const gpu = this.world;
 
     this.needsMaterialQuery.forEach((entity, mesh) => {
-      let meshMaterial = new WebGPUMeshMaterial();
+      const gpuPrimitives = [];
       for (const primitive of mesh.primitives) {
         const layout = primitive.geometry.layout;
         const material = primitive.material;
@@ -34,10 +44,14 @@ export class WebGPUMeshMaterialSystem extends System {
         if (!factory) {
           throw new Error(`No WebGPUMaterialFactory registered for ${material.constructor.name}`);
         }
-        meshMaterial.pipelines.push(factory.getPipeline(gpu, layout, material));
-        meshMaterial.bindGroups.push(factory.getBindGroup(gpu, material));
+
+        gpuPrimitives.push(new WebGPUMeshPrimitive(
+          primitive.geometry,
+          factory.getPipeline(gpu, layout, material),
+          factory.getBindGroup(gpu, material)
+        ));
       }
-      entity.add(meshMaterial);
+      entity.add(new WebGPUMesh(...gpuPrimitives));
     });
   }
 }

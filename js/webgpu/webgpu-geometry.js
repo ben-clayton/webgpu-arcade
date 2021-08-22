@@ -3,7 +3,7 @@ import { mat4 } from 'gl-matrix';
 
 import { Mesh, Geometry } from '../core/geometry.js';
 import { Transform } from '../core/transform.js';
-import { WebGPUMeshMaterial } from './webgpu-mesh-material.js';
+import { WebGPUMesh } from './webgpu-mesh-material.js';
 import { WebGPURenderMaterial, WebGPURenderPipeline } from './webgpu-pipeline.js';
 
 import { INSTANCE_BUFFER_SIZE } from './wgsl/common.js';
@@ -31,7 +31,7 @@ export class WebGPUGeometrySystem extends System {
     });
 
     this.renderables = this.query(Geometry, WebGPURenderPipeline);
-    this.renderableMeshes = this.query(Mesh, WebGPUMeshMaterial);
+    this.renderableMeshes = this.query(WebGPUMesh);
 
     this.renderBatchEntity = gpu.create();
   }
@@ -67,11 +67,11 @@ export class WebGPUGeometrySystem extends System {
       instances.transforms.push(transform?.worldMatrix || IDENTITY_MATRIX);
     });
 
-    this.renderableMeshes.forEach((entity, mesh, meshMaterial) => {
-      for (let i = 0; i < mesh.primitives.length; ++i) {
-        const geometry = mesh.primitives[i].geometry;
-        const pipeline = meshMaterial.pipelines[i];
-        const material = meshMaterial.bindGroups[i];
+    this.renderableMeshes.forEach((entity, gpuMesh) => {
+      for (const gpuPrimitive of gpuMesh.primitives) {
+        const geometry = gpuPrimitive.geometry;
+        const pipeline = gpuPrimitive.pipeline;
+        const material = gpuPrimitive.bindGroups;
 
         let geometryMaterials = renderBatch.pipelineGeometries.get(pipeline);
         if (!geometryMaterials) {
