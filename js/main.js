@@ -82,7 +82,7 @@ world.create(
 );
 
 // Create a grid of cube instances to test the instancing system.
-const cubeGeometry = new createCubeGeometry(world);
+/*const cubeGeometry = new createCubeGeometry(world);
 const cubeMaterial = new PBRMaterial();
 
 const cubeMesh = new Mesh({ geometry: cubeGeometry, material: cubeMaterial });
@@ -99,7 +99,7 @@ for (let x = 0; x < 5; ++x) {
       );
     }
   }
-}
+}*/
 
 // Load a scene
 const dungeon = world.create(
@@ -107,6 +107,7 @@ const dungeon = world.create(
 );
 
 const dragonTransform = new Transform();
+//const dragonGltf = new GltfScene('../glTF-Sample-Models/2.0/FlightHelmet/glTF/FlightHelmet.gltf')
 //const dragonGltf = new GltfScene('../glTF-Sample-Models/2.0/DamagedHelmet/glTF-Binary/DamagedHelmet.glb')
 //const dragonGltf = new GltfScene('../glTF-Sample-Models/2.0/SimpleSparseAccessor/glTF/SimpleSparseAccessor.gltf')
 const dragonGltf = new GltfScene('./media/models/dragon/dragon.glb');
@@ -115,7 +116,7 @@ const dragon = world.create(
 );
 
 dragonGltf.loaded.then(() => {
-  /*const aabb = dragon.get(AABB);
+  const aabb = dragon.get(AABB);
   console.log('Object Loaded. Min:', aabb.min, ' Max:', aabb.max);
 
   const size = vec3.distance(aabb.max, aabb.min);
@@ -130,7 +131,7 @@ dragonGltf.loaded.then(() => {
     (aabb.max[0] + aabb.min[0]) / 2,
     (aabb.max[1] + aabb.min[1]) / 2,
     (aabb.max[2] + aabb.min[2]) / 2,
-  );*/
+  );
 });
 
 /*world.create(

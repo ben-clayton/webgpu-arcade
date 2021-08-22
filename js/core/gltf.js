@@ -157,6 +157,12 @@ class GltfClient {
         attribBuffer = new InterleavedAttributes(accessor.clientVertexBuffer, accessor.bufferView.byteStride);
         attribBuffers.set(accessor.bufferViewIndex, attribBuffer);
         drawCount = accessor.count;
+      } else if (Math.abs(accessor.byteOffset - attribBuffer.minOffset) > 2048) {
+        // In some cases the buffer used will be the same but the data won't actually be interleaved.
+        // (ie: The attributes are placed in sequential blocks in the same buffer.) In case that
+        // happens, defined it as if it were a separate buffer to avoid WebGPU limits on maximum
+        // attribute offsets.
+        attribBuffer = new InterleavedAttributes(accessor.clientVertexBuffer, accessor.bufferView.byteStride);
       }
 
       attribBuffer.addAttribute(AttribMap[name], accessor.byteOffset, accessor.gpuFormat);
@@ -240,6 +246,7 @@ class GltfClient {
     }
 
     const entity = this.gpu.create(node.transform);
+    entity.name = node.name;
 
     if (node.mesh) {
       const aabb = new AABB();
@@ -261,13 +268,12 @@ class GltfClient {
     }
 
     for (const child of node.children) {
-      const childTransform = child.get(Transform);
-      if (childTransform) {
-        node.transform.addChild(childTransform);
-      }
+      node.transform.addChild(child.transform);
     }
 
-    return entity;
+    node.entity = entity;
+
+    return node;
   }
 }
 
@@ -277,7 +283,7 @@ export class GltfSystem extends System {
   }
 
   addNodeToGroup(node, group) {
-    group.entities.push(node);
+    group.entities.push(node.entity);
 
     for (const child of node.children) {
       this.addNodeToGroup(child, group);
@@ -297,16 +303,15 @@ export class GltfSystem extends System {
       const group = new EntityGroup();
       entity.add(group);
       gltf.setLoadedPromise(this.loader.loadFromUrl(gltf.src).then(scene => {
-        /*for (const node of scene.nodes) {
-          const childTransform = node.get(Transform);
-          transform.addChild(childTransform);
+        for (const node of scene.nodes) {
+          transform.addChild(node.transform);
           this.addNodeToGroup(node, group);
-        }*/
+        }
 
         const aabb = new AABB();
         let aabbInitialized = false;
 
-        /*for (const childEntity of group.entities) {
+        for (const childEntity of group.entities) {
           const entityAABB = childEntity.get(AABB);
           if (!entityAABB) { continue; }
 
@@ -318,7 +323,7 @@ export class GltfSystem extends System {
             vec3.copy(aabb.max, entityAABB.max);
             aabbInitialized = true;
           }
-        }*/
+        }
 
         // TODO: Take into account geometry transforms.
         entity.add(aabb);

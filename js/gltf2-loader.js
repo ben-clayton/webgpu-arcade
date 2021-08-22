@@ -468,7 +468,6 @@ export class Gltf2Loader {
         primitive.material = material;
       }));
 
-      const attributeBuffers = new Map();
       for (const name in primitive.attributes) {
         // TODO: Handle accessors with no bufferView (initialized to 0);
         primitivePromises.push(resolveAccessor(primitive.attributes[name], 'VertexBuffer').then(accessor => {
