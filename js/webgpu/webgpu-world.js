@@ -17,6 +17,9 @@ import { WebGPUPBRPipelineSystem } from './webgpu-pbr-pipeline.js';
 import { WebGPUUnlitPipelineSystem } from './webgpu-unlit-pipeline.js';
 import { WebGPUSkyboxSystem } from './webgpu-skybox.js';
 
+import './materials/webgpu-materials.js'
+import { WebGPUMeshMaterialSystem } from './webgpu-mesh-material.js'
+
 const desiredFeatures = [
   'texture-compression-bc'
 ];
@@ -51,6 +54,7 @@ export class WebGPUWorld extends RenderWorld {
     this.registerRenderSystem(WebGPULightSpriteSystem);
     this.registerRenderSystem(WebGPUSkyboxSystem);
     this.registerRenderSystem(WebGPUGeometrySystem);
+    this.registerRenderSystem(WebGPUMeshMaterialSystem);
     this.registerRenderSystem(WebGPUPBRPipelineSystem);
     this.registerRenderSystem(WebGPUUnlitPipelineSystem);
     this.registerRenderSystem(WebGPUBeginRenderPasses);

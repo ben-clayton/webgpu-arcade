@@ -94,7 +94,7 @@ for (let x = 0; x < 5; ++x) {
           (x-2) * 2.5,
           (y-2) * 2.5,
           (z-2) * 2.5] }),
-          cubeGeometry, cubeMaterial, cubeMesh
+          cubeMesh
       );
     }
   }

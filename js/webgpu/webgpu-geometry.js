@@ -3,6 +3,7 @@ import { mat4 } from 'gl-matrix';
 
 import { Mesh, Geometry } from '../core/geometry.js';
 import { Transform } from '../core/transform.js';
+import { WebGPUMeshMaterial } from './webgpu-mesh-material.js';
 import { WebGPURenderMaterial, WebGPURenderPipeline } from './webgpu-pipeline.js';
 
 import { INSTANCE_BUFFER_SIZE } from './wgsl/common.js';
@@ -30,6 +31,7 @@ export class WebGPUGeometrySystem extends System {
     });
 
     this.renderables = this.query(Geometry, WebGPURenderPipeline);
+    this.renderableMeshes = this.query(Mesh, WebGPUMeshMaterial);
 
     this.renderBatchEntity = gpu.create();
   }
@@ -63,6 +65,35 @@ export class WebGPUGeometrySystem extends System {
       totalInstanceCount++;
       instances.instanceCount += manualInstances?.instanceCount || 1;
       instances.transforms.push(transform?.worldMatrix || IDENTITY_MATRIX);
+    });
+
+    this.renderableMeshes.forEach((entity, mesh, meshMaterial) => {
+      for (let i = 0; i < mesh.primitives.length; ++i) {
+        const geometry = mesh.primitives[i].geometry;
+        const pipeline = meshMaterial.pipelines[i];
+        const material = meshMaterial.bindGroups[i];
+
+        let geometryMaterials = renderBatch.pipelineGeometries.get(pipeline);
+        if (!geometryMaterials) {
+          geometryMaterials = new Map();
+          renderBatch.pipelineGeometries.set(pipeline, geometryMaterials);
+        }
+        let materialInstances = geometryMaterials.get(geometry);
+        if (!materialInstances) {
+          materialInstances = new Map();
+          geometryMaterials.set(geometry, materialInstances);
+        }
+        let instances = materialInstances.get(material);
+        if (!instances) {
+          instances = {instanceCount: 0, transforms: [], bufferOffset: 0};
+          materialInstances.set(material, instances);
+        }
+        const transform = entity.get(Transform);
+        const manualInstances = entity.get(WebGPUManualInstances);
+        totalInstanceCount++;
+        instances.instanceCount += manualInstances?.instanceCount || 1;
+        instances.transforms.push(transform?.worldMatrix || IDENTITY_MATRIX);
+      }
     });
 
     // Loop through all of the instances we're going to render and place their transforms in the
