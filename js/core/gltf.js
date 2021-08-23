@@ -5,7 +5,7 @@ import { Transform, TransformPool } from './transform.js';
 import { EntityGroup } from './entity-group.js';
 import { Mesh, Geometry, InterleavedAttributes, AABB } from './geometry.js';
 import { UnlitMaterial, PBRMaterial } from './materials.js';
-import { vec3 } from 'gl-matrix';
+import { mat4, vec3 } from 'gl-matrix';
 
 // Used for comparing values from glTF files, which uses WebGL enums natively.
 const GL = WebGLRenderingContext;
@@ -209,11 +209,6 @@ class GltfClient {
       material: primitive.material,
       aabb
     };
-
-    /*const entity = this.gpu.create(new Geometry(geometryDescriptor), primitive.material, aabb);
-    // Don't enable the entities till loading is complete. Prevents popping artifacts.
-    entity.enabled = false;
-    return entity;*/
   }
 
   createMesh(mesh) {
@@ -222,14 +217,33 @@ class GltfClient {
 
   createSkin(skin) {
     // Make sure that the transforms for each joint use sequential storage for their world matrices.
-    /*skin.jointPool = new TransformPool(skin.joints.length);
+    skin.jointPool = new TransformPool(skin.joints.length);
     for (let i = 0; i < skin.joints.length; ++i) {
       const joint = skin.joints[i];
       skin.jointPool.setTransformAtIndex(i, joint.transform);
-    }*/
+    }
+
+    let invBindMatricesArray;
+    if (skin.inverseBindMatrices) {
+      const ibmAccessor = skin.inverseBindMatrices;
+      const ibmBufferView = ibmAccessor.bufferView
+      // TODO: Do we have to account for non-64 byte strides here?
+      invBindMatricesArray = new Float32Array(
+        ibmBufferView.buffer,
+        ibmBufferView.byteOffset + ibmAccessor.byteOffset,
+        16 * skin.joints.length);
+    } else {
+      // Create a default set of IBM initialized to the indentity matrix
+      invBindMatricesArray = new Float32Array(16 * skin.joints.length);
+      for (let i = 0; i < skin.joints.length; ++i) {
+        const matrix = new Float32Array(invBindMatricesArray.buffer, 16 * i * Float32Array.BYTES_PER_ELEMENT, 16);
+        mat4.identity(matrix);
+      }
+    }
+
+    skin.inverseBindMatrices = invBindMatricesArray;
 
     // TODO: What else needs to happen here?
-    // InverseBindMatrix extraction at least.
 
     return skin;
   }

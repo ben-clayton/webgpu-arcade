@@ -529,7 +529,7 @@ export class Gltf2Loader {
 
         if ('inverseBindMatrices' in skin) {
           skinPromises.push(resolveAccessor(skin.inverseBindMatrices, 'InverseBindMatrices').then(accessor => {
-            skinPromises.inverseBindMatrices = accessor;
+            skin.inverseBindMatrices = accessor;
           }));
         }
 
