@@ -49,8 +49,6 @@ const INSTANCE_BUFFER_LAYOUT = {
   }]
 };
 
-
-
 const materialFactories = new Map();
 
 export class WebGPUMaterialFactory {

@@ -78,6 +78,8 @@ export class WebGPUInstancingSystem extends System {
         for (const instances of materialInstances.values()) {
           instances.bufferOffset = arrayOffset * Float32Array.BYTES_PER_ELEMENT;
           for (const transform of instances.transforms) {
+            // TODO: Could just copy over the 4x3 portion of the matrix needed to represent a full
+            // TRS transform. Copies would be slower, though.
             this.instanceArray.set(transform, arrayOffset);
             arrayOffset += 16;
           }

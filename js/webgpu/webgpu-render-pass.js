@@ -77,7 +77,7 @@ export class WebGPURenderPass extends System {
     }
   }
 
-  renderPass(gpu, camera, commandEncoder, outputTexture) {
+  renderPass(gpu, camera, renderBatch, commandEncoder, outputTexture) {
     // Override for each render pass.
   }
 
@@ -86,14 +86,17 @@ export class WebGPURenderPass extends System {
     const passGlobals = this.singleton.get(RenderPassGlobals);
 
     this.cameras.forEach((entity, camera) => {
-      this.renderPass(gpu, camera, passGlobals.commandEncoder, passGlobals.outputTexture);
+      // There should only be one render batch per frame.
+      this.renderBatch.forEach((entity, renderBatch) => {
+        this.renderPass(gpu, camera, renderBatch, passGlobals.commandEncoder, passGlobals.outputTexture);
+      });
       return false; // Don't try to process more than one camera.
     });
   }
 }
 
 export class WebGPUDefaultRenderPass extends WebGPURenderPass {
-  renderPass(gpu, camera, commandEncoder, outputTexture) {
+  renderPass(gpu, camera, renderBatch, commandEncoder, outputTexture) {
     if (gpu.sampleCount > 1) {
       this.colorAttachment.resolveTarget = outputTexture.createView();
     } else {
@@ -105,42 +108,40 @@ export class WebGPUDefaultRenderPass extends WebGPURenderPass {
     passEncoder.setBindGroup(0, camera.bindGroup);
 
     // Loop through all the renderable entities and store them by pipeline.
-    this.renderBatch.forEach((entity, renderBatch) => {
-      for (const pipeline of renderBatch.sortedPipelines) {
-        passEncoder.setPipeline(pipeline.pipeline);
+    for (const pipeline of renderBatch.sortedPipelines) {
+      passEncoder.setPipeline(pipeline.pipeline);
 
-        const geometryList = renderBatch.pipelineGeometries.get(pipeline);
-        for (const [geometry, materialList] of geometryList) {
+      const geometryList = renderBatch.pipelineGeometries.get(pipeline);
+      for (const [geometry, materialList] of geometryList) {
 
-          for (const vb of geometry.vertexBuffers) {
-            passEncoder.setVertexBuffer(vb.slot, vb.buffer.gpuBuffer, vb.offset);
+        for (const vb of geometry.vertexBuffers) {
+          passEncoder.setVertexBuffer(vb.slot, vb.buffer.gpuBuffer, vb.offset);
+        }
+        const ib = geometry.indexBuffer;
+        if (ib) {
+          passEncoder.setIndexBuffer(ib.buffer.gpuBuffer, ib.format, ib.offset);
+        }
+
+        for (const [material, instances] of materialList) {
+          if (pipeline.instanceSlot >= 0) {
+            passEncoder.setVertexBuffer(pipeline.instanceSlot, renderBatch.instanceBuffer, instances.bufferOffset);
           }
-          const ib = geometry.indexBuffer;
+
+          if (material) {
+            let i = 1;
+            for (const bindGroup of material.bindGroups) {
+              passEncoder.setBindGroup(i++, bindGroup);
+            }
+          }
+
           if (ib) {
-            passEncoder.setIndexBuffer(ib.buffer.gpuBuffer, ib.format, ib.offset);
-          }
-
-          for (const [material, instances] of materialList) {
-            if (pipeline.instanceSlot >= 0) {
-              passEncoder.setVertexBuffer(pipeline.instanceSlot, renderBatch.instanceBuffer, instances.bufferOffset);
-            }
-
-            if (material) {
-              let i = 1;
-              for (const bindGroup of material.bindGroups) {
-                passEncoder.setBindGroup(i++, bindGroup);
-              }
-            }
-
-            if (ib) {
-              passEncoder.drawIndexed(geometry.drawCount, instances.instanceCount);
-            } else {
-              passEncoder.draw(geometry.drawCount, instances.instanceCount);
-            }
+            passEncoder.drawIndexed(geometry.drawCount, instances.instanceCount);
+          } else {
+            passEncoder.draw(geometry.drawCount, instances.instanceCount);
           }
         }
       }
-    });
+    }
 
     passEncoder.endPass();
   }

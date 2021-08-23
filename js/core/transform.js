@@ -4,7 +4,6 @@ const DEFAULT_ORIENTATION = quat.create();
 const DEFAULT_SCALE = vec3.fromValues(1, 1, 1);
 
 export class Transform {
-  #buffer;
   #position;
   #orientation;
   #scale;
@@ -18,19 +17,23 @@ export class Transform {
   #children;
 
   constructor(options = {}) {
+    let buffer;
+    let offset = 0;
     // Allocate storage for all the transform elements
-    if (options.worldMatrixStorage) {
-      this.#buffer = new Float32Array(26).buffer;
-      this.#worldMatrix = options.worldMatrixStorage;
+    if (options.externalStorage) {
+      buffer = options.externalStorage.buffer;
+      offset = options.externalStorage.offset;
+      const worldMatrixOffset = options.externalStorage.worldMatrixOffset ?? offset + 26 * Float32Array.BYTES_PER_ELEMENT;
+      this.#worldMatrix = new Float32Array(buffer, worldMatrixOffset, 16);
     } else {
-      this.#buffer = new Float32Array(42).buffer;
-      this.#worldMatrix = new Float32Array(this.#buffer, 26 * Float32Array.BYTES_PER_ELEMENT, 16);
+      buffer = new Float32Array(42).buffer;
+      this.#worldMatrix = new Float32Array(buffer, 26 * Float32Array.BYTES_PER_ELEMENT, 16);
     }
 
-    this.#position = new Float32Array(this.#buffer, 0, 3);
-    this.#orientation = new Float32Array(this.#buffer, 3 * Float32Array.BYTES_PER_ELEMENT, 4);
-    this.#scale = new Float32Array(this.#buffer, 7 * Float32Array.BYTES_PER_ELEMENT, 3);
-    this.#matrix = new Float32Array(this.#buffer, 10 * Float32Array.BYTES_PER_ELEMENT, 16);
+    this.#position = new Float32Array(buffer, offset, 3);
+    this.#orientation = new Float32Array(buffer, offset + 3 * Float32Array.BYTES_PER_ELEMENT, 4);
+    this.#scale = new Float32Array(buffer, offset + 7 * Float32Array.BYTES_PER_ELEMENT, 3);
+    this.#matrix = new Float32Array(buffer, offset + 10 * Float32Array.BYTES_PER_ELEMENT, 16);
 
     if (options.matrix) {
       this.#useMatrix = true;
@@ -168,42 +171,28 @@ export class Transform {
 }
 
 export class TransformPool {
-  #matrixStorage;
-  #matrices = [];
+  #buffer;
+  #worldMatrixArray;
   #transforms = [];
   
   constructor(count) {
-    this.#matrixStorage = new Float32Array(16 * count);
-    const buffer = this.#matrixStorage.buffer;
+    this.#buffer = new Float32Array(42 * count).buffer;
+    this.#worldMatrixArray = new Float32Array(this.#buffer, 0, 16 * count);
+
+    const baseOffset = 16 * Float32Array.BYTES_PER_ELEMENT * count;
     for (let i = 0; i < count; ++i) {
-      const offset = i * 16 * Float32Array.BYTES_PER_ELEMENT;
-      const matrix = new Float32Array(buffer, offset, 16);
-      mat4.identity(matrix);
-      this.#matrices[i] = matrix;
+      this.#transforms[i] = new Transform({
+        externalStorage: {
+          buffer: this.#buffer,
+          offset: baseOffset + (i * 24 * Float32Array.BYTES_PER_ELEMENT),
+          worldMatrixOffset: i * 16 * Float32Array.BYTES_PER_ELEMENT,
+        }
+      });
     }
   }
 
   getTransform(index) {
-    if (index >= this.#matrices.length) {
-      throw new Error(`Transform index ${index} is out of bounds`);
-    }
-
-    if (this.#transforms[index] == undefined) {
-      this.#transforms[index] = new Transform({ worldMatrixStorage: this.#matrices[index] });
-    }
     return this.#transforms[index];
-  }
-
-  // Places the given transform at the given index, replacing it's worldMatrix storage with the
-  // pooled storage.
-  setTransformAtIndex(index, transform) {
-    if (index >= this.#matrices.length) {
-      throw new Error(`Transform index ${index} is out of bounds`);
-    }
-    // TODO: Could end up with multiple transforms with a shared world matrix by doing this.
-    // Do we need to replace the storage of any old transform at the same index?
-    transform.replaceWorldMatrixStorage(this.#matrices[index]);
-    this.#transforms[index] = transform;
   }
 
   resolveWorldMatrices() {
@@ -214,6 +203,6 @@ export class TransformPool {
 
   get worldMatrixArray() {
     this.resolveWorldMatrices();
-    return this.#matrixStorage;
+    return this.#worldMatrixArray;
   }
 }

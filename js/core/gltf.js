@@ -47,6 +47,15 @@ class GltfClient {
     this.gpu = gpu;
   }
 
+  preprocessJson(json) {
+    // Allocate storage for all the node transforms ahead of time.
+    json.transformPool = new TransformPool(json.nodes.length);
+    for (let i = 0; i < json.nodes.length; ++i) {
+      json.nodes[i].transform = json.transformPool.getTransform(i);
+    }
+    return json;
+  }
+
   createSampler(sampler) {
     const descriptor = {};
 
@@ -217,11 +226,11 @@ class GltfClient {
 
   createSkin(skin) {
     // Make sure that the transforms for each joint use sequential storage for their world matrices.
-    skin.jointPool = new TransformPool(skin.joints.length);
+    /*skin.jointPool = new TransformPool(skin.joints.length);
     for (let i = 0; i < skin.joints.length; ++i) {
       const joint = skin.joints[i];
       skin.jointPool.setTransformAtIndex(i, joint.transform);
-    }
+    }*/
 
     let invBindMatricesArray;
     if (skin.inverseBindMatrices) {
@@ -250,44 +259,47 @@ class GltfClient {
 
   createNode(node) {
     if (node.matrix) {
-      node.transform = new Transform({ matrix: node.matrix });
+      node.transform.matrix = node.matrix;
     } else {
-      node.transform = new Transform({
-        position: node.translation,
-        orientation: node.rotation,
-        scale: node.scale
-      });
+      if (node.translation) { node.transform.position = node.translation; }
+      if (node.rotation) { node.transform.orientation = node.rotation; }
+      if (node.scale) { node.transform.scale = node.scale; }
     }
 
     const entity = this.gpu.create(node.transform);
     entity.name = node.name;
 
     if (node.mesh) {
-      const aabb = new AABB();
+      node.aabb = new AABB();
       let aabbInitialized = false;
 
       for (const primitive of node.mesh.primitives) {
         if (aabbInitialized) {
-          vec3.min(aabb.min, aabb.min, primitive.aabb.min);
-          vec3.max(aabb.max, aabb.max, primitive.aabb.max);
+          vec3.min(node.aabb.min, node.aabb.min, primitive.aabb.min);
+          vec3.max(node.aabb.max, node.aabb.max, primitive.aabb.max);
         } else {
-          vec3.copy(aabb.min, primitive.aabb.min);
-          vec3.copy(aabb.max, primitive.aabb.max);
+          vec3.copy(node.aabb.min, primitive.aabb.min);
+          vec3.copy(node.aabb.max, primitive.aabb.max);
           aabbInitialized = true;
         }
       }
 
       // TODO: Take into account geometry transforms.
-      entity.add(node.mesh, aabb);
+      entity.add(node.mesh, node.aabb);
     }
 
-    for (const child of node.children) {
+    for (const child of node.childNodes) {
       node.transform.addChild(child.transform);
     }
 
     node.entity = entity;
 
     return node;
+  }
+
+  preprocessResult(result, json) {
+    result.transformPool = json.transformPool;
+    return result;
   }
 }
 
@@ -316,8 +328,8 @@ export class GltfSystem extends System {
 
       const group = new EntityGroup();
       entity.add(group);
-      gltf.setLoadedPromise(this.loader.loadFromUrl(gltf.src).then(scene => {
-        for (const node of scene.nodes) {
+      gltf.setLoadedPromise(this.loader.loadFromUrl(gltf.src).then(result => {
+        for (const node of result.scene.nodes) {
           transform.addChild(node.transform);
           this.addNodeToGroup(node, group);
         }
@@ -325,16 +337,15 @@ export class GltfSystem extends System {
         const aabb = new AABB();
         let aabbInitialized = false;
 
-        for (const childEntity of group.entities) {
-          const entityAABB = childEntity.get(AABB);
-          if (!entityAABB) { continue; }
+        for (const node of result.nodes) {
+          if (!node.aabb) { continue; }
 
           if (aabbInitialized) {
-            vec3.min(aabb.min, aabb.min, entityAABB.min);
-            vec3.max(aabb.max, aabb.max, entityAABB.max);
+            vec3.min(aabb.min, aabb.min, node.aabb.min);
+            vec3.max(aabb.max, aabb.max, node.aabb.max);
           } else {
-            vec3.copy(aabb.min, entityAABB.min);
-            vec3.copy(aabb.max, entityAABB.max);
+            vec3.copy(aabb.min, node.aabb.min);
+            vec3.copy(aabb.max, node.aabb.max);
             aabbInitialized = true;
           }
         }

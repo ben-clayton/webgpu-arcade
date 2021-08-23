@@ -609,7 +609,7 @@ export class Gltf2Loader {
         }
 
         clientNode = Promise.all(nodePromises).then(async () => {
-          node.children = await Promise.all(clientChildren);
+          node.childNodes = await Promise.all(clientChildren);
           return client.createNode(node, index);
         });
 
@@ -618,14 +618,27 @@ export class Gltf2Loader {
       return clientNode;
     }
 
+    // Some things such as animations may access the entire node tree, whether or not it's part of a
+    // given scene, so we'll result all of the nodes here first.
+    for (let i = 0; i < json.nodes.length; ++i) {
+      resolveNode(i);
+    }
+
+    const nodes = await Promise.all(clientNodes);
+
     // TODO: Load more than the default scene?
     const scene = json.scenes[json.scene];
-    const sceneNodes = [];
+    scene.nodes = [];
     for (const nodeIndex of scene.nodes) {
-      sceneNodes.push(resolveNode(nodeIndex));
+      scene.nodes.push(nodes[nodeIndex]);
     }
-    scene.nodes = await Promise.all(sceneNodes);
 
-    return scene;
+    let result = {
+      scene,
+      nodes,
+      // animations
+    };
+
+    return await client.preprocessResult(result, json);
   }
 }

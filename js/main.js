@@ -107,9 +107,15 @@ const dungeon = world.create(
 );
 
 const dragonTransform = new Transform();
-//const dragonGltf = new GltfScene('../glTF-Sample-Models/2.0/FlightHelmet/glTF/FlightHelmet.gltf')
-//const dragonGltf = new GltfScene('../glTF-Sample-Models/2.0/DamagedHelmet/glTF-Binary/DamagedHelmet.glb')
-//const dragonGltf = new GltfScene('../glTF-Sample-Models/2.0/SimpleSparseAccessor/glTF/SimpleSparseAccessor.gltf')
+//const dragonGltf = new GltfScene('../glTF-Sample-Models/2.0/Lantern/glTF-Binary/Lantern.glb');
+//const dragonGltf = new GltfScene('../glTF-Sample-Models/2.0/Fox/glTF-Binary/Fox.glb');
+//const dragonGltf = new GltfScene('../glTF-Sample-Models/2.0/Buggy/glTF/Buggy.gltf'); // Broken
+//const dragonGltf = new GltfScene('../glTF-Sample-Models/2.0/FlightHelmet/glTF/FlightHelmet.gltf');
+//const dragonGltf = new GltfScene('../glTF-Sample-Models/2.0/DamagedHelmet/glTF-Binary/DamagedHelmet.glb');
+//const dragonGltf = new GltfScene('../glTF-Sample-Models/2.0/SciFiHelmet/glTF/SciFiHelmet.gltf');
+//const dragonGltf = new GltfScene('../glTF-Sample-Models/2.0/Suzanne/glTF/Suzanne.gltf');
+//const dragonGltf = new GltfScene('../glTF-Sample-Models/2.0/ToyCar/glTF-Binary/ToyCar.glb'); // Broken?
+//const dragonGltf = new GltfScene('../glTF-Sample-Models/2.0/SimpleSparseAccessor/glTF/SimpleSparseAccessor.gltf');
 const dragonGltf = new GltfScene('./media/models/dragon/dragon.glb');
 const dragon = world.create(
   dragonTransform, dragonGltf
