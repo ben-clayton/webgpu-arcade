@@ -118,7 +118,7 @@ export class Transform {
       }
       this.#worldMatrixDirty = false;
     }
-  
+
     if (recursive && this.#children) {
       for (const child of this.#children) {
         child.resolveWorldMatrix(recursive);
@@ -168,27 +168,37 @@ export class Transform {
       }
     }
   }
+
+  // Only for use by TransformPool
+  copyFlags(other) {
+    this.#useMatrix = other.#useMatrix;
+    this.#matrixDirty = other.#matrixDirty;
+  }
 }
 
 export class TransformPool {
   #buffer;
   #worldMatrixArray;
   #transforms = [];
-  
-  constructor(count) {
-    this.#buffer = new Float32Array(42 * count).buffer;
-    this.#worldMatrixArray = new Float32Array(this.#buffer, 0, 16 * count);
 
-    const baseOffset = 16 * Float32Array.BYTES_PER_ELEMENT * count;
-    for (let i = 0; i < count; ++i) {
+  constructor(size) {
+    this.#buffer = new Float32Array(42 * size).buffer;
+    this.#worldMatrixArray = new Float32Array(this.#buffer, 0, 16 * size);
+
+    const baseOffset = 16 * Float32Array.BYTES_PER_ELEMENT * size;
+    for (let i = 0; i < size; ++i) {
       this.#transforms[i] = new Transform({
         externalStorage: {
           buffer: this.#buffer,
-          offset: baseOffset + (i * 24 * Float32Array.BYTES_PER_ELEMENT),
+          offset: baseOffset + (i * 26 * Float32Array.BYTES_PER_ELEMENT),
           worldMatrixOffset: i * 16 * Float32Array.BYTES_PER_ELEMENT,
         }
       });
     }
+  }
+
+  get size() {
+    return this.#transforms.length;
   }
 
   getTransform(index) {
@@ -204,5 +214,16 @@ export class TransformPool {
   get worldMatrixArray() {
     this.resolveWorldMatrices();
     return this.#worldMatrixArray;
+  }
+
+  clone() {
+    const out = new TransformPool(this.size);
+    // Copy the entire buffer from this pool to the new one.
+    new Float32Array(out.#buffer).set(new Float32Array(this.#buffer));
+    for (let i = 0; i < this.size; ++i) {
+      out.#transforms[i].copyFlags(this.#transforms[i]);
+    }
+
+    return out;
   }
 }

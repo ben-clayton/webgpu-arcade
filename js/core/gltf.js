@@ -1,6 +1,6 @@
 import { System } from 'ecs';
 
-import { Gltf2Loader } from '../gltf2-loader.js';
+import { Gltf2Loader } from '../lib/gltf2-loader.js';
 import { Transform, TransformPool } from './transform.js';
 import { EntityGroup } from './entity-group.js';
 import { Mesh, Geometry, InterleavedAttributes, AABB } from './geometry.js';
@@ -20,27 +20,6 @@ const AttribMap = {
   JOINTS_0: 'joints',
   WEIGHTS_0: 'weights',
 };
-
-export class GltfScene {
-  src = '';
-  #loadedPromise;
-  #resolver;
-
-  constructor(src) {
-    this.src = src;
-    this.#loadedPromise = new Promise((resolve) => {
-      this.#resolver = resolve;
-    });
-  }
-
-  setLoadedPromise(promise) {
-    this.#resolver(promise);
-  }
-
-  get loaded() {
-    return this.#loadedPromise;
-  }
-}
 
 class GltfClient {
   constructor(gpu) {
@@ -257,7 +236,9 @@ class GltfClient {
     return skin;
   }
 
-  createNode(node) {
+  createNode(node, index) {
+    node.index = index;
+
     if (node.matrix) {
       node.transform.matrix = node.matrix;
     } else {
@@ -265,9 +246,6 @@ class GltfClient {
       if (node.rotation) { node.transform.orientation = node.rotation; }
       if (node.scale) { node.transform.scale = node.scale; }
     }
-
-    const entity = this.gpu.create(node.transform);
-    entity.name = node.name;
 
     if (node.mesh) {
       node.aabb = new AABB();
@@ -283,16 +261,7 @@ class GltfClient {
           aabbInitialized = true;
         }
       }
-
-      // TODO: Take into account geometry transforms.
-      entity.add(node.mesh, node.aabb);
     }
-
-    for (const child of node.childNodes) {
-      node.transform.addChild(child.transform);
-    }
-
-    node.entity = entity;
 
     return node;
   }
@@ -303,56 +272,81 @@ class GltfClient {
   }
 }
 
-export class GltfSystem extends System {
-  init(gpu) {
-    this.loader = new Gltf2Loader(new GltfClient(gpu));
-  }
+export class GltfScene {
+  scene;
+  nodes;
+  nodeTransforms;
+  aabb;
 
-  addNodeToGroup(node, group) {
-    group.entities.push(node.entity);
+  #createNodeInstance(nodeIndex, world, transforms, group) {
+    const node = this.nodes[nodeIndex];
+    const transform = transforms.getTransform(nodeIndex);
 
-    for (const child of node.children) {
-      this.addNodeToGroup(child, group);
+    if (node.mesh) {
+      const nodeEntity = world.create(transform, node.mesh, node.aabb);
+      nodeEntity.name = node.name;
+      group.entities.push(nodeEntity);
+    }
+
+    if (node.children) {
+      for (const child of node.children) {
+        transform.addChild(transforms.getTransform(child))
+        this.#createNodeInstance(child, world, transforms, group);
+      }
     }
   }
 
-  execute(delta, time) {
-    const gpu = this.world;
+  createInstance(world) {
+    const group = new EntityGroup();
+    const instanceTransforms = this.nodeTransforms.clone();
+    const sceneTransform = new Transform();
+    for (const nodeIndex of this.scene.nodes) {
+      this.#createNodeInstance(nodeIndex, world, instanceTransforms, group);
+      sceneTransform.addChild(instanceTransforms.getTransform(nodeIndex));
+    }
 
-    this.query(GltfScene).not(EntityGroup).forEach((entity, gltf) => {
-      let transform = entity.get(Transform);
-      if (!transform) {
-        transform = new Transform();
-        entity.add(transform);
-      }
+    return world.create(sceneTransform, instanceTransforms, this.aabb, group);
+  }
+}
 
-      const group = new EntityGroup();
-      entity.add(group);
-      gltf.setLoadedPromise(this.loader.loadFromUrl(gltf.src).then(result => {
-        for (const node of result.scene.nodes) {
-          transform.addChild(node.transform);
-          this.addNodeToGroup(node, group);
-        }
+export class GltfLoader {
+  #loader;
 
-        const aabb = new AABB();
-        let aabbInitialized = false;
+  constructor(gpu) {
+    this.#loader = new Gltf2Loader(new GltfClient(gpu));
+  }
 
-        for (const node of result.nodes) {
-          if (!node.aabb) { continue; }
+  fromUrl(url) {
+    return this.#loader.loadFromUrl(url).then(result => {
+      const gltfScene = new GltfScene();
+      gltfScene.scene = result.scene;
+      gltfScene.nodes = result.nodes;
+      gltfScene.nodeTransforms = result.transformPool;
 
-          if (aabbInitialized) {
-            vec3.min(aabb.min, aabb.min, node.aabb.min);
-            vec3.max(aabb.max, aabb.max, node.aabb.max);
-          } else {
-            vec3.copy(aabb.min, node.aabb.min);
-            vec3.copy(aabb.max, node.aabb.max);
-            aabbInitialized = true;
-          }
-        }
+      // Generate a bounding box for the entire scene.
+      gltfScene.aabb = new AABB();
+      let aabbInitialized = false;
+
+      for (const node of result.nodes) {
+        if (!node.aabb) { continue; }
 
         // TODO: Take into account geometry transforms.
-        entity.add(aabb);
-      }));
+        if (aabbInitialized) {
+          vec3.min(gltfScene.aabb.min, gltfScene.aabb.min, node.aabb.min);
+          vec3.max(gltfScene.aabb.max, gltfScene.aabb.max, node.aabb.max);
+        } else {
+          vec3.copy(gltfScene.aabb.min, node.aabb.min);
+          vec3.copy(gltfScene.aabb.max, node.aabb.max);
+          aabbInitialized = true;
+        }
+      }
+
+      return gltfScene;
     });
+  }
+
+  async instanceFromUrl(world, url) {
+    const scene = await this.fromUrl(url);
+    return scene.createInstance(world);
   }
 }

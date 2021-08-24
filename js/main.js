@@ -3,7 +3,7 @@ import { Camera } from './core/camera.js';
 import { PointLight, AmbientLight } from './core/light.js';
 import { Skybox } from './core/skybox.js';
 import { Mesh, AABB } from './core/geometry.js';
-import { GltfScene } from './core/gltf.js';
+import { GltfLoader } from './core/gltf.js';
 
 import { FlyingControls, FlyingControlsSystem } from './controls/flying-controls.js';
 import { OrbitControls, OrbitControlsSystem } from './controls/orbit-controls.js';
@@ -37,6 +37,8 @@ world
   .registerSystem(OrbitControlsSystem);
 
 const renderer = await world.renderer();
+
+const gltfLoader = new GltfLoader(renderer);
 
 const projection = new Camera();
 projection.zNear = 1;
@@ -102,11 +104,9 @@ for (let x = 0; x < 5; ++x) {
 }*/
 
 // Load a scene
-const dungeon = world.create(
-  new GltfScene('./media/models/dungeon/dungeon.glb')
-);
+//gltfLoader.instanceFromUrl(world, './media/models/dungeon/dungeon.glb');
+gltfLoader.instanceFromUrl(world, './media/models/unlit/UnlitTest.glb');
 
-const dragonTransform = new Transform();
 //const dragonGltf = new GltfScene('../glTF-Sample-Models/2.0/Lantern/glTF-Binary/Lantern.glb');
 //const dragonGltf = new GltfScene('../glTF-Sample-Models/2.0/Fox/glTF-Binary/Fox.glb');
 //const dragonGltf = new GltfScene('../glTF-Sample-Models/2.0/Buggy/glTF/Buggy.gltf'); // Broken
@@ -116,12 +116,20 @@ const dragonTransform = new Transform();
 //const dragonGltf = new GltfScene('../glTF-Sample-Models/2.0/Suzanne/glTF/Suzanne.gltf');
 //const dragonGltf = new GltfScene('../glTF-Sample-Models/2.0/ToyCar/glTF-Binary/ToyCar.glb'); // Broken?
 //const dragonGltf = new GltfScene('../glTF-Sample-Models/2.0/SimpleSparseAccessor/glTF/SimpleSparseAccessor.gltf');
-const dragonGltf = new GltfScene('./media/models/dragon/dragon.glb');
-const dragon = world.create(
-  dragonTransform, dragonGltf
-);
+let dragon;
+gltfLoader.fromUrl('./media/models/dragon/dragon.glb').then(scene => {
+  for (let x = 0; x < 5; ++x) {
+    for (let y = 0; y < 5; ++y) {
+      dragon = scene.createInstance(world);
+      const dragonTransform = dragon.get(Transform);
+      dragonTransform.position = [
+        (x-2) * 3.5,
+        (y-2) * 3.5,
+        0
+      ];
+    }
+  }
 
-dragonGltf.loaded.then(() => {
   const aabb = dragon.get(AABB);
   console.log('Object Loaded. Min:', aabb.min, ' Max:', aabb.max);
 
@@ -139,10 +147,6 @@ dragonGltf.loaded.then(() => {
     (aabb.max[2] + aabb.min[2]) / 2,
   );
 });
-
-/*world.create(
-  new GltfScene('./media/models/unlit/UnlitTest.glb')
-);*/
 
 gui.add(appSettings, 'controls', {
   'Orbit': 'orbit',
@@ -167,7 +171,9 @@ gui.add(appSettings, 'controls', {
 function onFrame() {
   requestAnimationFrame(onFrame);
 
-  //quat.rotateY(dragonTransform.orientation, dragonTransform.orientation, 0.01);
+  /*if (dragonTransform) {
+    quat.rotateY(dragonTransform.orientation, dragonTransform.orientation, 0.01);
+  }*/
 
   stats.begin();
   world.execute();
