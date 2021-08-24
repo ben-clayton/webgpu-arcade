@@ -6,6 +6,7 @@ import { EntityGroup } from './entity-group.js';
 import { Mesh, Geometry, InterleavedAttributes, AABB } from './geometry.js';
 import { UnlitMaterial, PBRMaterial } from './materials.js';
 import { mat4, vec3 } from 'gl-matrix';
+import { Skin } from './skin.js';
 
 // Used for comparing values from glTF files, which uses WebGL enums natively.
 const GL = WebGLRenderingContext;
@@ -94,6 +95,11 @@ class GltfClient {
   createIndexBuffer(bufferView) {
     const typedArray = new Uint8Array(bufferView.buffer, bufferView.byteOffset, bufferView.byteLength);
     return this.gpu.createStaticBuffer(typedArray, 'index');
+  }
+
+  createInverseBindMatrixBuffer(bufferView) {
+    const typedArray = new Uint8Array(bufferView.buffer, bufferView.byteOffset, bufferView.byteLength);
+    return this.gpu.createStaticBuffer(typedArray, 'joint');
   }
 
   createMaterial(material) {
@@ -203,39 +209,6 @@ class GltfClient {
     return new Mesh(...mesh.primitives);
   }
 
-  createSkin(skin) {
-    // Make sure that the transforms for each joint use sequential storage for their world matrices.
-    /*skin.jointPool = new TransformPool(skin.joints.length);
-    for (let i = 0; i < skin.joints.length; ++i) {
-      const joint = skin.joints[i];
-      skin.jointPool.setTransformAtIndex(i, joint.transform);
-    }*/
-
-    let invBindMatricesArray;
-    if (skin.inverseBindMatrices) {
-      const ibmAccessor = skin.inverseBindMatrices;
-      const ibmBufferView = ibmAccessor.bufferView
-      // TODO: Do we have to account for non-64 byte strides here?
-      invBindMatricesArray = new Float32Array(
-        ibmBufferView.buffer,
-        ibmBufferView.byteOffset + ibmAccessor.byteOffset,
-        16 * skin.joints.length);
-    } else {
-      // Create a default set of IBM initialized to the indentity matrix
-      invBindMatricesArray = new Float32Array(16 * skin.joints.length);
-      for (let i = 0; i < skin.joints.length; ++i) {
-        const matrix = new Float32Array(invBindMatricesArray.buffer, 16 * i * Float32Array.BYTES_PER_ELEMENT, 16);
-        mat4.identity(matrix);
-      }
-    }
-
-    skin.inverseBindMatrices = invBindMatricesArray;
-
-    // TODO: What else needs to happen here?
-
-    return skin;
-  }
-
   createNode(node, index) {
     node.index = index;
 
@@ -281,11 +254,23 @@ export class GltfScene {
   #createNodeInstance(nodeIndex, world, transforms, group) {
     const node = this.nodes[nodeIndex];
     const transform = transforms.getTransform(nodeIndex);
-
+    
     if (node.mesh) {
       const nodeEntity = world.create(transform, node.mesh, node.aabb);
       nodeEntity.name = node.name;
       group.entities.push(nodeEntity);
+
+      if (node.skin) {
+        const joints = [];
+        for (const jointIndex of node.skin.joints) {
+          joints.push(transforms.getTransform(jointIndex));
+        }
+        nodeEntity.add(new Skin({
+          joints,
+          inverseBindMatrixBuffer: node.skin.inverseBindMatrices.clientInverseBindMatrixBuffer,
+          inverseBindMatrixOffset: node.skin.inverseBindMatrices.byteOffset
+        }));
+      }
     }
 
     if (node.children) {

@@ -17,6 +17,39 @@ export class WebGPURenderBatch {
   pipelineGeometries = new Map();
   sortedPipelines;
   instanceBuffer;
+
+  clear() {
+    this.pipelineGeometries = new Map();
+    this.sortedPipelines = null;
+    this.instanceBuffer = null;
+  }
+
+  addMesh(gpuMesh, transform, instanceCount = 1) {
+    for (const gpuPrimitive of gpuMesh.primitives) {
+      const geometry = gpuPrimitive.geometry;
+      const pipeline = gpuPrimitive.pipeline;
+      const material = gpuPrimitive.bindGroups;
+
+      let geometryMaterials = this.pipelineGeometries.get(pipeline);
+      if (!geometryMaterials) {
+        geometryMaterials = new Map();
+        this.pipelineGeometries.set(pipeline, geometryMaterials);
+      }
+      let materialInstances = geometryMaterials.get(geometry);
+      if (!materialInstances) {
+        materialInstances = new Map();
+        geometryMaterials.set(geometry, materialInstances);
+      }
+      let instances = materialInstances.get(material);
+      if (!instances) {
+        instances = {instanceCount: 0, transforms: [], bufferOffset: 0};
+        materialInstances.set(material, instances);
+      }
+
+      instances.instanceCount += instanceCount;
+      instances.transforms.push(transform?.worldMatrix || IDENTITY_MATRIX);
+    }
+  }
 }
 
 export class WebGPUInstancingSystem extends System {
@@ -30,44 +63,19 @@ export class WebGPUInstancingSystem extends System {
 
     this.renderableMeshes = this.query(WebGPUMesh);
 
-    this.renderBatchEntity = gpu.create();
+    this.singleton.add(new WebGPURenderBatch());
   }
 
   execute(delta, time) {
     const gpu = this.world;
 
-    const renderBatch = new WebGPURenderBatch();
+    const renderBatch = this.singleton.get(WebGPURenderBatch);
 
     // TODO: This would be the perfect place for some frustum culling, etc.
-    let totalInstanceCount = 0;
-
     this.renderableMeshes.forEach((entity, gpuMesh) => {
-      for (const gpuPrimitive of gpuMesh.primitives) {
-        const geometry = gpuPrimitive.geometry;
-        const pipeline = gpuPrimitive.pipeline;
-        const material = gpuPrimitive.bindGroups;
-
-        let geometryMaterials = renderBatch.pipelineGeometries.get(pipeline);
-        if (!geometryMaterials) {
-          geometryMaterials = new Map();
-          renderBatch.pipelineGeometries.set(pipeline, geometryMaterials);
-        }
-        let materialInstances = geometryMaterials.get(geometry);
-        if (!materialInstances) {
-          materialInstances = new Map();
-          geometryMaterials.set(geometry, materialInstances);
-        }
-        let instances = materialInstances.get(material);
-        if (!instances) {
-          instances = {instanceCount: 0, transforms: [], bufferOffset: 0};
-          materialInstances.set(material, instances);
-        }
-        const transform = entity.get(Transform);
-        const manualInstances = entity.get(WebGPUManualInstances);
-        totalInstanceCount++;
-        instances.instanceCount += manualInstances?.instanceCount || 1;
-        instances.transforms.push(transform?.worldMatrix || IDENTITY_MATRIX);
-      }
+      const transform = entity.get(Transform);
+      const manualInstances = entity.get(WebGPUManualInstances);
+      renderBatch.addMesh(gpuMesh, entity.get(Transform), manualInstances?.instanceCount);
     });
 
     // Loop through all of the instances we're going to render and place their transforms in the
@@ -93,6 +101,5 @@ export class WebGPUInstancingSystem extends System {
     renderBatch.sortedPipelines.sort((a, b) => a.renderOrder - b.renderOrder);
 
     renderBatch.instanceBuffer = this.instanceBuffer;
-    this.renderBatchEntity.add(renderBatch);
   }
 }

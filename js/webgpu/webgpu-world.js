@@ -14,7 +14,8 @@ import {
 import { WebGPULightSpriteSystem } from './webgpu-light-sprite.js';
 import { WebGPUInstancingSystem } from './webgpu-instancing.js';
 import { WebGPUSkyboxSystem } from './webgpu-skybox.js';
-import { WebGPUMeshSystem } from './webgpu-mesh.js'
+import { WebGPUMeshSystem } from './webgpu-mesh.js';
+import { WebGPUSkinSystem } from './webgpu-skin.js';
 
 const desiredFeatures = [
   'texture-compression-bc'
@@ -49,6 +50,7 @@ export class WebGPUWorld extends RenderWorld {
     this.registerRenderSystem(WebGPUClusteredLights);
     this.registerRenderSystem(WebGPULightSpriteSystem);
     this.registerRenderSystem(WebGPUSkyboxSystem);
+    this.registerRenderSystem(WebGPUSkinSystem);
     this.registerRenderSystem(WebGPUMeshSystem);
     this.registerRenderSystem(WebGPUInstancingSystem);
     this.registerRenderSystem(WebGPUBeginRenderPasses);

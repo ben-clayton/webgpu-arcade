@@ -104,7 +104,7 @@ for (let x = 0; x < 5; ++x) {
 }*/
 
 // Load a scene
-//gltfLoader.instanceFromUrl(world, './media/models/dungeon/dungeon.glb');
+gltfLoader.instanceFromUrl(world, './media/models/dungeon/dungeon.glb');
 gltfLoader.instanceFromUrl(world, './media/models/unlit/UnlitTest.glb');
 
 //const dragonGltf = new GltfScene('../glTF-Sample-Models/2.0/Lantern/glTF-Binary/Lantern.glb');
@@ -118,7 +118,9 @@ gltfLoader.instanceFromUrl(world, './media/models/unlit/UnlitTest.glb');
 //const dragonGltf = new GltfScene('../glTF-Sample-Models/2.0/SimpleSparseAccessor/glTF/SimpleSparseAccessor.gltf');
 let dragon;
 gltfLoader.fromUrl('./media/models/dragon/dragon.glb').then(scene => {
-  for (let x = 0; x < 5; ++x) {
+  dragon = scene.createInstance(world);
+
+  /*for (let x = 0; x < 5; ++x) {
     for (let y = 0; y < 5; ++y) {
       dragon = scene.createInstance(world);
       const dragonTransform = dragon.get(Transform);
@@ -128,7 +130,7 @@ gltfLoader.fromUrl('./media/models/dragon/dragon.glb').then(scene => {
         0
       ];
     }
-  }
+  }*/
 
   const aabb = dragon.get(AABB);
   console.log('Object Loaded. Min:', aabb.min, ' Max:', aabb.max);

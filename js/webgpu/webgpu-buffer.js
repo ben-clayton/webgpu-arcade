@@ -1,4 +1,4 @@
-import { StaticBuffer, DynamicBuffer } from '../core/geometry.js';
+import { StaticBuffer, DynamicBuffer } from '../core/buffers.js';
 
 export class WebGPUStaticBuffer extends StaticBuffer {
   #device;
@@ -65,8 +65,8 @@ export class WebGPUDynamicBuffer extends DynamicBuffer {
   }
 
   beginUpdate() {
-    const stagingBuffer = this.#getOrCreateStagingBuffer();
-    this.#arrayBuffer = stagingBuffer.getMappedRange();
+    this.#activeStagingBuffer = this.#getOrCreateStagingBuffer();
+    this.#arrayBuffer = this.#activeStagingBuffer.getMappedRange();
   }
 
   // For static buffers, once you call finish() the data cannot be updated again.
@@ -77,10 +77,10 @@ export class WebGPUDynamicBuffer extends DynamicBuffer {
     if (this.#activeStagingBuffer !== this.gpuBuffer) {
       const stagingBuffer = this.#activeStagingBuffer;
       const commandEncoder = this.#device.createCommandEncoder({});
-      commandEncoder.copyBufferToBuffer(this.stagingBuffer, 0, this.gpuBuffer, 0, this.#size);
+      commandEncoder.copyBufferToBuffer(stagingBuffer, 0, this.gpuBuffer, 0, this.#size);
       this.#device.queue.submit([commandEncoder.finish()]);
 
-      this.stagingBuffer.mapAsync(GPUMapMode.WRITE).then(() => {
+      stagingBuffer.mapAsync(GPUMapMode.WRITE).then(() => {
         this.#stagingBufferQueue.push(stagingBuffer);
       });
     }
@@ -94,6 +94,8 @@ function toGPUBufferUsage(usage) {
       return GPUBufferUsage.VERTEX;
     case 'index':
       return GPUBufferUsage.INDEX;
+    case 'joint':
+      return GPUBufferUsage.STORAGE;
     default:
       throw new Error(`Unknown Buffer usage '${usage}'`);
   }

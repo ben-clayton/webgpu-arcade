@@ -27,13 +27,16 @@ export class WebGPUSubmitRenderPasses extends System {
     const gpu = this.world;
     const passGlobals = this.singleton.get(RenderPassGlobals);
     gpu.device.queue.submit([passGlobals.commandEncoder.finish()]);
+
+    // Clear the render batch. It'll be built up again next frame.
+    const renderBatch = this.singleton.get(WebGPURenderBatch);
+    renderBatch.clear();
   }
 }
 
 export class WebGPURenderPass extends System {
   async init(gpu) {
     this.cameras = this.query(WebGPUCamera);
-    this.renderBatch = this.query(WebGPURenderBatch);
 
     this.colorAttachment = {
       // view is acquired and set in onResize.
@@ -77,7 +80,7 @@ export class WebGPURenderPass extends System {
     }
   }
 
-  renderPass(gpu, camera, renderBatch, commandEncoder, outputTexture) {
+  renderPass(gpu, camera, commandEncoder, outputTexture) {
     // Override for each render pass.
   }
 
@@ -86,22 +89,21 @@ export class WebGPURenderPass extends System {
     const passGlobals = this.singleton.get(RenderPassGlobals);
 
     this.cameras.forEach((entity, camera) => {
-      // There should only be one render batch per frame.
-      this.renderBatch.forEach((entity, renderBatch) => {
-        this.renderPass(gpu, camera, renderBatch, passGlobals.commandEncoder, passGlobals.outputTexture);
-      });
+      this.renderPass(gpu, camera, passGlobals.commandEncoder, passGlobals.outputTexture);
       return false; // Don't try to process more than one camera.
     });
   }
 }
 
 export class WebGPUDefaultRenderPass extends WebGPURenderPass {
-  renderPass(gpu, camera, renderBatch, commandEncoder, outputTexture) {
+  renderPass(gpu, camera, commandEncoder, outputTexture) {
     if (gpu.sampleCount > 1) {
       this.colorAttachment.resolveTarget = outputTexture.createView();
     } else {
       this.colorAttachment.view = outputTexture.createView();
     }
+
+    const renderBatch = this.singleton.get(WebGPURenderBatch);
 
     const passEncoder = commandEncoder.beginRenderPass(this.renderPassDescriptor);
 

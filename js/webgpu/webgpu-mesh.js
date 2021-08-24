@@ -1,5 +1,6 @@
 import { System } from 'ecs';
 import { Mesh } from '../core/geometry.js';
+import { WebGPUSkin } from './webgpu-skin.js';
 import { WebGPUMaterialFactory, WebGPUMaterialBindGroups } from './materials/webgpu-materials.js';
 
 export class WebGPUMeshPrimitive {
@@ -12,7 +13,6 @@ export class WebGPUMeshPrimitive {
 
 export class WebGPUMesh {
   primitives = [];
-
   constructor(...gpuPrimitives) {
     this.primitives.push(...gpuPrimitives);
   }
@@ -36,6 +36,7 @@ export class WebGPUMeshSystem extends System {
     const gpu = this.world;
 
     this.needsGpuMeshQuery.forEach((entity, mesh) => {
+      const skin = entity.get(WebGPUSkin);
       const gpuPrimitives = [];
       for (const primitive of mesh.primitives) {
         const layout = primitive.geometry.layout;
@@ -47,8 +48,8 @@ export class WebGPUMeshSystem extends System {
 
         gpuPrimitives.push(new WebGPUMeshPrimitive(
           primitive.geometry,
-          factory.getPipeline(gpu, layout, material),
-          factory.getBindGroup(gpu, material)
+          factory.getPipeline(gpu, layout, material, !!skin),
+          factory.getBindGroup(gpu, material, skin)
         ));
       }
       entity.add(new WebGPUMesh(...gpuPrimitives));

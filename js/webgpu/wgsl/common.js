@@ -35,6 +35,30 @@ export function LightStruct(group = 0, binding = 1) { return `
 `;
 }
 
+export function SkinStructs(group = 1) { return `
+  [[block]] struct Joints {
+    matrices : [[stride(64)]] array<mat4x4<f32>>;
+  };
+  [[group(${group}), binding(0)]] var<storage, read> joint : Joints;
+  [[group(${group}), binding(1)]] var<storage, read> inverseBind : Joints;
+`};
+
+export const GetSkinMatrix = `
+  fn getSkinMatrix(input : VertexInput) -> mat4x4<f32> {
+    let joint0 = joint.matrices[input.joints.x] * inverseBind.matrices[input.joints.x];
+    let joint1 = joint.matrices[input.joints.y] * inverseBind.matrices[input.joints.y];
+    let joint2 = joint.matrices[input.joints.z] * inverseBind.matrices[input.joints.z];
+    let joint3 = joint.matrices[input.joints.w] * inverseBind.matrices[input.joints.w];
+
+    let skinMatrix = joint0 * input.weights.x +
+                     joint1 * input.weights.y +
+                     joint2 * input.weights.z +
+                     joint3 * input.weights.w;
+
+    return skinMatrix;
+  }
+`;
+
 export const INSTANCE_BUFFER_SIZE = 16 * Float32Array.BYTES_PER_ELEMENT;
 
 export function DefaultVertexInput(layout) {
@@ -46,6 +70,8 @@ export function DefaultVertexInput(layout) {
       case AttributeLocation.texcoord: return `[[location(${AttributeLocation.texcoord})]] texcoord : vec2<f32>;`;
       case AttributeLocation.texcoord2: return `[[location(${AttributeLocation.texcoord2})]] texcoord2 : vec2<f32>;`;
       case AttributeLocation.color: return `[[location(${AttributeLocation.color})]] color : vec4<f32>;`;
+      case AttributeLocation.joints: return `[[location(${AttributeLocation.joints})]] joints : vec4<u32>;`;
+      case AttributeLocation.weights: return `[[location(${AttributeLocation.weights})]] weights : vec4<f32>;`;
       }
   });
 

@@ -66,11 +66,11 @@ export class WebGPUMaterialFactory {
 
   init(gpu) {}
 
-  getPipeline(gpu, geometryLayout, material) {
-    const key = this.pipelineKey(geometryLayout, material);
+  getPipeline(gpu, geometryLayout, material, skinned) {
+    const key = this.pipelineKey(geometryLayout, material, skinned);
     let gpuPipeline = this.#pipelineCache.get(key);
     if (!gpuPipeline) {
-      const vertex = this.createVertexModule(gpu, geometryLayout, material);
+      const vertex = this.createVertexModule(gpu, geometryLayout, material, skinned);
       const fragment = this.createFragmentModule(gpu, geometryLayout, material);
 
       vertex.buffers = new Array(...geometryLayout.buffers);
@@ -78,7 +78,7 @@ export class WebGPUMaterialFactory {
       // Add a vertexSlot for the instance array
       vertex.buffers.push(INSTANCE_BUFFER_LAYOUT);
 
-      const pipeline = this.createPipeline(gpu, geometryLayout, vertex, fragment, material);
+      const pipeline = this.createPipeline(gpu, geometryLayout, vertex, fragment, material, skinned);
       if (!pipeline) { return; }
 
       gpuPipeline = new WebGPUMaterialPipeline({
@@ -91,22 +91,27 @@ export class WebGPUMaterialFactory {
     return gpuPipeline;
   }
 
-  getBindGroup(gpu, material) {
-    let bindGroup = this.#materialCache.get(material);
+  getBindGroup(gpu, material, skin) {
+    const key = `${material.id};${skin?.id || -1}`;
+    let bindGroup = this.#materialCache.get(key);
     if (!bindGroup) {
-      bindGroup = new WebGPUMaterialBindGroups(this.createBindGroup(gpu, material));
-      this.#materialCache.set(material, bindGroup);
+      const bindGroupList = [this.createBindGroup(gpu, material)];
+      if (skin) {
+        bindGroupList.push(skin.bindGroup);
+      }
+      bindGroup = new WebGPUMaterialBindGroups(...bindGroupList);
+      this.#materialCache.set(key, bindGroup);
     }
     return bindGroup;
   }
 
-  pipelineKey(geometryLayout, material) {
-    return `${geometryLayout.id};${material?.transparent};${material?.doubleSided}`;
+  pipelineKey(geometryLayout, material, skinned) {
+    return `${geometryLayout.id};${material?.transparent};${material?.doubleSided};${skinned}`;
   }
 
   // Creates a pipeline with defaults settings and the overridden shaders.
   // Can be customize if needed.
-  createPipeline(gpu, layout, vertex, fragment, material) {
+  createPipeline(gpu, layout, vertex, fragment, material, skinned = false) {
     let blend;
     if (material?.transparent) {
       blend = {
@@ -126,14 +131,21 @@ export class WebGPUMaterialFactory {
       blend,
     }];
 
+    const bindGroupLayouts = [
+      gpu.bindGroupLayouts.frame,
+    ];
+
+    if (this.bindGroupLayout) {
+      bindGroupLayouts.push(this.bindGroupLayout);
+    }
+
+    if (skinned) {
+      bindGroupLayouts.push(gpu.bindGroupLayouts.skin);
+    }
+
     return gpu.device.createRenderPipeline({
       label: `PBR Pipeline (LayoutID: ${layout.id})`,
-      layout: gpu.device.createPipelineLayout({
-        bindGroupLayouts: [
-          gpu.bindGroupLayouts.frame,
-          this.bindGroupLayout,
-        ]
-      }),
+      layout: gpu.device.createPipelineLayout({ bindGroupLayouts }),
       vertex,
       fragment,
       primitive: {
@@ -150,9 +162,9 @@ export class WebGPUMaterialFactory {
     });
   }
 
-  createVertexModule(gpu, geometryLayout, material) {
+  createVertexModule(gpu, geometryLayout, material, skinned) {
     return {
-      module: gpu.device.createShaderModule({ code: DefaultVertexSource(geometryLayout) }),
+      module: gpu.device.createShaderModule({ code: DefaultVertexSource(geometryLayout, skinned) }),
       entryPoint: 'vertexMain',
     };
   }

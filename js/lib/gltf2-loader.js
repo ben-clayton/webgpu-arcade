@@ -523,11 +523,34 @@ export class Gltf2Loader {
           skin.jointNodes = joints;
         }));
 
-        if ('inverseBindMatrices' in skin) {
-          skinPromises.push(resolveAccessor(skin.inverseBindMatrices, 'InverseBindMatrices').then(accessor => {
-            skin.inverseBindMatrices = accessor;
-          }));
+        if (!('inverseBindMatrices' in skin)) {
+          // If inverseBindMatrices aren't provided, build a fake accesssor with a bufferView
+          // initialized to identity matrices.
+          const invBindMatricesBuffer = new Float32Array(16 * skin.joints.length);
+          for (let i = 0; i < skin.joints.length; ++i) {
+            mat4.identity(new Float32Array(invBindMatricesBuffer, 16 * i * Float32Array.BYTES_PER_ELEMENT, 16));
+          }
+          const bufferViewIndex = json.bufferViews.length;
+          json.bufferViews.push({}); // Just a placeholder
+          clientBufferViews[bufferViewIndex] = Promise.resolve({
+            byteOffset: 0,
+            byteStride: 16 * Float32Array.BYTES_PER_ELEMENT,
+            buffer: invBindMatricesBuffer
+          });
+
+          skin.inverseBindMatrices = json.accessors.length;
+          json.accessors[skin.inverseBindMatrices] = {
+            bufferView: bufferViewIndex,
+            byteOffset: 0,
+            componentType: GL.FLOAT,
+            type: 'MAT4',
+            count: skin.joints.length
+          };
         }
+
+        skinPromises.push(resolveAccessor(skin.inverseBindMatrices, 'InverseBindMatrixBuffer').then(accessor => {
+          skin.inverseBindMatrices = accessor;
+        }));
 
         clientSkin = Promise.all(skinPromises).then(() => {
           return client.createSkin(skin, index);

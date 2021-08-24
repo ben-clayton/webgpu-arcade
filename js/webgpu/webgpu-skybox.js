@@ -117,7 +117,7 @@ export class WebGPUSkyboxSystem extends System {
       indices: { buffer: indexBuffer, format: 'uint16' }
     });
 
-    this.skyboxQuery = this.query(Skybox).not(Geometry);
+    this.skyboxQuery = this.query(Skybox).not(WebGPUMesh);
   }
 
   execute(delta, time) {

@@ -65,5 +65,18 @@ export class WebGPUBindGroupLayouts {
         buffer: { type: 'read-only-storage' }
       }]
     });
+
+    this.skin = device.createBindGroupLayout({
+      label: 'Skin BindGroupLayout',
+      entries: [{
+        binding: 0, // joint buffer
+        visibility: GPUShaderStage.VERTEX,
+        buffer: { type: 'read-only-storage' }
+      }, {
+        binding: 1, // inverse bind matrix buffer
+        visibility: GPUShaderStage.VERTEX,
+        buffer: { type: 'read-only-storage' }
+      }]
+    });
   }
 }
