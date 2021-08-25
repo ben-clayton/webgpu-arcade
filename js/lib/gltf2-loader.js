@@ -319,6 +319,11 @@ export class Gltf2Loader {
               clientBufferTypes[accessor.bufferViewIndex] = await client[`create${bufferType}`](bufferView, accessor.bufferViewIndex);
             }
             accessor[`client${bufferType}`] = clientBufferTypes[accessor.bufferViewIndex];
+          } else {
+            const typedArrayOffset = bufferView.byteOffset + accessor.byteOffset;
+            const arrayType = getComponentTypeArrayConstructor(accessor.componentType);
+            const elementCount = (bufferView.byteStride * accessor.count) / arrayType.BYTES_PER_ELEMENT;
+            accessor.typedArray = new arrayType(bufferView.buffer, typedArrayOffset, elementCount);
           }
 
           return accessor;
@@ -560,6 +565,41 @@ export class Gltf2Loader {
       return clientSkin;
     }
 
+    // Animations
+    const clientAnimations = [];
+    function resolveAnimation(index) {
+      let clientAnimation = clientAnimations[index];
+      if (!clientAnimation) {
+        const animation = json.animations[index];
+
+        const samplerPromises = [];
+        for (let i = 0; i < animation.samplers.length; ++i) {
+          const sampler = animation.samplers[i];
+          samplerPromises.push(Promise.all([
+            resolveAccessor(sampler.input),
+            resolveAccessor(sampler.output)
+          ]).then(accessors => {
+            sampler.input = accessors[0];
+            sampler.output = accessors[1];
+            return client.createAnimationSampler(sampler, i, index);
+          }));
+        }
+
+        clientAnimation = Promise.all(samplerPromises).then(clientSamplers => {
+          for (let i = 0; i < animation.channels.length; ++i) {
+            const channel = animation.channels[i];
+            channel.sampler = clientSamplers[channel.sampler];
+            // TODO: Resolve node?
+            client.createAnimationChannels(channel, i, index);
+          }
+
+          return client.createAnimation(animation, index);
+        });
+        clientAnimations[index] = clientAnimation;
+      }
+      return clientAnimation;
+    }
+
     // Camera
     const clientCameras = [];
     function resolveCamera(index) {
@@ -586,7 +626,6 @@ export class Gltf2Loader {
       }
       return clientLight;
     }
-
 
     const clientNodes = [];
     function resolveNode(index) {
@@ -643,19 +682,23 @@ export class Gltf2Loader {
       resolveNode(i);
     }
 
-    const nodes = await Promise.all(clientNodes);
+    if (json.animations) {
+      for (let i = 0; i < json.animations.length; ++i) {
+        resolveAnimation(i);
+      }
+    }
 
     // TODO: Load more than the default scene?
-    const scene = json.scenes[json.scene];
+    //const scene = json.scenes[json.scene];
     /*scene.nodes = [];
     for (const nodeIndex of scene.nodes) {
       scene.nodes.push(nodes[nodeIndex]);
     }*/
 
     let result = {
-      scene,
-      nodes,
-      // animations
+      scene: json.scenes[json.scene],
+      nodes: await Promise.all(clientNodes),
+      animations: await Promise.all(clientAnimations),
     };
 
     return await client.preprocessResult(result, json);

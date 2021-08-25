@@ -152,7 +152,7 @@ export class WebGPUSkinSystem extends System {
       gpuSkin.jointBuffer.finish();
 
       // TODO: IF VISUALIZE BONES or something
-      //renderBatch.addMesh(gpuSkin.debugMesh, undefined, skin.joints.length);
+      renderBatch.addMesh(gpuSkin.debugMesh, undefined, skin.joints.length);
     });
   }
 }

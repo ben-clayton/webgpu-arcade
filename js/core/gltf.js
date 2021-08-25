@@ -7,6 +7,7 @@ import { Mesh, Geometry, InterleavedAttributes, AABB } from './geometry.js';
 import { UnlitMaterial, PBRMaterial } from './materials.js';
 import { mat4, vec3 } from 'gl-matrix';
 import { Skin } from './skin.js';
+import { AnimationSampler } from './animation.js';
 
 // Used for comparing values from glTF files, which uses WebGL enums natively.
 const GL = WebGLRenderingContext;
@@ -207,6 +208,11 @@ class GltfClient {
 
   createMesh(mesh) {
     return new Mesh(...mesh.primitives);
+  }
+
+  createAnimationSampler(sampler) {
+    const elementStride = sampler.output.bufferView.byteStride / sampler.output.typedArray;
+    return new AnimationSampler(sampler.input.typedArray, sampler.output.typedArray, sampler.output.gpuType, elementStride);
   }
 
   createNode(node, index) {

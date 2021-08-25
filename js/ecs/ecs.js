@@ -30,6 +30,7 @@ class Entity {
     const componentSet = this.#worldData.components[componentType];
     if (!componentSet) { return undefined; }
     const component = componentSet[this.id];
+    if (!component) { return undefined; }
     delete componentSet[this.id];
     component.removedFromEntity?.(this.id);
     return component;
