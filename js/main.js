@@ -12,6 +12,7 @@ import { WebGPUWorld } from './webgpu/webgpu-world.js';
 
 import { createCubeGeometry } from './cube-geometry.js';
 import { PBRMaterial, UnlitMaterial } from './core/materials.js';
+import { WebGPULightSpriteSystem } from './webgpu/webgpu-light-sprite.js';
 
 import { vec3, quat } from 'gl-matrix';
 
@@ -36,6 +37,8 @@ world
   .registerSystem(FlyingControlsSystem)
   .registerSystem(OrbitControlsSystem);
 
+//world.registerRenderSystem(WebGPULightSpriteSystem);
+
 const renderer = await world.renderer();
 
 const gltfLoader = new GltfLoader(renderer);
@@ -56,7 +59,7 @@ const camera = world.create(
 );
 
 // Add a skybox
-world.create(new Skybox(renderer.textureLoader.fromUrl('./media/textures/skybox/cube-basis-mipmap.ktx2')));
+//world.create(new Skybox(renderer.textureLoader.fromUrl('./media/textures/skybox/cube-basis-mipmap.ktx2')));
 
 // Add some lights
 world.create(
@@ -104,8 +107,8 @@ for (let x = 0; x < 5; ++x) {
 }*/
 
 // Load a scene
-gltfLoader.instanceFromUrl(world, './media/models/dungeon/dungeon.glb');
-gltfLoader.instanceFromUrl(world, './media/models/unlit/UnlitTest.glb');
+//gltfLoader.instanceFromUrl(world, './media/models/dungeon/dungeon.glb');
+//gltfLoader.instanceFromUrl(world, './media/models/unlit/UnlitTest.glb');
 
 //const dragonGltf = new GltfScene('../glTF-Sample-Models/2.0/Lantern/glTF-Binary/Lantern.glb');
 //const dragonGltf = new GltfScene('../glTF-Sample-Models/2.0/Fox/glTF-Binary/Fox.glb');

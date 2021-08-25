@@ -2,6 +2,7 @@ import { World } from 'ecs';
 
 import { InputSystem } from './input.js';
 import { EntityGroupSystem } from './entity-group.js';
+import { AnimationSystem } from './animation.js';
 
 export class RenderWorld extends World {
   #canvas;
@@ -16,6 +17,7 @@ export class RenderWorld extends World {
 
     this.registerSystem(InputSystem);
     this.registerSystem(EntityGroupSystem);
+    this.registerSystem(AnimationSystem);
   }
 
   get canvas() {

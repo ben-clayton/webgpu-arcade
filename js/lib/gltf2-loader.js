@@ -304,9 +304,10 @@ export class Gltf2Loader {
 
         clientAccessor = bufferViewPromise.then(async (bufferView) => {
           accessor.bufferView = bufferView;
+          accessor.componentCount = getComponentCount(accessor.type);
           accessor.gpuFormat = getAccessorGPUFormat(accessor);
           if (!bufferView.byteStride) {
-            bufferView.byteStride = getComponentTypeSize(accessor.componentType) * getComponentCount(accessor.type);
+            bufferView.byteStride = getComponentTypeSize(accessor.componentType) * accessor.componentCount;
           }
 
           if (bufferType) {
@@ -571,6 +572,9 @@ export class Gltf2Loader {
       let clientAnimation = clientAnimations[index];
       if (!clientAnimation) {
         const animation = json.animations[index];
+        if (!animation.name) {
+          animation.name = `animation_${index}`;
+        }
 
         const samplerPromises = [];
         for (let i = 0; i < animation.samplers.length; ++i) {
@@ -585,13 +589,15 @@ export class Gltf2Loader {
           }));
         }
 
-        clientAnimation = Promise.all(samplerPromises).then(clientSamplers => {
+        clientAnimation = Promise.all(samplerPromises).then(async clientSamplers => {
+          const clientChannels = [];
           for (let i = 0; i < animation.channels.length; ++i) {
             const channel = animation.channels[i];
             channel.sampler = clientSamplers[channel.sampler];
             // TODO: Resolve node?
-            client.createAnimationChannels(channel, i, index);
+            clientChannels[i] = client.createAnimationChannel(channel, i, index);
           }
+          animation.channels = await Promise.all(clientChannels);
 
           return client.createAnimation(animation, index);
         });

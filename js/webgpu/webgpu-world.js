@@ -48,7 +48,6 @@ export class WebGPUWorld extends RenderWorld {
     this.registerRenderSystem(WebGPULightSystem);
     this.registerRenderSystem(WebGPUCameraSystem);
     this.registerRenderSystem(WebGPUClusteredLights);
-    this.registerRenderSystem(WebGPULightSpriteSystem);
     this.registerRenderSystem(WebGPUSkyboxSystem);
     this.registerRenderSystem(WebGPUSkinSystem);
     this.registerRenderSystem(WebGPUMeshSystem);

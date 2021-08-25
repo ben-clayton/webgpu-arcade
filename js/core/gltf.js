@@ -7,7 +7,7 @@ import { Mesh, Geometry, InterleavedAttributes, AABB } from './geometry.js';
 import { UnlitMaterial, PBRMaterial } from './materials.js';
 import { mat4, vec3 } from 'gl-matrix';
 import { Skin } from './skin.js';
-import { AnimationSampler } from './animation.js';
+import { LinearAnimationSampler, StepAnimationSampler, AnimationChannel, Animation } from './animation.js';
 
 // Used for comparing values from glTF files, which uses WebGL enums natively.
 const GL = WebGLRenderingContext;
@@ -211,8 +211,28 @@ class GltfClient {
   }
 
   createAnimationSampler(sampler) {
-    const elementStride = sampler.output.bufferView.byteStride / sampler.output.typedArray;
-    return new AnimationSampler(sampler.input.typedArray, sampler.output.typedArray, sampler.output.gpuType, elementStride);
+    // TODO: Need to handle normalizing the output array into floats, and possibly non-tightly-packed strides.
+    let samplerType;
+    switch(sampler.interpolation) {
+      case 'LINEAR': samplerType = StepAnimationSampler; break;
+      case 'STEP': samplerType = StepAnimationSampler; break;
+      case 'CUBICSPLINE ': samplerType = LinearAnimationSampler; break; // TODO
+    }
+    return new samplerType(sampler.input.typedArray, sampler.output.typedArray, sampler.output.componentCount);
+  }
+
+  createAnimationChannel(channel) {
+    let path;
+    switch(channel.target.path) {
+      case 'translation': path = 'position'; break;
+      case 'rotation': path = 'orientation'; break;
+      default: path = channel.target.path;
+    }
+    return new AnimationChannel(channel.target.node, path, channel.sampler);
+  }
+
+  createAnimation(animation) {
+    return new Animation(animation.name, animation.channels);
   }
 
   createNode(node, index) {
@@ -255,6 +275,7 @@ export class GltfScene {
   scene;
   nodes;
   nodeTransforms;
+  animations;
   aabb;
 
   #createNodeInstance(nodeIndex, world, transforms, group) {
@@ -296,7 +317,12 @@ export class GltfScene {
       sceneTransform.addChild(instanceTransforms.getTransform(nodeIndex));
     }
 
-    return world.create(sceneTransform, instanceTransforms, this.aabb, group);
+    const entity = world.create(sceneTransform, instanceTransforms, this.aabb, group);
+    if (this.animations.length) {
+      entity.add(this.animations[39]);
+    }
+
+    return entity;
   }
 }
 
@@ -313,6 +339,7 @@ export class GltfLoader {
       gltfScene.scene = result.scene;
       gltfScene.nodes = result.nodes;
       gltfScene.nodeTransforms = result.transformPool;
+      gltfScene.animations = result.animations;
 
       // Generate a bounding box for the entire scene.
       gltfScene.aabb = new AABB();
