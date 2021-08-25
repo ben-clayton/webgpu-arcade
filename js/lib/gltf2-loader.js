@@ -595,9 +595,15 @@ export class Gltf2Loader {
             const channel = animation.channels[i];
             channel.sampler = clientSamplers[channel.sampler];
             // TODO: Resolve node?
-            clientChannels[i] = client.createAnimationChannel(channel, i, index);
+            if (channel.target.node === undefined) {
+              clientChannels[i] = null;
+            } else {
+              clientChannels[i] = client.createAnimationChannel(channel, i, index);
+            }
           }
-          animation.channels = await Promise.all(clientChannels);
+          animation.channels = (await Promise.all(clientChannels)).filter((channel) => {
+            return channel != null;
+          });
 
           return client.createAnimation(animation, index);
         });

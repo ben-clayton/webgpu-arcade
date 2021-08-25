@@ -7,7 +7,13 @@ import { Mesh, Geometry, InterleavedAttributes, AABB } from './geometry.js';
 import { UnlitMaterial, PBRMaterial } from './materials.js';
 import { mat4, vec3 } from 'gl-matrix';
 import { Skin } from './skin.js';
-import { LinearAnimationSampler, StepAnimationSampler, AnimationChannel, Animation } from './animation.js';
+import {
+  LinearAnimationSampler,
+  SphericalLinearAnimationSampler,
+  StepAnimationSampler,
+  AnimationChannel,
+  Animation
+} from './animation.js';
 
 // Used for comparing values from glTF files, which uses WebGL enums natively.
 const GL = WebGLRenderingContext;
@@ -210,25 +216,35 @@ class GltfClient {
     return new Mesh(...mesh.primitives);
   }
 
-  createAnimationSampler(sampler) {
-    // TODO: Need to handle normalizing the output array into floats, and possibly non-tightly-packed strides.
-    let samplerType;
-    switch(sampler.interpolation) {
-      case 'LINEAR': samplerType = StepAnimationSampler; break;
-      case 'STEP': samplerType = StepAnimationSampler; break;
-      case 'CUBICSPLINE ': samplerType = LinearAnimationSampler; break; // TODO
-    }
-    return new samplerType(sampler.input.typedArray, sampler.output.typedArray, sampler.output.componentCount);
-  }
-
   createAnimationChannel(channel) {
     let path;
     switch(channel.target.path) {
       case 'translation': path = 'position'; break;
       case 'rotation': path = 'orientation'; break;
-      default: path = channel.target.path;
+      case 'scale': path = 'scale'; break;
+      default: return null; // morph targets aren't supported.
     }
-    return new AnimationChannel(channel.target.node, path, channel.sampler);
+
+    let samplerType;
+    switch(channel.sampler.interpolation) {
+      case 'STEP': samplerType = StepAnimationSampler; break;
+      case 'CUBICSPLINE ': // TODO
+      case 'LINEAR': {
+        if (channel.target.path == 'rotation') {
+          samplerType = SphericalLinearAnimationSampler; break;
+        } else {
+          samplerType = LinearAnimationSampler; break;
+        }
+      }
+      default: return null;
+    }
+    const sampler = new samplerType(
+      channel.sampler.input.typedArray,
+      channel.sampler.output.typedArray,
+      channel.sampler.output.componentCount
+    );
+
+    return new AnimationChannel(channel.target.node, path, sampler);
   }
 
   createAnimation(animation) {
