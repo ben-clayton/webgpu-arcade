@@ -44,17 +44,24 @@ class GltfClient {
   }
 
   createSampler(sampler) {
-    const descriptor = {};
+    function wrapToAddressMode(wrap) {
+      switch (wrap) {
+        case GL.CLAMP_TO_EDGE: return 'clamp-to-edge';
+        case GL.MIRRORED_REPEAT: return 'mirror-repeat';
+        default: return 'repeat';
+      }
+    }
+
+    const descriptor = {
+      addressModeU: wrapToAddressMode(sampler.wrapS),
+      addressModeV: wrapToAddressMode(sampler.wrapT),
+    };
 
     if (!sampler.magFilter || sampler.magFilter == GL.LINEAR) {
       descriptor.magFilter = 'linear';
     }
 
     switch (sampler.minFilter) {
-      case undefined:
-        descriptor.minFilter = 'linear';
-        descriptor.mipmapFilter = 'linear';
-        break;
       case GL.LINEAR:
       case GL.LINEAR_MIPMAP_NEAREST:
         descriptor.minFilter = 'linear';
@@ -63,26 +70,9 @@ class GltfClient {
         descriptor.mipmapFilter = 'linear';
         break;
       case GL.LINEAR_MIPMAP_LINEAR:
+      default:
         descriptor.minFilter = 'linear';
         descriptor.mipmapFilter = 'linear';
-        break;
-    }
-
-    switch (sampler.wrapS) {
-      case GL.REPEAT:
-        descriptor.addressModeU = 'repeat';
-        break;
-      case GL.MIRRORED_REPEAT:
-        descriptor.addressModeU = 'mirror-repeat';
-        break;
-    }
-
-    switch (sampler.wrapT) {
-      case GL.REPEAT:
-        descriptor.addressModeV = 'repeat';
-        break;
-      case GL.MIRRORED_REPEAT:
-        descriptor.addressModeV = 'mirror-repeat';
         break;
     }
 
@@ -158,12 +148,14 @@ class GltfClient {
         attribBuffer = new InterleavedAttributes(accessor.clientVertexBuffer, accessor.bufferView.byteStride);
         attribBuffers.set(accessor.bufferViewIndex, attribBuffer);
         drawCount = accessor.count;
-      } else if (Math.abs(accessor.byteOffset - attribBuffer.minOffset) > 2048) {
+      } else if (Math.abs(accessor.byteOffset - attribBuffer.minOffset) > 2048 ||
+                 Math.abs(accessor.byteOffset - attribBuffer.minOffset) >= accessor.bufferView.byteStride) {
         // In some cases the buffer used will be the same but the data won't actually be interleaved.
         // (ie: The attributes are placed in sequential blocks in the same buffer.) In case that
         // happens, defined it as if it were a separate buffer to avoid WebGPU limits on maximum
         // attribute offsets.
         attribBuffer = new InterleavedAttributes(accessor.clientVertexBuffer, accessor.bufferView.byteStride);
+        attribBuffers.set(-attribBuffers.size, attribBuffer);
       }
 
       attribBuffer.addAttribute(AttribMap[name], accessor.byteOffset, accessor.gpuFormat);
@@ -335,7 +327,7 @@ export class GltfScene {
 
     const entity = world.create(sceneTransform, instanceTransforms, this.aabb, group);
     if (this.animations.length) {
-      entity.add(this.animations[39]);
+      entity.add(this.animations[0]);
     }
 
     return entity;

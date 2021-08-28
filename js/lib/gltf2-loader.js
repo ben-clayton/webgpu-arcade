@@ -1,3 +1,5 @@
+import { } from 'https://www.gstatic.com/draco/versioned/decoders/1.4.1/draco_decoder_gltf.js';
+
 // Used for comparing values from glTF files, which uses WebGL enums natively.
 const GL = WebGLRenderingContext;
 
@@ -579,6 +581,7 @@ export class Gltf2Loader {
         const samplerPromises = [];
         for (let i = 0; i < animation.samplers.length; ++i) {
           const sampler = animation.samplers[i];
+          sampler.interpolation = sampler.interpolation || 'LINEAR';
           samplerPromises.push(Promise.all([
             resolveAccessor(sampler.input),
             resolveAccessor(sampler.output)

@@ -37,7 +37,7 @@ world
   .registerSystem(FlyingControlsSystem)
   .registerSystem(OrbitControlsSystem);
 
-//world.registerRenderSystem(WebGPULightSpriteSystem);
+world.registerRenderSystem(WebGPULightSpriteSystem);
 
 const renderer = await world.renderer();
 
@@ -59,7 +59,7 @@ const camera = world.create(
 );
 
 // Add a skybox
-//world.create(new Skybox(renderer.textureLoader.fromUrl('./media/textures/skybox/cube-basis-mipmap.ktx2')));
+world.create(new Skybox(renderer.textureLoader.fromUrl('./media/textures/skybox/cube-basis-mipmap.ktx2')));
 
 // Add some lights
 world.create(
@@ -107,20 +107,29 @@ for (let x = 0; x < 5; ++x) {
 }*/
 
 // Load a scene
-//gltfLoader.instanceFromUrl(world, './media/models/dungeon/dungeon.glb');
+gltfLoader.instanceFromUrl(world, './media/models/dungeon/dungeon.glb');
 //gltfLoader.instanceFromUrl(world, './media/models/unlit/UnlitTest.glb');
 
-//const dragonGltf = new GltfScene('../glTF-Sample-Models/2.0/Lantern/glTF-Binary/Lantern.glb');
-//const dragonGltf = new GltfScene('../glTF-Sample-Models/2.0/Fox/glTF-Binary/Fox.glb');
-//const dragonGltf = new GltfScene('../glTF-Sample-Models/2.0/Buggy/glTF/Buggy.gltf'); // Broken
-//const dragonGltf = new GltfScene('../glTF-Sample-Models/2.0/FlightHelmet/glTF/FlightHelmet.gltf');
-//const dragonGltf = new GltfScene('../glTF-Sample-Models/2.0/DamagedHelmet/glTF-Binary/DamagedHelmet.glb');
-//const dragonGltf = new GltfScene('../glTF-Sample-Models/2.0/SciFiHelmet/glTF/SciFiHelmet.gltf');
-//const dragonGltf = new GltfScene('../glTF-Sample-Models/2.0/Suzanne/glTF/Suzanne.gltf');
-//const dragonGltf = new GltfScene('../glTF-Sample-Models/2.0/ToyCar/glTF-Binary/ToyCar.glb'); // Broken?
-//const dragonGltf = new GltfScene('../glTF-Sample-Models/2.0/SimpleSparseAccessor/glTF/SimpleSparseAccessor.gltf');
+// glTF Test Scenes
+//const dragonUrl = '../glTF-Sample-Models/2.0/Lantern/glTF-Binary/Lantern.glb';
+//const dragonUrl = '../glTF-Sample-Models/2.0/Fox/glTF-Binary/Fox.glb';
+//const dragonUrl = '../glTF-Sample-Models/2.0/FlightHelmet/glTF/FlightHelmet.gltf';
+//const dragonUrl = '../glTF-Sample-Models/2.0/DamagedHelmet/glTF-Binary/DamagedHelmet.glb';
+//const dragonUrl = '../glTF-Sample-Models/2.0/SciFiHelmet/glTF/SciFiHelmet.gltf';
+//const dragonUrl = '../glTF-Sample-Models/2.0/Suzanne/glTF/Suzanne.gltf';
+//const dragonUrl = '../glTF-Sample-Models/2.0/SimpleSparseAccessor/glTF/SimpleSparseAccessor.gltf';
+
+// Known Broken Test Scenes
+//const dragonUrl = '../glTF-Sample-Models/2.0/Buggy/glTF/Buggy.gltf';
+//const dragonUrl = '../glTF-Sample-Models/2.0/ToyCar/glTF-Binary/ToyCar.glb';
+//const dragonUrl = '../glTF-Sample-Models/2.0/VC/glTF-Binary/VC.glb';
+
+
+//const dragonUrl = '../xr-dinosaurs/media/models/sabertooth/scene.glb';
+const dragonUrl = './media/models/dragon/dragon.glb';
+
 let dragon;
-gltfLoader.fromUrl('./media/models/dragon/dragon.glb').then(scene => {
+gltfLoader.fromUrl(dragonUrl).then(scene => {
   dragon = scene.createInstance(world);
 
   /*for (let x = 0; x < 5; ++x) {
