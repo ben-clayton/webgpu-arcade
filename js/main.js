@@ -108,6 +108,7 @@ for (let x = 0; x < 5; ++x) {
 
 // Load a scene
 gltfLoader.instanceFromUrl(world, './media/models/dungeon/dungeon.glb');
+//gltfLoader.instanceFromUrl(world, './media/models/forest/scene.gltf');
 //gltfLoader.instanceFromUrl(world, './media/models/unlit/UnlitTest.glb');
 
 // glTF Test Scenes
@@ -118,6 +119,8 @@ gltfLoader.instanceFromUrl(world, './media/models/dungeon/dungeon.glb');
 //const dragonUrl = '../glTF-Sample-Models/2.0/SciFiHelmet/glTF/SciFiHelmet.gltf';
 //const dragonUrl = '../glTF-Sample-Models/2.0/Suzanne/glTF/Suzanne.gltf';
 //const dragonUrl = '../glTF-Sample-Models/2.0/SimpleSparseAccessor/glTF/SimpleSparseAccessor.gltf';
+
+//const dragonUrl = '../glTF-Sample-Models/2.0/BoomBox/glTF-Draco/BoomBox.gltf';
 
 // Known Broken Test Scenes
 //const dragonUrl = '../glTF-Sample-Models/2.0/Buggy/glTF/Buggy.gltf';

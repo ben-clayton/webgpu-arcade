@@ -1,4 +1,11 @@
-import { } from 'https://www.gstatic.com/draco/versioned/decoders/1.4.1/draco_decoder_gltf.js';
+const DRACO_DECODER = new Promise((resolve) => {
+  DracoDecoderModule({
+    onModuleLoaded: (draco) => {
+      console.log(draco);
+      resolve(draco);
+    }
+  });
+});
 
 // Used for comparing values from glTF files, which uses WebGL enums natively.
 const GL = WebGLRenderingContext;
@@ -109,6 +116,7 @@ const CLIENT_PROXY_HANDLER = {
 
 export class Gltf2Loader {
   #client;
+  #dracoDecoder;
   constructor(client) {
     // Doing this allows clients to omit methods that they don't care about.
     this.#client = new Proxy(client, CLIENT_PROXY_HANDLER);
@@ -285,6 +293,17 @@ export class Gltf2Loader {
       return { bufferViewIndex: index, clientBufferView: clientBufferViews[index] };
     }
 
+    function createBufferViewFromTypedArray(typedArray, stride) {
+      const index = nextBufferViewIndex++;
+      clientBufferViews[index] = {
+        byteOffset: typedArray.byteOffset,
+        byteStride: stride,
+        byteLength: typedArray.byteLength,
+        buffer: typedArray.buffer
+      };
+      return index;
+    }
+
     // Accessors
     const clientAccessors = [];
     const clientBufferTypeMap = new Map();
@@ -389,8 +408,9 @@ export class Gltf2Loader {
       if (!clientTexture) {
         const texture = json.textures[index];
         let source = texture.source;
-        if (texture.extensions && texture.extensions.KHR_texture_basisu) {
-          source = texture.extensions.KHR_texture_basisu.source;
+        const basisExt = texture.extensions?.KHR_texture_basisu
+        if (basisExt) {
+          source = basisExt.source;
         }
         clientTexture = resolveImage(source, colorSpace).then(async (clientImage) => {
           texture.image = clientImage;
@@ -468,22 +488,108 @@ export class Gltf2Loader {
         primitive.mode = GL.TRIANGLES;
       }
 
+      const dracoExt = primitive.extensions?.KHR_draco_mesh_compression;
+      let dracoPromise;
+      if (dracoExt) {
+        dracoPromise = resolveBufferView(dracoExt.bufferView).then(async bufferView => {
+          const draco = await DRACO_DECODER;
+          const decoder = new draco.Decoder(); // TODO: Cache this!
+
+          const dracoBuffer = new Int8Array(bufferView.buffer, bufferView.byteOffset, bufferView.byteLength);
+          const geometryType = decoder.GetEncodedGeometryType(dracoBuffer);
+          
+          let geometry;
+          let status;
+          switch (geometryType) {
+            case draco.POINT_CLOUD: {
+              geometry = new draco.PointCloud();
+              status = decoder.DecodeArrayToPointCloud(dracoBuffer, bufferView.byteLength, geometry);
+              break;
+            }
+            case draco.TRIANGULAR_MESH: {
+              geometry = new draco.Mesh();
+              status = decoder.DecodeArrayToMesh(dracoBuffer, bufferView.byteLength, geometry);
+              break;
+            }
+            default:
+              throw new Error('Unknown Draco geometry type');
+          }
+
+          if (!status.ok()) {
+            throw new Error('Draco decode failed');
+          }
+
+          const vertCount = geometry.num_points();
+
+          for (const name in dracoExt.attributes) {
+            const attributeId = dracoExt.attributes[name];
+            const attribute = decoder.GetAttributeByUniqueId(geometry, attributeId);
+            const stride = attribute.byte_stride();
+            const byteLength = vertCount * stride;
+
+            const outPtr = draco._malloc(byteLength);
+            const success = decoder.GetAttributeDataArrayForAllPoints(geometry, attribute, attribute.data_type(), byteLength, outPtr);
+            if (!success) {
+              throw new Error('Failed to get decoded attribute data array');
+            }
+
+            // Copy the decoded attribute data out of the WASM heap.
+            const attribBuffer = new Uint8Array(draco.HEAPF32.buffer, outPtr, byteLength).slice();
+
+            // Override the accessor's bufferView with the newly decoded data.
+            const accessor = json.accessors[primitive.attributes[name]];
+            accessor.bufferView = createBufferViewFromTypedArray(attribBuffer, stride);
+            accessor.byteOffset = 0;
+
+            draco._free(outPtr);
+          }
+
+          // TODO: Handle 32 bit indices
+          if (geometryType == draco.TRIANGULAR_MESH && 'indices' in primitive) {
+            const indexCount = geometry.num_faces() * 3;
+            const byteLength = indexCount * Uint16Array.BYTES_PER_ELEMENT;
+
+            const outPtr = draco._malloc(byteLength);
+            const success = decoder.GetTrianglesUInt16Array(geometry, byteLength, outPtr);
+            if (!success) {
+              throw new Error('Failed to get decoded index data array');
+            }
+
+            // Copy the decoded index data out of the WASM heap.
+            const indexBuffer = new Uint16Array(draco.HEAPF32.buffer, outPtr, indexCount).slice();
+
+            // Override the indices's bufferView with the newly decoded data.
+            const accessor = json.accessors[primitive.indices];
+            accessor.bufferView = createBufferViewFromTypedArray(indexBuffer, 4);
+            accessor.byteOffset = 0;
+
+            draco._free(outPtr);
+          }
+        });
+      } else {
+        dracoPromise = Promise.resolve();
+      }
+
       primitivePromises.push(resolveMaterial(primitive.material).then(material => {
         primitive.material = material;
       }));
 
-      for (const name in primitive.attributes) {
-        // TODO: Handle accessors with no bufferView (initialized to 0);
-        primitivePromises.push(resolveAccessor(primitive.attributes[name], 'VertexBuffer').then(accessor => {
-          primitive.attributes[name] = accessor;
-        }));
-      }
+      primitivePromises.push(dracoPromise.then(() => {
+        const attribPromises = [];
+        for (const name in primitive.attributes) {
+          // TODO: Handle accessors with no bufferView (initialized to 0);
+          attribPromises.push(resolveAccessor(primitive.attributes[name], 'VertexBuffer').then(accessor => {
+            primitive.attributes[name] = accessor;
+          }));
+        }
 
-      if ('indices' in primitive) {
-        primitivePromises.push(resolveAccessor(primitive.indices, 'IndexBuffer').then(accessor => {
-          primitive.indices = accessor;
-        }));
-      }
+        if ('indices' in primitive) {
+          attribPromises.push(resolveAccessor(primitive.indices, 'IndexBuffer').then(accessor => {
+            primitive.indices = accessor;
+          }));
+        }
+        return Promise.all(attribPromises);
+      }));
 
       return Promise.all(primitivePromises).then(() => {
         return client.createPrimitive(primitive);
