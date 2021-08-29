@@ -129,7 +129,8 @@ gltfLoader.instanceFromUrl(world, './media/models/dungeon/dungeon.glb');
 
 
 //const dragonUrl = '../xr-dinosaurs/media/models/sabertooth/scene.glb';
-const dragonUrl = './media/models/dragon/dragon.glb';
+//const dragonUrl = './media/models/dragon/dragon.glb';
+const dragonUrl = './media/models/dragon/dragon-compressed.glb';
 
 let dragon;
 gltfLoader.fromUrl(dragonUrl).then(scene => {

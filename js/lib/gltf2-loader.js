@@ -1,7 +1,6 @@
 const DRACO_DECODER = new Promise((resolve) => {
   DracoDecoderModule({
     onModuleLoaded: (draco) => {
-      console.log(draco);
       resolve(draco);
     }
   });
@@ -547,7 +546,8 @@ export class Gltf2Loader {
           // TODO: Handle 32 bit indices
           if (geometryType == draco.TRIANGULAR_MESH && 'indices' in primitive) {
             const indexCount = geometry.num_faces() * 3;
-            const byteLength = indexCount * Uint16Array.BYTES_PER_ELEMENT;
+            const stride = Uint16Array.BYTES_PER_ELEMENT;
+            const byteLength = indexCount * stride;
 
             const outPtr = draco._malloc(byteLength);
             const success = decoder.GetTrianglesUInt16Array(geometry, byteLength, outPtr);
@@ -560,7 +560,7 @@ export class Gltf2Loader {
 
             // Override the indices's bufferView with the newly decoded data.
             const accessor = json.accessors[primitive.indices];
-            accessor.bufferView = createBufferViewFromTypedArray(indexBuffer, 4);
+            accessor.bufferView = createBufferViewFromTypedArray(indexBuffer, stride);
             accessor.byteOffset = 0;
 
             draco._free(outPtr);
