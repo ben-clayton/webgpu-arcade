@@ -1,10 +1,45 @@
-const DRACO_DECODER = new Promise((resolve) => {
-  DracoDecoderModule({
-    onModuleLoaded: (draco) => {
-      resolve(draco);
-    }
-  });
-});
+const WORKER_DIR = import.meta.url.replace(/[^\/]*$/, '');
+
+class DracoWorkerDecoder {
+  nextId = 1;
+  pendingDecodes = new Map();
+
+  constructor() {
+    this.worker = new Worker(`${WORKER_DIR}draco-worker.js`);
+    this.worker.onmessage = (msg) => {
+      const id = msg.data.id;
+      const decodeRequest = this.pendingDecodes.get(id);
+      if (!decodeRequest) {
+        console.error(`Got a draco decode result for unknown request ${id}`);
+        return;
+      }
+
+      if (msg.data.error) {
+        decodeRequest.reject(new Error(msg.data.error));
+        return;
+      }
+
+      decodeRequest.resolve(msg.data.buffersViews);
+    };
+  }
+
+  decode(bufferView, attributes, indexSize) {
+    return new Promise((resolve, reject) => {
+      const id = this.nextId++;
+
+      // Copy the buffer view so it can be transferred to the worker
+      const buffer = new Uint8Array(bufferView.buffer, bufferView.byteOffset, bufferView.byteLength).slice().buffer;
+
+      this.pendingDecodes.set(id, {resolve, reject});
+      this.worker.postMessage({
+        id,
+        buffer,
+        attributes,
+        indexSize
+      }, [buffer]);
+    });
+  }
+}
 
 // Used for comparing values from glTF files, which uses WebGL enums natively.
 const GL = WebGLRenderingContext;
@@ -180,6 +215,12 @@ export class Gltf2Loader {
 
     if (json.asset.minVersion != '2.0' && json.asset.version != '2.0') {
       throw new Error('Incompatible asset version.');
+    }
+
+    // If we need draco decoding and we haven't yet created a decoder, do so now.
+    let dracoDecoder = this.#dracoDecoder;
+    if (!dracoDecoder && json.extensionsUsed.includes('KHR_draco_mesh_compression')) {
+      dracoDecoder = this.#dracoDecoder = new DracoWorkerDecoder();
     }
 
     // TODO: Check extensions against supported set.
@@ -492,85 +533,27 @@ export class Gltf2Loader {
       let dracoPromise;
       if (dracoExt) {
         dracoPromise = resolveBufferView(dracoExt.bufferView).then(async bufferView => {
-          const draco = await DRACO_DECODER;
-          const decoder = new draco.Decoder(); // TODO: Cache this!
-
-          const dracoBuffer = new Int8Array(bufferView.buffer, bufferView.byteOffset, bufferView.byteLength);
-          const geometryType = decoder.GetEncodedGeometryType(dracoBuffer);
-          
-          let geometry;
-          let status;
-          switch (geometryType) {
-            case draco.POINT_CLOUD: {
-              geometry = new draco.PointCloud();
-              status = decoder.DecodeArrayToPointCloud(dracoBuffer, bufferView.byteLength, geometry);
-              break;
-            }
-            case draco.TRIANGULAR_MESH: {
-              geometry = new draco.Mesh();
-              status = decoder.DecodeArrayToMesh(dracoBuffer, bufferView.byteLength, geometry);
-              break;
-            }
-            default:
-              throw new Error('Unknown Draco geometry type');
+          let indexSize = 0;
+          if ('indices' in primitive) {
+            const indexAccessor = json.accessors[primitive.indices];
+            indexSize = indexAccessor.componentType == GL.UNSIGNED_INT ? 4 : 2;
           }
 
-          if (!status.ok()) {
-            throw new Error('Draco decode failed');
-          }
-
-          const vertCount = geometry.num_points();
+          // Does the decode in a worker
+          const decodedBufferViews = await dracoDecoder.decode(bufferView, dracoExt.attributes, indexSize);
 
           for (const name in dracoExt.attributes) {
-            const attributeId = dracoExt.attributes[name];
-            const attribute = decoder.GetAttributeByUniqueId(geometry, attributeId);
-            const stride = attribute.byte_stride();
-            const byteLength = vertCount * stride;
-
-            const outPtr = draco._malloc(byteLength);
-            const success = decoder.GetAttributeDataArrayForAllPoints(geometry, attribute, attribute.data_type(), byteLength, outPtr);
-            if (!success) {
-              throw new Error('Failed to get decoded attribute data array');
-            }
-
-            // Copy the decoded attribute data out of the WASM heap.
-            const attribBuffer = new Uint8Array(draco.HEAPF32.buffer, outPtr, byteLength).slice();
-
-            // Override the accessor's bufferView with the newly decoded data.
+            const bufferView = decodedBufferViews[name];
             const accessor = json.accessors[primitive.attributes[name]];
-            accessor.bufferView = createBufferViewFromTypedArray(attribBuffer, stride);
+            accessor.bufferView = createBufferViewFromTypedArray(new Uint8Array(bufferView.buffer), bufferView.stride);
             accessor.byteOffset = 0;
-
-            draco._free(outPtr);
           }
 
-          if (geometryType == draco.TRIANGULAR_MESH && 'indices' in primitive) {
+          if (indexSize) {
+            const bufferView = decodedBufferViews.INDICES;
             const accessor = json.accessors[primitive.indices];
-
-            const indexCount = geometry.num_faces() * 3;
-            const stride = accessor.componentType == GL.UNSIGNED_INT ? 4 : 2;
-            const byteLength = indexCount * stride;
-
-            const outPtr = draco._malloc(byteLength);
-            let success;
-            if (stride == 4) {
-              success = decoder.GetTrianglesUInt32Array(geometry, byteLength, outPtr);
-            } else {
-              success = decoder.GetTrianglesUInt16Array(geometry, byteLength, outPtr);
-            }
-
-            if (!success) {
-              throw new Error('Failed to get decoded index data array');
-            }
-
-            // Copy the decoded index data out of the WASM heap.
-            const indexBuffer = new Uint8Array(draco.HEAPF32.buffer, outPtr, byteLength).slice();
-
-            // Override the indices's bufferView with the newly decoded data.
-            accessor.bufferView = createBufferViewFromTypedArray(indexBuffer, stride);
+            accessor.bufferView = createBufferViewFromTypedArray(new Uint8Array(bufferView.buffer), bufferView.stride);
             accessor.byteOffset = 0;
-
-            draco._free(outPtr);
           }
         });
       } else {
