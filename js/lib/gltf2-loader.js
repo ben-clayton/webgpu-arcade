@@ -326,8 +326,9 @@ export class Gltf2Loader {
           accessor.bufferView = bufferView;
           accessor.componentCount = getComponentCount(accessor.type);
           accessor.gpuFormat = getAccessorGPUFormat(accessor);
+          const minimumByteStride = getComponentTypeSize(accessor.componentType) * accessor.componentCount;
           if (!bufferView.byteStride) {
-            bufferView.byteStride = getComponentTypeSize(accessor.componentType) * accessor.componentCount;
+            bufferView.byteStride = minimumByteStride;
           }
 
           if (bufferType) {
@@ -343,7 +344,7 @@ export class Gltf2Loader {
           } else {
             const typedArrayOffset = bufferView.byteOffset + accessor.byteOffset;
             const arrayType = getComponentTypeArrayConstructor(accessor.componentType);
-            const elementCount = (bufferView.byteStride * accessor.count) / arrayType.BYTES_PER_ELEMENT;
+            const elementCount = (minimumByteStride * accessor.count) / arrayType.BYTES_PER_ELEMENT;
             accessor.typedArray = new arrayType(bufferView.buffer, typedArrayOffset, elementCount);
           }
 

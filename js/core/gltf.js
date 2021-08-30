@@ -230,6 +230,7 @@ class GltfClient {
       }
       default: return null;
     }
+
     const sampler = new samplerType(
       channel.sampler.input.typedArray,
       channel.sampler.output.typedArray,
