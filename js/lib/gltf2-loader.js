@@ -543,23 +543,29 @@ export class Gltf2Loader {
             draco._free(outPtr);
           }
 
-          // TODO: Handle 32 bit indices
           if (geometryType == draco.TRIANGULAR_MESH && 'indices' in primitive) {
+            const accessor = json.accessors[primitive.indices];
+
             const indexCount = geometry.num_faces() * 3;
-            const stride = Uint16Array.BYTES_PER_ELEMENT;
+            const stride = accessor.componentType == GL.UNSIGNED_INT ? 4 : 2;
             const byteLength = indexCount * stride;
 
             const outPtr = draco._malloc(byteLength);
-            const success = decoder.GetTrianglesUInt16Array(geometry, byteLength, outPtr);
+            let success;
+            if (stride == 4) {
+              success = decoder.GetTrianglesUInt32Array(geometry, byteLength, outPtr);
+            } else {
+              success = decoder.GetTrianglesUInt16Array(geometry, byteLength, outPtr);
+            }
+
             if (!success) {
               throw new Error('Failed to get decoded index data array');
             }
 
             // Copy the decoded index data out of the WASM heap.
-            const indexBuffer = new Uint16Array(draco.HEAPF32.buffer, outPtr, indexCount).slice();
+            const indexBuffer = new Uint8Array(draco.HEAPF32.buffer, outPtr, byteLength).slice();
 
             // Override the indices's bufferView with the newly decoded data.
-            const accessor = json.accessors[primitive.indices];
             accessor.bufferView = createBufferViewFromTypedArray(indexBuffer, stride);
             accessor.byteOffset = 0;
 
