@@ -21,6 +21,7 @@ import Stats from 'stats.js';
 
 const appSettings = {
   controls: 'orbit',
+  animation: 'NORMAL_WALK-Take 001'
 };
 
 let gui = new dat.GUI();
@@ -147,6 +148,20 @@ gltfLoader.fromUrl(dragonUrl).then(scene => {
       ];
     }
   }*/
+
+  const animationSet = {};
+  for (const animationName in scene.animations) {
+    animationSet[animationName] = animationName;
+  }
+
+  const selectedAnimation = scene.animations[appSettings.animation];
+  if (selectedAnimation) {
+    dragon.add(selectedAnimation);
+  }
+
+  gui.add(appSettings, 'animation', animationSet).onChange(() => {
+    dragon.add(scene.animations[appSettings.animation]);
+  });
 
   const aabb = dragon.get(AABB);
   console.log('Object Loaded. Min:', aabb.min, ' Max:', aabb.max);

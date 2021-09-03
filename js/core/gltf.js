@@ -326,12 +326,7 @@ export class GltfScene {
       sceneTransform.addChild(instanceTransforms.getTransform(nodeIndex));
     }
 
-    const entity = world.create(sceneTransform, instanceTransforms, this.aabb, group);
-    if (this.animations.length) {
-      entity.add(this.animations[0]);
-    }
-
-    return entity;
+    return world.create(sceneTransform, instanceTransforms, this.aabb, group);
   }
 }
 
@@ -348,7 +343,11 @@ export class GltfLoader {
       gltfScene.scene = result.scene;
       gltfScene.nodes = result.nodes;
       gltfScene.nodeTransforms = result.transformPool;
-      gltfScene.animations = result.animations;
+
+      gltfScene.animations = new Map();
+      for (const animation of result.animations) {
+        gltfScene.animations[animation.name] = animation;
+      }
 
       // Generate a bounding box for the entire scene.
       gltfScene.aabb = new AABB();
