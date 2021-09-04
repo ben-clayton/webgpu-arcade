@@ -1,6 +1,6 @@
 import { System } from 'ecs';
 import { WebGPURenderTargets } from './webgpu-render-targets.js';
-import { WebGPURenderBatch } from './webgpu-instancing.js';
+import { WebGPURenderBatch } from './webgpu-render-batch.js';
 import { WebGPUCamera } from './webgpu-camera.js';
 
 class RenderPassGlobals {

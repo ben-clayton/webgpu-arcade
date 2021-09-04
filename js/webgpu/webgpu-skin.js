@@ -40,26 +40,13 @@ export class WebGPUSkinSystem extends System {
       label: 'Bone Fragment'
     });
 
-    this.bindGroupLayout = gpu.device.createBindGroupLayout({
-      label: 'Skin BindGroupLayout',
-      entries: [{
-        binding: 0, // joint buffer
-        visibility: GPUShaderStage.VERTEX,
-        buffer: { type: 'read-only-storage' }
-      }, {
-        binding: 1, // inverse bind matrix buffer
-        visibility: GPUShaderStage.VERTEX,
-        buffer: { type: 'read-only-storage' }
-      }]
-    });
-
     // Setup a render pipeline for drawing the skybox
     this.pipeline = gpu.device.createRenderPipeline({
       label: `Bone Render Pipeline`,
       layout: gpu.device.createPipelineLayout({
         bindGroupLayouts: [
           gpu.bindGroupLayouts.frame,
-          this.bindGroupLayout,
+          gpu.bindGroupLayout.skin,
         ]
       }),
       vertex: {
@@ -122,7 +109,7 @@ export class WebGPUSkinSystem extends System {
         gpuSkin.jointBuffer = gpu.createDynamicBuffer(skin.joints.length * 16 * Float32Array.BYTES_PER_ELEMENT, 'joint');
         gpuSkin.bindGroup = gpu.device.createBindGroup({
           label: `Skin[${skin.id}] BindGroup`,
-          layout: this.bindGroupLayout,
+          layout: gpu.bindGroupLayout.skin,
           entries: [{
             binding: 0,
             resource: { buffer: gpuSkin.jointBuffer.gpuBuffer },

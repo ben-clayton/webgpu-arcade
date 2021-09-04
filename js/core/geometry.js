@@ -1,3 +1,6 @@
+import { System } from 'ecs';
+import { Transform } from './transform.js';
+
 export const AttributeLocation = {
   position: 0,
   normal: 1,
@@ -218,6 +221,7 @@ export class AABB {
 // an object consisting of multiple parts need to function as a single entity.)
 export class Mesh {
   primitives = []; // Borrowing the term from glTF, but it's clunky.
+  skin = null;
 
   constructor(...primitives) {
     for (const primitive of primitives) {
@@ -226,5 +230,18 @@ export class Mesh {
       }
     }
     this.primitives.push(...primitives);
+  }
+}
+
+export class MeshSystem extends System {
+  async init() {
+    this.meshQuery = this.query(Mesh);
+  }
+
+  execute() {
+    const gpu = this.world;
+    this.meshQuery.forEach((entity, mesh) => {
+      gpu.addFrameMeshInstance(mesh, entity.get(Transform));
+    });
   }
 }

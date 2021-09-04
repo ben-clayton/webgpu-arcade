@@ -290,23 +290,25 @@ export class GltfScene {
   #createNodeInstance(nodeIndex, world, transforms, group) {
     const node = this.nodes[nodeIndex];
     const transform = transforms.getTransform(nodeIndex);
-    
-    if (node.mesh) {
-      const nodeEntity = world.create(transform, node.mesh, node.aabb);
-      nodeEntity.name = node.name;
-      group.entities.push(nodeEntity);
 
+    if (node.mesh) {
+      let mesh = node.mesh;
       if (node.skin) {
         const joints = [];
         for (const jointIndex of node.skin.joints) {
           joints.push(transforms.getTransform(jointIndex));
         }
-        nodeEntity.add(new Skin({
+        mesh = new Mesh(...mesh.primitives);
+        mesh.skin = new Skin({
           joints,
           inverseBindMatrixBuffer: node.skin.inverseBindMatrices.clientInverseBindMatrixBuffer,
           inverseBindMatrixOffset: node.skin.inverseBindMatrices.byteOffset
-        }));
+        });
       }
+
+      const nodeEntity = world.create(transform, mesh, node.aabb);
+      nodeEntity.name = node.name;
+      group.entities.push(nodeEntity);
     }
 
     if (node.children) {
