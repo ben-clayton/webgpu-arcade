@@ -1,5 +1,3 @@
-import { System } from 'ecs';
-
 import { WebGPURenderPass } from './webgpu-render-pass.js';
 
 export class WebGPUNormalRenderPass extends WebGPURenderPass {

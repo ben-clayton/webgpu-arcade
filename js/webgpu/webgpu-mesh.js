@@ -1,6 +1,6 @@
-import { System } from 'ecs';
+import { WebGPUSystem } from './webgpu-system.js';
+import { Stage } from '../core/stage.js';
 import { Mesh } from '../core/geometry.js';
-//import { WebGPUSkin } from './webgpu-skin.js';
 import { WebGPUMaterialFactory, WebGPUMaterialBindGroups } from './materials/webgpu-materials.js';
 import { WebGPURenderBatch } from './webgpu-render-batch.js';
 
@@ -21,11 +21,12 @@ export class WebGPUMesh {
 
 export class WebGPUSkin {
   id;
-  jointBuffer;
   bindGroup;
 }
 
-export class WebGPUMeshSystem extends System {
+export class WebGPUMeshSystem extends WebGPUSystem {
+  stage = Stage.PreRender;
+
   #factories = new Map();
   #gpuMeshes = new WeakMap();
   #gpuSkins = new WeakMap();
@@ -42,20 +43,19 @@ export class WebGPUMeshSystem extends System {
     }
   }
 
-  getOrUpdateWebGPUSkin(gpu, skin) {
-    if (!skin) return null;
+  getGPUSkin(gpu, skin) {
+    if (!skin || !skin?.jointBuffer) return null;
 
     let gpuSkin = this.#gpuSkins.get(skin);
     if (!gpuSkin) {
       gpuSkin = new WebGPUSkin();
       gpuSkin.id = skin.id;
-      gpuSkin.jointBuffer = gpu.createDynamicBuffer(skin.joints.length * 16 * Float32Array.BYTES_PER_ELEMENT, 'joint');
       gpuSkin.bindGroup = gpu.device.createBindGroup({
         label: `Skin[${skin.id}] BindGroup`,
         layout: gpu.bindGroupLayouts.skin,
         entries: [{
           binding: 0,
-          resource: { buffer: gpuSkin.jointBuffer.gpuBuffer },
+          resource: { buffer: skin.jointBuffer.gpuBuffer },
         }, {
           binding: 1,
           resource: { buffer: skin.ibmBuffer.gpuBuffer },
@@ -63,18 +63,7 @@ export class WebGPUMeshSystem extends System {
       });
 
       this.#gpuSkins.set(skin, gpuSkin);
-    } else {
-      gpuSkin.jointBuffer.beginUpdate();
     }
-
-    // Push all of the current joint poses into the buffer.
-    // TODO: Have a way to detect when joints are dirty and only push then.
-    const buffer = new Float32Array(gpuSkin.jointBuffer.arrayBuffer);
-    for (let i = 0; i < skin.joints.length; ++i) {
-      buffer.set(skin.joints[i].worldMatrix, i * 16);
-    }
-    gpuSkin.jointBuffer.finish();
-
     return gpuSkin;
   }
 
@@ -84,7 +73,12 @@ export class WebGPUMeshSystem extends System {
 
     const meshInstances = gpu.getFrameMeshInstances();
     for (const mesh of meshInstances.keys()) {
-      const skin = this.getOrUpdateWebGPUSkin(gpu, mesh.skin);
+      const skin = this.getGPUSkin(gpu, mesh.skin);
+      if (mesh.skin && !skin) {
+        // If we get a skinned mesh without a joint buffer skip it.
+        console.warn('Got a skinned mesh with no joint buffer');
+        continue;
+      }
       let gpuMesh = this.#gpuMeshes.get(mesh);
       if (!gpuMesh) {
         const gpuPrimitives = [];
@@ -111,26 +105,5 @@ export class WebGPUMeshSystem extends System {
         renderBatch.addMesh(gpuMesh, transform);
       }
     }
-
-    /*this.needsGpuMeshQuery.forEach((entity, mesh) => {
-      const gpuPrimitives = [];
-      for (const primitive of mesh.primitives) {
-        const layout = primitive.geometry.layout;
-        const material = primitive.material;
-        const factory = this.#factories.get(material.constructor);
-        if (!factory) {
-          throw new Error(`No WebGPUMaterialFactory registered for ${material.constructor.name}`);
-        }
-
-        const skin = this.getWebGPUSkin(gpu, mesh.skin);
-
-        gpuPrimitives.push(new WebGPUMeshPrimitive(
-          primitive.geometry,
-          factory.getPipeline(gpu, layout, material, !!skin),
-          factory.getBindGroup(gpu, material, skin)
-        ));
-      }
-      entity.add(new WebGPUMesh(...gpuPrimitives));
-    });*/
   }
 }

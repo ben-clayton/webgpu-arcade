@@ -74,6 +74,7 @@ class WorldData {
   components = new Map();
   queries = new Map();
   systems = new Map();
+  orderedSystems = new Array();
 
   getQuery(componentTypes) {
     let componentNames = [];
@@ -90,6 +91,7 @@ class WorldData {
 export class World {
   #worldData = new WorldData();
   #nextEntityId = 1;
+  #nextSystemId = 1;
   #singletonEntity;
   #lastTime = performance.now() / 1000;
 
@@ -116,7 +118,18 @@ export class World {
 
   registerSystem(systemType, ...initArgs) {
     const system = new systemType(this, this.#worldData);
+    system.id = this.#nextSystemId++;
     this.#worldData.systems.set(systemType, system);
+    this.#worldData.orderedSystems.push(system);
+    this.#worldData.orderedSystems.sort((a, b) => {
+      // Go by the explicitly set stage first.
+      let order = a.stage - b.stage;
+      if (order == 0) {
+        // If the stages match, use the order of addition instead.
+        order = a.id - b.id;
+      }
+      return order;
+    });
     if (system.init !== undefined) {
       system.init(...initArgs);
     }
@@ -144,7 +157,7 @@ export class World {
       this.#lastTime = time;
     }
 
-    for (const system of this.#worldData.systems.values()) {
+    for (const system of this.#worldData.orderedSystems) {
       if (system.enabled) {
         system.execute(delta, time);
       }
@@ -155,6 +168,8 @@ export class World {
 export class System {
   #worldData;
   enabled = true;
+  stage = 0;
+  id = 0;
 
   constructor(world, worldData) {
     this.world = world;

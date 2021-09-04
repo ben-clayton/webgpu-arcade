@@ -1,4 +1,4 @@
-import { System } from 'ecs';
+import { WebGPUSystem } from './webgpu-system.js';
 import { mat4 } from 'gl-matrix';
 
 import { Transform } from '../core/transform.js';
@@ -13,7 +13,7 @@ export class WebGPUManualInstances {
   instanceCount = 1;
 }
 
-export class WebGPUInstancingSystem extends System {
+export class WebGPUInstancingSystem extends WebGPUSystem {
   init(gpu) {
     // TODO: Make these dynamically sized
     this.instanceArray = new Float32Array(16 * MAX_INSTANCE_COUNT);

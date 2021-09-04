@@ -1,4 +1,4 @@
-import { System } from 'ecs';
+import { WebGPUSystem } from './webgpu-system.js';
 import { mat4, vec3 } from 'gl-matrix';
 
 import { Transform } from '../core/transform.js';
@@ -82,7 +82,7 @@ export class WebGPUCamera {
   }
 }
 
-export class WebGPUCameraSystem extends System {
+export class WebGPUCameraSystem extends WebGPUSystem {
   execute(delta, time) {
     const gpu = this.world;
 

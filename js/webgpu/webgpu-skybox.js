@@ -1,4 +1,4 @@
-import { System } from 'ecs';
+import { WebGPUSystem } from './webgpu-system.js';
 import { Geometry, Attribute } from '../core/geometry.js';
 import { WebGPUMesh, WebGPUMeshPrimitive } from './webgpu-mesh.js';
 import { WebGPUMaterialPipeline, RenderOrder, WebGPUMaterialBindGroups } from './materials/webgpu-materials.js';
@@ -42,7 +42,7 @@ const SKYBOX_CUBE_INDICES = new Uint16Array([
   5, 6, 7,
 ]);
 
-export class WebGPUSkyboxSystem extends System {
+export class WebGPUSkyboxSystem extends WebGPUSystem {
   init(gpu) {
     const vertexModule = gpu.device.createShaderModule({
       code: SkyboxVertexSource,

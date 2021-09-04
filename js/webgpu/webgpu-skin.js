@@ -1,4 +1,4 @@
-import { System } from 'ecs';
+import { WebGPUSystem } from './webgpu-system.js';
 import { Skin } from '../core/skin.js';
 import { Geometry, Attribute } from '../core/geometry.js';
 import { Transform } from '../core/transform.js';
@@ -29,7 +29,7 @@ const BONE_INDICES = new Uint16Array([
   1, 5, 2, 5, 3, 5, 4, 5,
 ]);
 
-export class WebGPUSkinSystem extends System {
+export class WebGPUSkinSystem extends WebGPUSystem {
   init(gpu) {
     const vertexModule = gpu.device.createShaderModule({
       code: BoneVertexSource,

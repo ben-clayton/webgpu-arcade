@@ -1,4 +1,4 @@
-import { System } from 'ecs';
+import { WebGPUSystem } from './webgpu-system.js';
 import { vec3 } from 'gl-matrix';
 import { AmbientLight, PointLight } from '../core/light.js';
 import { Transform } from '../core/transform.js';
@@ -27,7 +27,7 @@ export class WebGPULightBuffer {
   }
 }
 
-export class WebGPULightSystem extends System {
+export class WebGPULightSystem extends WebGPUSystem {
   nextByteOffset = 4 * Float32Array.BYTES_PER_ELEMENT;
   freedLights = [];
 

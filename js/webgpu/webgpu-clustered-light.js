@@ -1,7 +1,7 @@
 // Lots of this is ported or otherwise influenced by http://www.aortiz.me/2018/12/21/CG.html and
 // https://github.com/Angelo1211/HybridRenderingEngine
 
-import { System } from 'ecs';
+import { WebGPUSystem } from './webgpu-system.js';
 import { WebGPUCamera } from './webgpu-camera.js';
 import {
   DISPATCH_SIZE, 
@@ -11,7 +11,7 @@ import {
 
 const emptyArray = new Uint32Array(1);
 
-export class WebGPUClusteredLights extends System {
+export class WebGPUClusteredLights extends WebGPUSystem {
   #outputSize = {width: 0, height: 0};
   #zRange = [0, 0];
 

@@ -11,7 +11,6 @@ import {
   WebGPUDefaultRenderPass,
   WebGPUSubmitRenderPasses
 } from './webgpu-render-pass.js';
-import { WebGPULightSpriteSystem } from './webgpu-light-sprite.js';
 import { WebGPUInstancingSystem } from './webgpu-instancing.js';
 import { WebGPUSkyboxSystem } from './webgpu-skybox.js';
 import { WebGPUMeshSystem } from './webgpu-mesh.js';

@@ -1,4 +1,5 @@
 import { System } from 'ecs';
+import { Stage } from './stage.js';
 import { vec2 } from 'gl-matrix';
 
 export class KeyboardState {
@@ -17,6 +18,7 @@ export class MouseState {
 }
 
 export class InputSystem extends System {
+  stage = Stage.First;
   eventCanvas = null;
   lastMouseX = 0;
   lastMouseY = 0;

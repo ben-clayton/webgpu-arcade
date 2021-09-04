@@ -1,4 +1,4 @@
-import { System } from 'ecs';
+import { WebGPUSystem } from './webgpu-system.js';
 import { Geometry } from '../core/geometry.js';
 import { WebGPUManualInstances } from './webgpu-instancing.js';
 import { WebGPUMesh, WebGPUMeshPrimitive } from './webgpu-mesh.js';
@@ -6,7 +6,7 @@ import { WebGPUMaterialPipeline, RenderOrder } from './materials/webgpu-material
 import { WebGPULightBuffer } from './webgpu-light.js';
 import { LightSpriteVertexSource, LightSpriteFragmentSource } from './wgsl/light-sprite.js';
 
-export class WebGPULightSpriteSystem extends System {
+export class WebGPULightSpriteSystem extends WebGPUSystem {
   init(gpu) {
     const vertexModule = gpu.device.createShaderModule({
       code: LightSpriteVertexSource,

@@ -1,4 +1,5 @@
 import { System } from 'ecs';
+import { Stage } from './stage.js';
 import { Transform } from './transform.js';
 
 export const AttributeLocation = {
@@ -234,6 +235,8 @@ export class Mesh {
 }
 
 export class MeshSystem extends System {
+  stage = Stage.PreRender;
+
   async init() {
     this.meshQuery = this.query(Mesh);
   }

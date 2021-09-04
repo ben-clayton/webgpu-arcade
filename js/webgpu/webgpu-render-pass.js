@@ -1,4 +1,4 @@
-import { System } from 'ecs';
+import { WebGPUSystem } from './webgpu-system.js';
 import { WebGPURenderTargets } from './webgpu-render-targets.js';
 import { WebGPURenderBatch } from './webgpu-render-batch.js';
 import { WebGPUCamera } from './webgpu-camera.js';
@@ -8,7 +8,7 @@ class RenderPassGlobals {
   outputTexture;
 }
 
-export class WebGPUBeginRenderPasses extends System {
+export class WebGPUBeginRenderPasses extends WebGPUSystem {
   init(gpu) {
     this.singleton.add(new RenderPassGlobals());
     this.singleton.add(new WebGPURenderTargets(gpu));
@@ -22,7 +22,7 @@ export class WebGPUBeginRenderPasses extends System {
   }
 }
 
-export class WebGPUSubmitRenderPasses extends System {
+export class WebGPUSubmitRenderPasses extends WebGPUSystem {
   execute() {
     const gpu = this.world;
     const passGlobals = this.singleton.get(RenderPassGlobals);
@@ -34,7 +34,7 @@ export class WebGPUSubmitRenderPasses extends System {
   }
 }
 
-export class WebGPURenderPass extends System {
+export class WebGPURenderPass extends WebGPUSystem {
   async init(gpu) {
     this.cameras = this.query(WebGPUCamera);
 
