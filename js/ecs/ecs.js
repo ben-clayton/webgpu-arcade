@@ -156,7 +156,7 @@ export class World {
       delta = time - this.#lastTime;
       this.#lastTime = time;
     }
-
+    
     for (const system of this.#worldData.orderedSystems) {
       if (system.enabled) {
         system.execute(delta, time);

@@ -1,13 +1,11 @@
 import { StaticBuffer, DynamicBuffer } from '../core/buffers.js';
 
 export class WebGPUStaticBuffer extends StaticBuffer {
-  #device;
   #arrayBuffer;
 
   constructor(device, gpuBuffer, size, usage, mapped = false) {
     super(size, usage);
 
-    this.#device = device;
     this.gpuBuffer = gpuBuffer;
 
     if (mapped) {

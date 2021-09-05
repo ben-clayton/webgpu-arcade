@@ -1,6 +1,6 @@
 import { WebGPUSystem } from './webgpu-system.js';
 import { Geometry } from '../core/geometry.js';
-import { WebGPUManualInstances } from './webgpu-instancing.js';
+import { WebGPURenderBatch } from './webgpu-render-batch.js';
 import { WebGPUMesh, WebGPUMeshPrimitive } from './webgpu-mesh.js';
 import { WebGPUMaterialPipeline, RenderOrder } from './materials/webgpu-materials.js';
 import { WebGPULightBuffer } from './webgpu-light.js';
@@ -65,21 +65,17 @@ export class WebGPULightSpriteSystem extends WebGPUSystem {
       renderOrder: RenderOrder.Last
     });
 
-    const lightMesh = new WebGPUMesh(
+    this.lightMesh = new WebGPUMesh(
       new WebGPUMeshPrimitive(
         new Geometry({ drawCount: 4 }),
         gpuPipeline
       )
     );
-
-    this.instances = new WebGPUManualInstances(gpu);
-    this.instances.instanceCount = 0;
-
-    this.entity = this.world.create(lightMesh, this.instances);
   }
 
   execute(delta, time) {
     const lights = this.singleton.get(WebGPULightBuffer);
-    this.instances.instanceCount = lights.lightCount;
+    const renderBatch = this.singleton.get(WebGPURenderBatch);
+    renderBatch.addMesh(this.lightMesh, null, lights.lightCount);
   }
 }

@@ -243,6 +243,8 @@ export class MeshSystem extends System {
 
   execute() {
     const gpu = this.world;
+
+    // TODO: This would be a perfect place for some frustum culling, etc.
     this.meshQuery.forEach((entity, mesh) => {
       gpu.addFrameMeshInstances(mesh, entity.get(Transform));
     });

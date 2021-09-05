@@ -36,8 +36,6 @@ export class BoneVisualizerSystem extends System {
     material.baseColorFactor[0] = 0.0;
     material.baseColorFactor[1] = 1.0;
     material.baseColorFactor[2] = 1.0;
-    material.doubleSided = true;
-    material.depthWrite = false;
     material.depthCompare = 'always';
 
     this.mesh = new Mesh({ geometry, material });
@@ -46,15 +44,10 @@ export class BoneVisualizerSystem extends System {
   execute() {
     const gpu = this.world;
 
-    const skins = new Set();
-    for (const mesh of gpu.getFrameMeshInstances().keys()) {
+    this.query(Mesh).forEach((entity, mesh) => {
       if (mesh.skin) {
-        skins.add(mesh.skin);
+        gpu.addFrameMeshInstances(this.mesh, ...mesh.skin.joints);
       }
-    }
-
-    for (const skin of skins) {
-      gpu.addFrameMeshInstances(this.mesh, ...skin.joints);
-    }
+    });
   }
 }

@@ -1,5 +1,4 @@
 import { WebGPUSystem } from './webgpu-system.js';
-import { mat4 } from 'gl-matrix';
 
 import { Transform } from '../core/transform.js';
 import { WebGPUMesh } from './webgpu-mesh.js';
@@ -8,10 +7,6 @@ import { WebGPURenderBatch } from './webgpu-render-batch.js';
 import { INSTANCE_BUFFER_SIZE } from './wgsl/common.js';
 
 const MAX_INSTANCE_COUNT = 512;
-
-export class WebGPUManualInstances {
-  instanceCount = 1;
-}
 
 export class WebGPUInstancingSystem extends WebGPUSystem {
   init(gpu) {
@@ -27,16 +22,15 @@ export class WebGPUInstancingSystem extends WebGPUSystem {
     this.singleton.add(new WebGPURenderBatch());
   }
 
+  ensureBuffer
+
   execute(delta, time) {
     const gpu = this.world;
 
     const renderBatch = this.singleton.get(WebGPURenderBatch);
 
-    // TODO: This would be the perfect place for some frustum culling, etc.
     this.renderableMeshes.forEach((entity, gpuMesh) => {
-      const transform = entity.get(Transform);
-      const manualInstances = entity.get(WebGPUManualInstances);
-      renderBatch.addMesh(gpuMesh, entity.get(Transform), manualInstances?.instanceCount);
+      renderBatch.addMesh(gpuMesh, entity.get(Transform), 1);
     });
 
     // Loop through all of the instances we're going to render and place their transforms in the

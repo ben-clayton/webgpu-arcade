@@ -9,6 +9,7 @@ import { FlyingControls, FlyingControlsSystem } from './controls/flying-controls
 import { OrbitControls, OrbitControlsSystem } from './controls/orbit-controls.js';
 
 import { BoneVisualizerSystem } from './debug/bone-visualizer.js';
+import { BoundsVisualizerSystem } from './debug/bounds-visualizer.js';
 
 import { WebGPUWorld } from './webgpu/webgpu-world.js';
 
@@ -41,7 +42,8 @@ world
   .registerSystem(OrbitControlsSystem);
 
 world.registerRenderSystem(WebGPULightSpriteSystem);
-world.registerRenderSystem(BoneVisualizerSystem);
+//world.registerRenderSystem(BoneVisualizerSystem);
+//world.registerRenderSystem(BoundsVisualizerSystem);
 
 const renderer = await world.renderer();
 

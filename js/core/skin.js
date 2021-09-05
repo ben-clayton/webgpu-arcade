@@ -1,4 +1,5 @@
 import { System } from 'ecs';
+import { Mesh } from './geometry.js';
 import { Stage } from './stage.js';
 
 let nextSkinId = 1;
@@ -26,14 +27,15 @@ export class Skin {
 export class SkinSystem extends System {
   stage = Stage.PostFrameLogic;
 
-  visualizeBones = true;
+  async init() {
+    this.meshQuery = this.query(Mesh);
+  }
 
   execute() {
     const gpu = this.world;
 
-    // Look through all of the meshes that will be rendered this frame and update any skins we find.
-    const meshes = gpu.getFrameMeshInstances().keys();
-    for (const mesh of meshes) {
+    // Look through all of the meshes in the world and update any skins we find.
+    this.meshQuery.forEach((entity, mesh) => {
       const skin = mesh.skin;
       if (skin) {
         if (!skin.jointBuffer) {
@@ -50,6 +52,6 @@ export class SkinSystem extends System {
         }
         skin.jointBuffer.finish();
       }
-    }
+    });
   }
 }
