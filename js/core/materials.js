@@ -8,6 +8,8 @@ export class UnlitMaterial {
   transparent = false;
   doubleSided = false;
   alphaCutoff = 0.0;
+  depthWrite = true;
+  depthCompare = 'less';
 };
 
 export class PBRMaterial extends UnlitMaterial {

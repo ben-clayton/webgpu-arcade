@@ -235,7 +235,7 @@ export class Mesh {
 }
 
 export class MeshSystem extends System {
-  stage = Stage.PreRender;
+  stage = Stage.PostFrameLogic;
 
   async init() {
     this.meshQuery = this.query(Mesh);
@@ -244,7 +244,7 @@ export class MeshSystem extends System {
   execute() {
     const gpu = this.world;
     this.meshQuery.forEach((entity, mesh) => {
-      gpu.addFrameMeshInstance(mesh, entity.get(Transform));
+      gpu.addFrameMeshInstances(mesh, entity.get(Transform));
     });
   }
 }

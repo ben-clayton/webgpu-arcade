@@ -106,7 +106,7 @@ export class WebGPUMaterialFactory {
   }
 
   pipelineKey(geometryLayout, material, skinned) {
-    return `${geometryLayout.id};${material?.transparent};${material?.doubleSided};${skinned}`;
+    return `${geometryLayout.id};${material.transparent};${material.doubleSided};${material.depthWrite};${material.depthCompare};${skinned}`;
   }
 
   // Creates a pipeline with defaults settings and the overridden shaders.
@@ -144,7 +144,7 @@ export class WebGPUMaterialFactory {
     }
 
     return gpu.device.createRenderPipeline({
-      label: `PBR Pipeline (LayoutID: ${layout.id})`,
+      label: `${material.constructor.name} Pipeline (LayoutID: ${layout.id})`,
       layout: gpu.device.createPipelineLayout({ bindGroupLayouts }),
       vertex,
       fragment,
@@ -155,8 +155,8 @@ export class WebGPUMaterialFactory {
       },
       depthStencil: {
         format: gpu.depthFormat,
-        depthWriteEnabled: true,
-        depthCompare: 'less',
+        depthWriteEnabled: material.depthWrite,
+        depthCompare: material.depthCompare,
       },
       multisample: { count: gpu.sampleCount, },
     });

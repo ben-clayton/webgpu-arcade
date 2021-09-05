@@ -24,7 +24,9 @@ export class Skin {
 }
 
 export class SkinSystem extends System {
-  stage = Stage.PreRender;
+  stage = Stage.PostFrameLogic;
+
+  visualizeBones = true;
 
   execute() {
     const gpu = this.world;

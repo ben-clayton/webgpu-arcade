@@ -1,6 +1,8 @@
 export const Stage = {
-  First: -1,
+  First: -999,
+  PreFrameLogic: -1,
   Default: 0,
+  PostFrameLogic: -1,
   PreRender: 1,
   Render: 2,
   PostRender: 3,

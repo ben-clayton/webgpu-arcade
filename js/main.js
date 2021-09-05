@@ -8,6 +8,8 @@ import { GltfLoader } from './core/gltf.js';
 import { FlyingControls, FlyingControlsSystem } from './controls/flying-controls.js';
 import { OrbitControls, OrbitControlsSystem } from './controls/orbit-controls.js';
 
+import { BoneVisualizerSystem } from './debug/bone-visualizer.js';
+
 import { WebGPUWorld } from './webgpu/webgpu-world.js';
 
 import { CubeGeometry } from './geometry/cube.js';
@@ -39,6 +41,7 @@ world
   .registerSystem(OrbitControlsSystem);
 
 world.registerRenderSystem(WebGPULightSpriteSystem);
+world.registerRenderSystem(BoneVisualizerSystem);
 
 const renderer = await world.renderer();
 
@@ -88,7 +91,7 @@ world.create(
 );
 
 // Create a grid of cube instances to test the instancing system.
-const cubeGeometry = new CubeGeometry(world);
+/*const cubeGeometry = new CubeGeometry(world);
 
 for (let x = 0; x < 5; ++x) {
   for (let y = 0; y < 5; ++y) {
@@ -107,7 +110,7 @@ for (let x = 0; x < 5; ++x) {
       );
     }
   }
-}
+}*/
 
 // Load a scene
 gltfLoader.instanceFromUrl(world, './media/models/dungeon/dungeon-basis-draco.glb');
