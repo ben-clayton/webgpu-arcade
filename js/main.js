@@ -10,7 +10,7 @@ import { OrbitControls, OrbitControlsSystem } from './controls/orbit-controls.js
 
 import { WebGPUWorld } from './webgpu/webgpu-world.js';
 
-import { createCubeGeometry } from './cube-geometry.js';
+import { CubeGeometry } from './geometry/cube.js';
 import { PBRMaterial, UnlitMaterial } from './core/materials.js';
 import { WebGPULightSpriteSystem } from './webgpu/webgpu-light-sprite.js';
 
@@ -88,24 +88,26 @@ world.create(
 );
 
 // Create a grid of cube instances to test the instancing system.
-/*const cubeGeometry = new createCubeGeometry(world);
-const cubeMaterial = new PBRMaterial();
-
-const cubeMesh = new Mesh({ geometry: cubeGeometry, material: cubeMaterial });
+const cubeGeometry = new CubeGeometry(world);
 
 for (let x = 0; x < 5; ++x) {
   for (let y = 0; y < 5; ++y) {
     for (let z = 0; z < 5; ++z) {
+      const cubeMaterial = new PBRMaterial();
+      cubeMaterial.baseColorFactor[0] = x / 5;
+      cubeMaterial.baseColorFactor[1] = y / 5;
+      cubeMaterial.baseColorFactor[2] = z / 5;
+
       world.create(
         new Transform({ position: [
           (x-2) * 2.5,
           (y-2) * 2.5,
           (z-2) * 2.5] }),
-          cubeMesh
+          new Mesh({ geometry: cubeGeometry, material: cubeMaterial })
       );
     }
   }
-}*/
+}
 
 // Load a scene
 gltfLoader.instanceFromUrl(world, './media/models/dungeon/dungeon-basis-draco.glb');
