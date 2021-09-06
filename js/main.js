@@ -115,7 +115,7 @@ for (let x = 0; x < 5; ++x) {
 }*/
 
 // Load a scene
-gltfLoader.instanceFromUrl(world, './media/models/dungeon/dungeon-basis-draco.glb');
+//gltfLoader.instanceFromUrl(world, './media/models/dungeon/dungeon-basis-draco.glb');
 //gltfLoader.instanceFromUrl(world, './media/models/forest/scene.gltf');
 //gltfLoader.instanceFromUrl(world, './media/models/unlit/UnlitTest.glb');
 
@@ -138,7 +138,8 @@ gltfLoader.instanceFromUrl(world, './media/models/dungeon/dungeon-basis-draco.gl
 
 //const dragonUrl = '../xr-dinosaurs/media/models/sabertooth/scene.glb';
 //const dragonUrl = './media/models/dragon/dragon.glb';
-const dragonUrl = './media/models/dragon/dragon-basis-draco-resampled.glb';
+//const dragonUrl = './media/models/dragon/dragon-basis-draco-resampled.glb';
+const dragonUrl = '../bumpy/media/models/enemy-ships/enemy-ships.glb';
 
 let dragon;
 gltfLoader.fromUrl(dragonUrl).then(scene => {

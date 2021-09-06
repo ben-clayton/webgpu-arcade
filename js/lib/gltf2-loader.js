@@ -118,6 +118,12 @@ const DEFAULT_METALLIC_ROUGHNESS = {
   roughnessFactor: 1.0,
 };
 
+const DEFAULT_SPECULAR_GLOSS = {
+  diffuseFactor: [1,1,1,1],
+  specularFactor: [1,1,1],
+  glossinessFactor: 1.0,
+};
+
 const DEFAULT_MATERIAL = {
   pbrMetallicRoughness: DEFAULT_METALLIC_ROUGHNESS,
   emissiveFactor: [0,0,0],
@@ -215,6 +221,13 @@ export class Gltf2Loader {
 
     if (json.asset.minVersion != '2.0' && json.asset.version != '2.0') {
       throw new Error('Incompatible asset version.');
+    }
+
+    if (!json.extensionsRequired) {
+      json.extensionsRequired = [];
+    }
+    if (!json.extensionsUsed) {
+      json.extensionsUsed = [];
     }
 
     // If we need draco decoding and we haven't yet created a decoder, do so now.
@@ -477,9 +490,28 @@ export class Gltf2Loader {
       let clientMaterial = clientMaterials[index];
       if (!clientMaterial) {
         const material = Object.assign({}, DEFAULT_MATERIAL, json.materials[index]);
-        material.pbrMetallicRoughness = Object.assign({}, DEFAULT_METALLIC_ROUGHNESS, material.pbrMetallicRoughness);
 
         const texturePromises = [];
+
+        if (material.extensions?.KHR_materials_pbrSpecularGlossiness) {
+          material.extensions.KHR_materials_pbrSpecularGlossiness = Object.assign({}, DEFAULT_SPECULAR_GLOSS, material.extensions.KHR_materials_pbrSpecularGlossiness);
+          const specularGloss = material.extensions.KHR_materials_pbrSpecularGlossiness;
+          if (specularGloss.diffuseTexture) {
+            texturePromises.push(
+              resolveTexture(specularGloss.diffuseTexture.index, 'sRGB').then(texture => {
+                specularGloss.diffuseTexture.texture = texture;
+              }));
+          }
+          if (specularGloss.specularGlossinessTexture) {
+            texturePromises.push(
+              resolveTexture(specularGloss.specularGlossinessTexture.index, 'sRGB').then(texture => {
+                specularGloss.specularGlossinessTexture.texture = texture;
+              }));
+          }
+        }
+
+        material.pbrMetallicRoughness = Object.assign({}, DEFAULT_METALLIC_ROUGHNESS, material.pbrMetallicRoughness);
+
         const pbr = material.pbrMetallicRoughness;
         if (pbr.baseColorTexture) {
           texturePromises.push(

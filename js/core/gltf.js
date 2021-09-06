@@ -101,28 +101,44 @@ class GltfClient {
 
   createMaterial(material) {
     let out;
-    if (material.extensions?.KHR_materials_unlit) {
-      out = new UnlitMaterial();
-    } else {
+    if (material.extensions?.KHR_materials_pbrSpecularGlossiness) {
+      const specularGloss = material.extensions.KHR_materials_pbrSpecularGlossiness;
+
+      // TODO: This isn't correct
       out = new PBRMaterial();
-      out.metallicRoughnessTexture = material.pbrMetallicRoughness.metallicRoughnessTexture?.texture.image;
-      out.metallicRoughnessSampler = material.pbrMetallicRoughness.metallicRoughnessTexture?.texture.sampler;
-      out.metallicFactor = material.pbrMetallicRoughness.metallicFactor;
-      out.roughnessFactor = material.pbrMetallicRoughness.roughnessFactor;
-      out.normalTexture = material.normalTexture?.texture.image;
-      out.normalSampler = material.normalTexture?.texture.sampler;
-      out.occlusionTexture = material.occlusionTexture?.texture.image;
-      out.occlusionSampler = material.occlusionTexture?.texture.sampler;
-      out.occlusionStrength = material.occlusionTexture?.strength || 1.0;
-      out.emissiveTexture = material.emissiveTexture?.texture.image;
-      out.emissiveSampler = material.emissiveTexture?.texture.sampler;
-      out.emissiveFactor = material.emissiveFactor;
+      out.baseColorFactor = specularGloss.diffuseFactor;
+      out.baseColorTexture = specularGloss.diffuseTexture?.texture.image;
+      out.baseColorSampler = specularGloss.diffuseTexture?.texture.sampler;
+
+      //out.specularFactor = specularGloss.specularFactor;
+      //out.glossFactor = specularGloss.glossinessFactor;
+      //out.specularGlossTexture = specularGloss.specularGlossinessTexture?.texture.image;
+      //out.specularGlossSampler = specularGloss.specularGlossinessTexture?.texture.sampler;
+    } else {
+      if (material.extensions?.KHR_materials_unlit) {
+        out = new UnlitMaterial();
+      } else {
+        out = new PBRMaterial();
+        out.metallicRoughnessTexture = material.pbrMetallicRoughness.metallicRoughnessTexture?.texture.image;
+        out.metallicRoughnessSampler = material.pbrMetallicRoughness.metallicRoughnessTexture?.texture.sampler;
+        out.metallicFactor = material.pbrMetallicRoughness.metallicFactor;
+        out.roughnessFactor = material.pbrMetallicRoughness.roughnessFactor;
+        out.normalTexture = material.normalTexture?.texture.image;
+        out.normalSampler = material.normalTexture?.texture.sampler;
+        out.occlusionTexture = material.occlusionTexture?.texture.image;
+        out.occlusionSampler = material.occlusionTexture?.texture.sampler;
+        out.occlusionStrength = material.occlusionTexture?.strength || 1.0;
+        out.emissiveTexture = material.emissiveTexture?.texture.image;
+        out.emissiveSampler = material.emissiveTexture?.texture.sampler;
+        out.emissiveFactor = material.emissiveFactor;
+      }
+
+      out.baseColorFactor = material.pbrMetallicRoughness.baseColorFactor;
+      out.baseColorTexture = material.pbrMetallicRoughness.baseColorTexture?.texture.image;
+      out.baseColorSampler = material.pbrMetallicRoughness.baseColorTexture?.texture.sampler;
     }
 
     // Common fields between unlit and PBR materials
-    out.baseColorFactor = material.pbrMetallicRoughness.baseColorFactor;
-    out.baseColorTexture = material.pbrMetallicRoughness.baseColorTexture?.texture.image;
-    out.baseColorSampler = material.pbrMetallicRoughness.baseColorTexture?.texture.sampler;
     out.doubleSided = material.doubleSided;
     switch (material.alphaMode) {
       case 'BLEND':
@@ -158,7 +174,12 @@ class GltfClient {
         attribBuffers.set(-attribBuffers.size, attribBuffer);
       }
 
-      attribBuffer.addAttribute(AttribMap[name], accessor.byteOffset, accessor.gpuFormat);
+      const attribName = AttribMap[name];
+      if (attribName) {
+        attribBuffer.addAttribute(AttribMap[name], accessor.byteOffset, accessor.gpuFormat);
+      } else {
+        console.log(`glTF contained unsupported attribute name: ${name}`);
+      }
 
       if (name == "POSITION") {
         vec3.copy(aabb.min, accessor.min);

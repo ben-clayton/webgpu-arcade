@@ -128,6 +128,9 @@ export class InterleavedAttributes {
 
   addAttribute(attribute, offset = 0, format) {
     const shaderLocation = AttributeLocation[attribute];
+    if (shaderLocation === undefined) {
+      throw new Error(`Unable to determine shader location for ${attribute}.`);
+    }
     if (format === undefined) {
       format = DefaultAttributeFormat[attribute];
       if (!format) {

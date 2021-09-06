@@ -26,3 +26,7 @@ export class PBRMaterial extends UnlitMaterial {
   occlusionSampler;
   occlusionStrength = 1.0;
 };
+
+export class PBRSpecularGlossMaterial extends UnlitMaterial {
+  
+}
