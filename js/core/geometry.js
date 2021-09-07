@@ -224,6 +224,7 @@ export class AABB {
 // be able to have a single geometry and material, which would be limiting cases in which
 // an object consisting of multiple parts need to function as a single entity.)
 export class Mesh {
+  name = ''; // Primarily for debugging.
   primitives = []; // Borrowing the term from glTF, but it's clunky.
   skin = null;
 

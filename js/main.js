@@ -139,23 +139,16 @@ for (let x = 0; x < 5; ++x) {
 //const dragonUrl = '../xr-dinosaurs/media/models/sabertooth/scene.glb';
 //const dragonUrl = './media/models/dragon/dragon.glb';
 //const dragonUrl = './media/models/dragon/dragon-basis-draco-resampled.glb';
-const dragonUrl = '../bumpy/media/models/enemy-ships/enemy-ships.glb';
+const dragonUrl = './media/models/enemy-ships.glb';
 
 let dragon;
 gltfLoader.fromUrl(dragonUrl).then(scene => {
-  dragon = scene.createInstance(world);
+  const mesh = scene.getMeshByName('Heavy');
+  if (!mesh) return;
 
-  /*for (let x = 0; x < 5; ++x) {
-    for (let y = 0; y < 5; ++y) {
-      dragon = scene.createInstance(world);
-      const dragonTransform = dragon.get(Transform);
-      dragonTransform.position = [
-        (x-2) * 3.5,
-        (y-2) * 3.5,
-        0
-      ];
-    }
-  }*/
+  dragon = world.create(mesh, new Transform());
+
+  //dragon = scene.createInstance(world);
 
   const animationSet = {};
   for (const animationName in scene.animations) {

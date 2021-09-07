@@ -841,6 +841,7 @@ export class Gltf2Loader {
     let result = {
       scene: json.scenes[json.scene],
       nodes: await Promise.all(clientNodes),
+      meshes: await Promise.all(clientMeshes),
       animations: await Promise.all(clientAnimations),
     };
 

@@ -226,7 +226,9 @@ class GltfClient {
   }
 
   createMesh(mesh) {
-    return new Mesh(...mesh.primitives);
+    const outMesh = new Mesh(...mesh.primitives);
+    outMesh.name = mesh.name;
+    return outMesh;
   }
 
   createAnimationChannel(channel) {
@@ -305,6 +307,7 @@ export class GltfScene {
   scene;
   nodes;
   nodeTransforms;
+  meshes;
   animations;
   aabb;
 
@@ -351,6 +354,15 @@ export class GltfScene {
 
     return world.create(sceneTransform, instanceTransforms, this.aabb, group);
   }
+
+  getMeshByName(name) {
+    for (const mesh of this.meshes) {
+      if (mesh.name == name) {
+        return mesh;
+      }
+    }
+    return null;
+  }
 }
 
 export class GltfLoader {
@@ -366,6 +378,7 @@ export class GltfLoader {
       gltfScene.scene = result.scene;
       gltfScene.nodes = result.nodes;
       gltfScene.nodeTransforms = result.transformPool;
+      gltfScene.meshes = result.meshes;
 
       gltfScene.animations = new Map();
       for (const animation of result.animations) {
