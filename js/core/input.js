@@ -17,6 +17,10 @@ export class MouseState {
   wheelDelta = vec2.create();
 }
 
+export class GamepadState {
+  gamepads = [];
+}
+
 export class InputSystem extends System {
   stage = Stage.First;
   eventCanvas = null;
@@ -30,8 +34,9 @@ export class InputSystem extends System {
   init() {
     const keyboard = new KeyboardState();
     const mouse = new MouseState();
+    const gamepad = new GamepadState();
 
-    this.singleton.add(keyboard, mouse);
+    this.singleton.add(keyboard, mouse, gamepad);
 
     window.addEventListener('keydown', (event) => {
       // Do nothing if event already handled
@@ -94,5 +99,16 @@ export class InputSystem extends System {
     this.mouseDeltaY = 0;
     this.mouseWheelDeltaX = 0;
     this.mouseWheelDeltaY = 0;
+
+    const gamepad = this.singleton.get(GamepadState);
+    gamepad.gamepads = [];
+    const pads = navigator.getGamepads();
+    if (pads) {
+      for (const pad of pads) {
+        if (pad) {
+          gamepad.gamepads.push(pad);
+        }
+      }
+    }
   }
 }

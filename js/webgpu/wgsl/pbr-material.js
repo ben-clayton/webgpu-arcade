@@ -132,7 +132,7 @@ fn GeometrySmith(N : vec3<f32>, V : vec3<f32>, L : vec3<f32>, roughness : f32) -
   return ggx1 * ggx2;
 }
 
-fn lightAttenuation(light : PuctualLight) -> f32 { //range : f32, distance : f32) -> f32 {
+fn lightAttenuation(light : PuctualLight) -> f32 {
   if (light.lightType == LightType_Directional) {
     return 1.0;
   }

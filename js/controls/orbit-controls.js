@@ -1,5 +1,5 @@
 import { System } from '../core/ecs.js';
-import { MouseState } from '../core/input.js';
+import { MouseState, GamepadState } from '../core/input.js';
 import { Transform } from '../core/transform.js';
 import { vec3, vec2, quat } from 'gl-matrix';
 
@@ -22,39 +22,62 @@ export class OrbitControls {
 export class OrbitControlsSystem extends System {
   execute() {
     const mouse = this.singleton.get(MouseState);
+    const gamepad = this.singleton.get(GamepadState);
 
     this.query(OrbitControls, Transform).forEach((entity, control, transform) => {
+      let updated = false;
+
       // Handle Mouse state.
       if (mouse.buttons[0] && (mouse.delta[0] || mouse.delta[1])) {
         control.angle[1] += mouse.delta[0] * 0.025;
-        if(control.constrainYAngle) {
-            control.angle[1] = Math.min(Math.max(control.angle[1], control.minAngleY), control.maxAngleY);
-        } else {
-            while (control.angle[1] < -Math.PI) {
-                control.angle[1] += Math.PI * 2;
-            }
-            while (control.angle[1] >= Math.PI) {
-                control.angle[1] -= Math.PI * 2;
-            }
-        }
-
         control.angle[0] += mouse.delta[1] * 0.025;
-        if(control.constrainXAngle) {
-            control.angle[0] = Math.min(Math.max(control.angle[0], control.minAngleX), control.maxAngleX);
-        } else {
-            while (control.angle[0] < -Math.PI) {
-                control.angle[0] += Math.PI * 2;
-            }
-            while (control.angle[0] >= Math.PI) {
-                control.angle[0] -= Math.PI * 2;
-            }
-        }
+        updated = true;
       }
 
       if (mouse.wheelDelta[1]) {
         control.distance += (-mouse.wheelDelta[1] * control.distanceStep);
+        updated = true;
+      }
+
+      // Handle Gamepad state
+      for (const pad of gamepad.gamepads) {
+        if (pad.axes.length > 3) {
+          const x = Math.abs(pad.axes[2]) > 0.1 ? pad.axes[2] : 0;
+          const y = Math.abs(pad.axes[3]) > 0.1 ? pad.axes[3] : 0;
+          if (x || y) {
+            control.angle[1] += x * 0.025;
+            control.angle[0] -= y * 0.025;
+            updated = true;
+          }
+        }
+      }
+
+      // Constrain the motion if necessary
+      if (updated) {
+        if(control.constrainYAngle) {
+          control.angle[1] = Math.min(Math.max(control.angle[1], control.minAngleY), control.maxAngleY);
+        } else {
+          while (control.angle[1] < -Math.PI) {
+            control.angle[1] += Math.PI * 2;
+          }
+          while (control.angle[1] >= Math.PI) {
+            control.angle[1] -= Math.PI * 2;
+          }
+        }
+
+        if(control.constrainXAngle) {
+          control.angle[0] = Math.min(Math.max(control.angle[0], control.minAngleX), control.maxAngleX);
+        } else {
+          while (control.angle[0] < -Math.PI) {
+            control.angle[0] += Math.PI * 2;
+          }
+          while (control.angle[0] >= Math.PI) {
+            control.angle[0] -= Math.PI * 2;
+          }
+        }
+
         if(control.constrainDistance) {
-            control.distance = Math.min(Math.max(control.distance, control.minDistance), control.maxDistance);
+          control.distance = Math.min(Math.max(control.distance, control.minDistance), control.maxDistance);
         }
       }
 
