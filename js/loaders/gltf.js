@@ -341,16 +341,25 @@ export class GltfScene {
     }
   }
 
-  createInstance(world) {
+  addInstanceToEntity(world, entity) {
     const group = new EntityGroup();
     const instanceTransforms = this.nodeTransforms.clone();
-    const sceneTransform = new Transform();
+    let sceneTransform = entity.get(Transform);
+    if (!sceneTransform) {
+      sceneTransform = new Transform();
+      entity.add(sceneTransform);
+    }
     for (const nodeIndex of this.scene.nodes) {
       this.#createNodeInstance(nodeIndex, world, instanceTransforms, group);
       sceneTransform.addChild(instanceTransforms.getTransform(nodeIndex));
     }
+    entity.add(sceneTransform, instanceTransforms, this.aabb, group);
+    return entity;
+  }
 
-    return world.create(sceneTransform, instanceTransforms, this.aabb, group);
+  createInstance(world) {
+    const entity = world.create();
+    return this.addInstanceToEntity(world, entity);
   }
 
   getMeshByName(name) {
@@ -405,8 +414,11 @@ export class GltfLoader {
     });
   }
 
-  async instanceFromUrl(world, url) {
-    const scene = await this.fromUrl(url);
-    return scene.createInstance(world);
+  instanceFromUrl(world, url) {
+    const entity = world.create(new Transform());
+    const scene = this.fromUrl(url).then((scene) => {
+      scene.addInstanceToEntity(world, entity);
+    });
+    return entity;
   }
 }

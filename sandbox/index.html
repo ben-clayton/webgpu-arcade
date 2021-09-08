@@ -59,7 +59,7 @@
     <script type="module">
 import { Transform } from 'toro/core/transform.js';
 import { Camera } from 'toro/core/camera.js';
-import { PointLight, AmbientLight } from 'toro/core/light.js';
+import { PointLight, AmbientLight, DirectionalLight } from 'toro/core/light.js';
 import { Skybox } from 'toro/core/skybox.js';
 import { Mesh, AABB } from 'toro/core/mesh.js';
 
@@ -149,6 +149,7 @@ world.create(
 );
 
 world.create(
+  new DirectionalLight({ direction: [0.5, 0.5, -0.5], color: [1, 1, 0.4], intensity: 7 }),
   new AmbientLight(0.1, 0.1, 0.1)
 );
 

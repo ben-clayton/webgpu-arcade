@@ -1,12 +1,12 @@
 import { WebGPUSystem } from './webgpu-system.js';
 import { vec3 } from 'gl-matrix';
-import { AmbientLight, PointLight } from '../core/light.js';
+import { AmbientLight, PointLight, DirectionalLight } from '../core/light.js';
 import { Transform } from '../core/transform.js';
 
 import { LIGHT_BUFFER_SIZE } from './wgsl/common.js';
 
 const MAX_LIGHTS = 256;
-const GLOBAL_LIGHTS_BUFFER_SIZE = 4 + MAX_LIGHTS * LIGHT_BUFFER_SIZE;
+const GLOBAL_LIGHTS_BUFFER_SIZE = 12 + MAX_LIGHTS * LIGHT_BUFFER_SIZE;
 
 export class WebGPULight {
   constructor(arrayBuffer, byteOffset) {
@@ -28,13 +28,15 @@ export class WebGPULightBuffer {
 }
 
 export class WebGPULightSystem extends WebGPUSystem {
-  nextByteOffset = 4 * Float32Array.BYTES_PER_ELEMENT;
+  nextByteOffset = 12 * Float32Array.BYTES_PER_ELEMENT;
   freedLights = [];
 
   init(gpu) {
     this.arrayBuffer = new ArrayBuffer(GLOBAL_LIGHTS_BUFFER_SIZE);
     this.ambientColor = new Float32Array(this.arrayBuffer, 0, 3);
-    this.lightCount = new Uint32Array(this.arrayBuffer, 3 * Float32Array.BYTES_PER_ELEMENT, 1);
+    this.dirColorIntensity = new Float32Array(this.arrayBuffer, 4 * Float32Array.BYTES_PER_ELEMENT, 4);
+    this.dirDirection = new Float32Array(this.arrayBuffer, 8 * Float32Array.BYTES_PER_ELEMENT, 3);
+    this.lightCount = new Uint32Array(this.arrayBuffer, 11 * Float32Array.BYTES_PER_ELEMENT, 1);
     this.lightCount[0] = 0;
 
     this.singleton.add(new WebGPULightBuffer(gpu));
@@ -73,6 +75,16 @@ export class WebGPULightSystem extends WebGPUSystem {
       gpuLight.range[0] = light.range >= 0 ? light.range : light.computedRange;
       vec3.copy(gpuLight.color, light.color);
       gpuLight.intensity[0] = light.intensity;
+    });
+
+    // Get any directional lights.
+    this.dirColorIntensity[3] = 0;
+    this.query(DirectionalLight).forEach((entity, light) => {
+      vec3.copy(this.dirColorIntensity, light.color);
+      this.dirColorIntensity[3] = light.intensity; // Intensity
+      vec3.copy(this.dirDirection, light.direction);
+
+      return false; // Only process the first one.
     });
 
     // Accumulate all of the ambient lights.

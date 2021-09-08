@@ -28,6 +28,9 @@ export function LightStruct(group = 0, binding = 1) { return `
 
   [[block]] struct GlobalLights {
     ambient : vec3<f32>;
+    dirColor : vec3<f32>;
+    dirIntensity : f32;
+    dirDirection : vec3<f32>;
     lightCount : u32;
     lights : [[stride(32)]] array<Light>;
   };

@@ -17,6 +17,18 @@ export class PointLight {
   }
 }
 
+export class DirectionalLight {
+  color = new Float32Array(3);
+  direction = new Float32Array(3);
+  intensity = 1;
+
+  constructor(options) {
+    this.color.set(options?.color || [1, 1, 1]);
+    this.intensity = options?.intensity || 1;
+    this.direction.set(options?.direction || [0, 1, 0]);
+  }
+}
+
 export class AmbientLight {
   color = new Float32Array(3);
 

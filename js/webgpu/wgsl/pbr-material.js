@@ -132,18 +132,22 @@ fn GeometrySmith(N : vec3<f32>, V : vec3<f32>, L : vec3<f32>, roughness : f32) -
   return ggx1 * ggx2;
 }
 
-fn rangeAttenuation(range : f32, distance : f32) -> f32 {
-  if (range <= 0.0) {
+fn lightAttenuation(light : PuctualLight) -> f32 { //range : f32, distance : f32) -> f32 {
+  if (light.lightType == LightType_Directional) {
+    return 1.0;
+  }
+
+  let distance = length(light.pointToLight);
+  if (light.range <= 0.0) {
       // Negative range means no cutoff
       return 1.0 / pow(distance, 2.0);
   }
-  return clamp(1.0 - pow(distance / range, 4.0), 0.0, 1.0) / pow(distance, 2.0);
+  return clamp(1.0 - pow(distance / light.range, 4.0), 0.0, 1.0) / pow(distance, 2.0);
 }
 
 fn lightRadiance(light : PuctualLight, surface : SurfaceInfo) -> vec3<f32> {
   let L = normalize(light.pointToLight);
   let H = normalize(surface.v + L);
-  let distance = length(light.pointToLight);
 
   // cook-torrance brdf
   let NDF = DistributionGGX(surface.normal, H, surface.roughness);
@@ -159,8 +163,7 @@ fn lightRadiance(light : PuctualLight, surface : SurfaceInfo) -> vec3<f32> {
   let specular = numerator / vec3<f32>(denominator, denominator, denominator);
 
   // add to outgoing radiance Lo
-  let attenuation = rangeAttenuation(light.range, distance);
-  let radiance = light.color * light.intensity * attenuation;
+  let radiance = light.color * light.intensity * lightAttenuation(light);
   return (kD * surface.albedo / vec3<f32>(PI, PI, PI) + specular) * radiance * NdotL;
 }`;
 
@@ -181,6 +184,19 @@ export function PBRFragmentSource(layout) { return `
     // reflectance equation
     var Lo = vec3<f32>(0.0, 0.0, 0.0);
 
+    // Process the directional light if one is present
+    if (globalLights.dirIntensity > 0.0) {
+      var light : PuctualLight;
+      light.lightType = LightType_Directional;
+      light.pointToLight = globalLights.dirDirection;
+      light.color = globalLights.dirColor;
+      light.intensity = globalLights.dirIntensity;
+
+      // calculate per-light radiance and add to outgoing radiance Lo
+      Lo = Lo + lightRadiance(light, surface);
+    }
+
+    // Process each other light in the scene.
     let clusterIndex = getClusterIndex(input.position);
     let lightOffset  = clusterLights.lights[clusterIndex].offset;
     let lightCount   = clusterLights.lights[clusterIndex].count;
