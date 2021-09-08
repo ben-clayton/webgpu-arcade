@@ -1,5 +1,5 @@
-import { System } from 'ecs';
-import { Mesh } from './geometry.js';
+import { System } from './ecs.js';
+import { Mesh } from './mesh.js';
 import { Stage } from './stage.js';
 
 let nextSkinId = 1;

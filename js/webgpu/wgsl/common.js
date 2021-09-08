@@ -1,5 +1,5 @@
 import { wgsl } from './wgsl-utils.js';
-import { AttributeLocation } from '../../core/geometry.js';
+import { AttributeLocation } from '../../core/mesh.js';
 
 export const CAMERA_BUFFER_SIZE = 56 * Float32Array.BYTES_PER_ELEMENT;
 export function CameraStruct(group = 0, binding = 0) { return `

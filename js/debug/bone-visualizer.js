@@ -1,6 +1,6 @@
-import { System } from 'ecs';
+import { System } from '../core/ecs.js';
 import { Stage } from '../core/stage.js';
-import { Mesh, Geometry, Attribute } from '../core/geometry.js';
+import { Mesh, Geometry, Attribute } from '../core/mesh.js';
 import { UnlitMaterial } from '../core/materials.js';
 
 const BONE_VERTS = new Float32Array([

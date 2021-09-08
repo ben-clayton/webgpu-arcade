@@ -1,5 +1,5 @@
 import { wgsl } from './wgsl-utils.js';
-import { AttributeLocation } from '../../core/geometry.js';
+import { AttributeLocation } from '../../core/mesh.js';
 import { CameraStruct, LightStruct, ColorConversions, DefaultVertexOutput } from './common.js';
 import { ClusterLightsStruct, TileFunctions } from './clustered-light.js';
 

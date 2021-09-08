@@ -1,5 +1,5 @@
 import { wgsl } from './wgsl-utils.js';
-import { AttributeLocation } from '../../core/geometry.js';
+import { AttributeLocation } from '../../core/mesh.js';
 import { CameraStruct, SkinStructs, GetSkinMatrix, DefaultVertexInput, DefaultVertexOutput, GetInstanceMatrix } from './common.js';
 
 export function DefaultVertexSource(layout, skinned = false) { return wgsl`

@@ -1,9 +1,9 @@
-import { World } from 'ecs';
+import { World } from './ecs.js';
 
 import { InputSystem } from './input.js';
 import { EntityGroupSystem } from './entity-group.js';
 import { AnimationSystem } from './animation.js';
-import { MeshSystem } from './geometry.js';
+import { MeshSystem } from './mesh.js';
 import { SkinSystem } from './skin.js';
 
 export class RenderWorld extends World {

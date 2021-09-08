@@ -1,4 +1,4 @@
-import { AttributeLocation } from '../../core/geometry.js';
+import { AttributeLocation } from '../../core/mesh.js';
 import { DefaultVertexSource } from '../wgsl/default-vertex.js';
 
 export const RenderOrder = {

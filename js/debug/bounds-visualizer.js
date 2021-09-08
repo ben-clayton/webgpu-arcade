@@ -1,6 +1,6 @@
-import { System } from 'ecs';
+import { System } from '../core/ecs.js';
 import { Stage } from '../core/stage.js';
-import { Mesh, Geometry, Attribute, AABB } from '../core/geometry.js';
+import { Mesh, Geometry, Attribute, AABB } from '../core/mesh.js';
 import { UnlitMaterial } from '../core/materials.js';
 import { Transform, StaticTransform } from '../core/transform.js';
 import { vec3 } from 'gl-matrix';

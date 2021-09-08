@@ -1,6 +1,6 @@
-import { System } from "ecs";
-import { TransformPool } from "./transform.js";
-import { quat } from "gl-matrix";
+import { System } from './ecs.js';
+import { TransformPool } from './transform.js';
+import { quat } from 'gl-matrix';
 
 const tmpOut0 = new Float32Array(4);
 const tmpOut1 = new Float32Array(4);

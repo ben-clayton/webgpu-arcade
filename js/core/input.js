@@ -1,4 +1,4 @@
-import { System } from 'ecs';
+import { System } from './ecs.js';
 import { Stage } from './stage.js';
 import { vec2 } from 'gl-matrix';
 

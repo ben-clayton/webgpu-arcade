@@ -1,6 +1,6 @@
 import { WebGPUSystem } from './webgpu-system.js';
 import { Stage } from '../core/stage.js';
-import { Mesh } from '../core/geometry.js';
+import { Mesh } from '../core/mesh.js';
 import { WebGPUMaterialFactory, WebGPUMaterialBindGroups } from './materials/webgpu-materials.js';
 import { WebGPURenderBatch } from './webgpu-render-batch.js';
 

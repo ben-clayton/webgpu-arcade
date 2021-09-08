@@ -1,4 +1,4 @@
-import { System } from 'ecs';
+import { System } from './ecs.js';
 
 // An EntityGroup is a component which contains a list of other entities. When the entity containing
 // the group is enabled or disabled, all of the entities in the EntityGroup also get enabled or

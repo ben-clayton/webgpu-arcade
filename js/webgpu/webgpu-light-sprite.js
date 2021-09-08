@@ -1,5 +1,5 @@
 import { WebGPUSystem } from './webgpu-system.js';
-import { Geometry } from '../core/geometry.js';
+import { Geometry } from '../core/mesh.js';
 import { WebGPURenderBatch } from './webgpu-render-batch.js';
 import { WebGPUMesh, WebGPUMeshPrimitive } from './webgpu-mesh.js';
 import { WebGPUMaterialPipeline, RenderOrder } from './materials/webgpu-materials.js';

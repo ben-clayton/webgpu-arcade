@@ -1,5 +1,5 @@
 import { WebGPUSystem } from './webgpu-system.js';
-import { Geometry, Attribute } from '../core/geometry.js';
+import { Geometry, Attribute } from '../core/mesh.js';
 import { WebGPUMesh, WebGPUMeshPrimitive } from './webgpu-mesh.js';
 import { WebGPUMaterialPipeline, RenderOrder, WebGPUMaterialBindGroups } from './materials/webgpu-materials.js';
 import { SkyboxVertexSource, SkyboxFragmentSource } from './wgsl/skybox.js';

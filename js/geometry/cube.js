@@ -1,4 +1,4 @@
-import { Geometry, InterleavedAttributes } from '../core/geometry.js';
+import { Geometry, InterleavedAttributes } from '../core/mesh.js';
 
 export class CubeGeometry extends Geometry {
   constructor(gpu, width = 1, height = 1, depth = 1) {
