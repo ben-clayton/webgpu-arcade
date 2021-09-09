@@ -38,11 +38,33 @@ export class PlayerControls extends System {
 
     // Gamepad input
     for (const pad of gamepad.gamepads) {
+      // Left Stick
       if (pad.axes.length > 1) {
         // Account for a deadzone
         ACCEL[0] += Math.abs(pad.axes[0]) > 0.1 ? pad.axes[0] : 0;
-        ACCEL[2] -= Math.abs(pad.axes[1]) > 0.1 ? pad.axes[1] : 0;
+        ACCEL[2] += Math.abs(pad.axes[1]) > 0.1 ? pad.axes[1] : 0;
       }
+
+      // Dpad
+      if (pad.buttons.length > 15) {
+        if (pad.buttons[12].pressed) {
+          ACCEL[2] -= 1.0;
+        }
+        if (pad.buttons[13].pressed) {
+          ACCEL[2] += 1.0;
+        }
+        if (pad.buttons[14].pressed) {
+          ACCEL[0] -= 1.0;
+        }
+        if (pad.buttons[15].pressed) {
+          ACCEL[0] += 1.0;
+        }
+      }
+    }
+
+    // Ensure we can never accelerate too fast.
+    if (vec3.squaredLength(ACCEL) > 1) {
+      vec3.normalize(ACCEL, ACCEL);
     }
 
     if (ACCEL[0] || ACCEL[2]) {
