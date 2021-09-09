@@ -15,11 +15,12 @@ class Entity {
     }
 
     for (const component of components) {
-      let componentSet = this.#worldData.components[component.constructor];
+      let componentSet = this.#worldData.components.get(component.constructor);
       if (componentSet === undefined) {
-        this.#worldData.components[component.constructor] = componentSet = new Map();
+        componentSet = new Map();
+        this.#worldData.components.set(component.constructor, componentSet);
       }
-      componentSet[this.id] = component;
+      componentSet.set(this.id, component);
       component.addedToEntity?.(this.id);
     }
 
@@ -27,33 +28,35 @@ class Entity {
   }
 
   remove(componentType) {
-    const componentSet = this.#worldData.components[componentType];
+    const componentSet = this.#worldData.components.get(componentType);
     if (!componentSet) { return undefined; }
-    const component = componentSet[this.id];
+    const component = componentSet.get(this.id);
     if (!component) { return undefined; }
-    delete componentSet[this.id];
+    componentSet.delete(this.id);
     component.removedFromEntity?.(this.id);
     return component;
   }
 
-  has(compomentType) {
-    const componentSet = this.#worldData.components[compomentType];
-    return componentSet !== undefined && componentSet[this.id] !== undefined;
+  has(componentType) {
+    const componentSet = this.#worldData.components.get(componentType);
+    return componentSet !== undefined && componentSet.get(this.id) !== undefined;
   }
 
   get(componentType) {
-    const componentSet = this.#worldData.components[componentType];
-    return componentSet !== undefined ? componentSet[this.id] : undefined;
+    const componentSet = this.#worldData.components.get(componentType);
+    return componentSet !== undefined ? componentSet.get(this.id) : undefined;
   }
 
   destroy() {
     this.#worldData.entities.delete(this.id);
     this.#destroyed = true;
-    for (const componentSet in this.#worldData.components.values()) {
-      const component = componentSet[this.id];
-      delete componentSet[this.id];
-      if (component !== undefined && component.destroy !== undefined) {
-        component.destroy();
+    for (const componentSet of this.#worldData.components.values()) {
+      const component = componentSet.get(this.id);
+      if (component) {
+        componentSet.delete(this.id);
+        if (component.destroy !== undefined) {
+          component.destroy();
+        }
       }
     }
   }
@@ -98,7 +101,7 @@ class WorldData {
       componentNames.push(getComponentName(type));
     }
     const queryName = componentNames.join(':');
-    const cachedQuery = this.queries[queryName];
+    const cachedQuery = this.queries.get(queryName);
     if (cachedQuery !== undefined) { return cachedQuery; }
     return new Query(this, queryName, componentTypes);
   }
@@ -210,7 +213,7 @@ class Query {
   constructor(worldData, queryName, includedTypes, excludedTypes = [], includeDisabled=false) {
     this.#worldData = worldData;
     this.queryName = queryName;
-    this.#worldData.queries[queryName] = this;
+    this.#worldData.queries.set(queryName, this);
 
     this.include = includedTypes;
     this.exclude = excludedTypes;
@@ -230,21 +233,41 @@ class Query {
       componentNames.push(getComponentName(type));
     }
     const queryName = this.queryName + '!' + componentNames.join(':!');
-    const cachedQuery = this.#worldData.queries[queryName];
+    const cachedQuery = this.#worldData.queries.get(queryName);
     if (cachedQuery !== undefined) { return cachedQuery; }
     return new Query(this.#worldData, queryName, this.include, this.exclude.concat(componentTypes), this.#includeDisabled);
   }
 
   includeDisabled() {
     const queryName = this.queryName + '+disabled';
-    const cachedQuery = this.#worldData.queries[queryName];
+    const cachedQuery = this.#worldData.queries.get(queryName);
     if (cachedQuery !== undefined) { return cachedQuery; }
     return new Query(this.#worldData, queryName, this.include, this.exclude, true);
   }
 
   forEach(callback) {
     const args = new Array(this.include.length);
-    for (const entity of this.#worldData.entities.values()) {
+
+    let queryEntities;
+    for (let i = 0; i < this.include.length; ++i) {
+      const componentType = this.include[i];
+      const componentSet = this.#worldData.components.get(componentType);
+      const componentEntities = Array.from(componentSet?.keys() || []);
+
+      if (i == 0) {
+        queryEntities = componentEntities;
+      } else {
+        queryEntities = queryEntities.filter(entityId => componentEntities.includes(entityId));
+      }
+      
+      // Early out if we've reduced the entity set to zero.
+      if (queryEntities.length === 0) {
+        return;
+      }
+    }
+
+    for (const entityId of queryEntities) {
+      const entity = this.#worldData.entities.get(entityId);
       if (!this.#includeDisabled && !entity.enabled) { continue; }
 
       let excluded = false;
@@ -257,14 +280,8 @@ class Query {
       if (excluded) { continue; }
 
       for (let i = 0; i < this.include.length; ++i) {
-        const component = entity.get(this.include[i]);
-        if (component === undefined) {
-          excluded = true;
-          break;
-        }
-        args[i] = component;
+        args[i] = entity.get(this.include[i]);
       }
-      if (excluded) { continue; }
 
       const keepIterating = callback(entity, ...args);
       if (keepIterating === false) { return; }

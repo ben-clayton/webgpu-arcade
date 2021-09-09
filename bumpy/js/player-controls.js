@@ -10,7 +10,7 @@ const MAX_BOUNDS = vec3.fromValues(40, 0, 50);
 const ACCEL = vec3.create();
 const PLAYER_SPEED = 70;
 
-export class PlayerControls extends System {
+export class PlayerControlSystem extends System {
   init() {
     this.playerQuery = this.query(Tag('player'));
   }

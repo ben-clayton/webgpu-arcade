@@ -10,11 +10,15 @@ import { Tag } from 'toro/core/ecs.js';
 import { WebGPUWorld } from 'toro/webgpu/webgpu-world.js';
 import { WebGPULightSpriteSystem } from 'toro/webgpu/webgpu-light-sprite.js';
 
-import { PlayerControls } from './player-controls.js';
+import { VelocityAccelerationSystem } from './velocity.js';
+import { PlayerControlSystem } from './player-controls.js';
+import { LifetimeSystem, DeadSystem } from './lifetime.js';
+import { BasicWeapon, BasicWeaponSystem } from './weapon.js';
 
 import { vec3, quat } from 'gl-matrix';
 
 import Stats from 'stats.js';
+
 
 const stats = new Stats();
 document.body.appendChild(stats.dom);
@@ -22,7 +26,11 @@ document.body.appendChild(stats.dom);
 const canvas = document.querySelector('canvas');
 
 const world = new WebGPUWorld(canvas)
-  .registerSystem(PlayerControls)
+  .registerSystem(PlayerControlSystem)
+  .registerSystem(LifetimeSystem)
+  .registerSystem(VelocityAccelerationSystem)
+  .registerSystem(DeadSystem)
+  .registerRenderSystem(BasicWeaponSystem)
   .registerRenderSystem(WebGPULightSpriteSystem)
   ;
 
@@ -53,6 +61,12 @@ world.create(
   new AmbientLight(0.05, 0.05, 0.05)
 );
 
+const player = world.create(
+  Tag('player'),
+  new Transform({ position: [0, 0, 50] }),
+  new BasicWeapon()
+);
+
 // Load the ship models
 const shipMeshes = {};
 gltfLoader.fromUrl('./media/models/ships.glb').then(scene => {
@@ -60,13 +74,8 @@ gltfLoader.fromUrl('./media/models/ships.glb').then(scene => {
     shipMeshes[mesh.name] = mesh;
   }
 
-  const playerTag = Tag('player');
-  // Add the player
-  const player = world.create(
-    playerTag,
-    shipMeshes.Player,
-    new Transform({ position: [0, 0, 50] })
-  );
+  // Add the mesh to the player
+  player.add(shipMeshes.Player);
 
   world.create(shipMeshes.Heavy, new Transform({ position: [-20, 0, -50] }));
   world.create(shipMeshes.Light, new Transform({ position: [-12, 0, -50] }));

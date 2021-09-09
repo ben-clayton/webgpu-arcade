@@ -1,4 +1,4 @@
-import { Geometry, InterleavedAttributes } from '../core/geometry.js';
+import { Geometry, InterleavedAttributes } from '../core/mesh.js';
 import { vec3 } from 'gl-matrix';
 
 // Big swaths of this code lifted with love from Three.js

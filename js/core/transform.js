@@ -36,7 +36,15 @@ export class Transform {
     this.#scale = new Float32Array(buffer, offset + 7 * Float32Array.BYTES_PER_ELEMENT, 3);
     this.#matrix = new Float32Array(buffer, offset + 10 * Float32Array.BYTES_PER_ELEMENT, 16);
 
-    if (options.matrix) {
+    if (options.transform) {
+      // Copy the transform
+      this.#position.set(options.transform.#position);
+      this.#orientation.set(options.transform.#orientation);
+      this.#scale.set(options.transform.#scale);
+      this.#matrix.set(options.transform.#matrix);
+      this.#useMatrix = options.transform.#useMatrix;
+      this.#matrixDirty = options.transform.#matrixDirty;
+    } else if (options.matrix) {
       this.#useMatrix = true;
       this.#matrixDirty = false;
       this.#matrix.set(options.matrix);
