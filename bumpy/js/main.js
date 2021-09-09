@@ -6,8 +6,11 @@ import { Mesh, AABB } from 'toro/core/mesh.js';
 
 import { GltfLoader } from 'toro/loaders/gltf.js';
 
+import { Tag } from 'toro/core/ecs.js';
 import { WebGPUWorld } from 'toro/webgpu/webgpu-world.js';
 import { WebGPULightSpriteSystem } from 'toro/webgpu/webgpu-light-sprite.js';
+
+import { PlayerControls } from './player-controls.js';
 
 import { vec3, quat } from 'gl-matrix';
 
@@ -18,9 +21,10 @@ document.body.appendChild(stats.dom);
 
 const canvas = document.querySelector('canvas');
 
-const world = new WebGPUWorld(canvas);
-
-world.registerRenderSystem(WebGPULightSpriteSystem);
+const world = new WebGPUWorld(canvas)
+  .registerSystem(PlayerControls)
+  .registerRenderSystem(WebGPULightSpriteSystem)
+  ;
 
 const renderer = await world.renderer();
 
@@ -56,8 +60,13 @@ gltfLoader.fromUrl('./media/models/ships.glb').then(scene => {
     shipMeshes[mesh.name] = mesh;
   }
 
+  const playerTag = Tag('player');
   // Add the player
-  const player = world.create(shipMeshes.Player, new Transform({ position: [0, 0, 50] }));
+  const player = world.create(
+    playerTag,
+    shipMeshes.Player,
+    new Transform({ position: [0, 0, 50] })
+  );
 
   world.create(shipMeshes.Heavy, new Transform({ position: [-20, 0, -50] }));
   world.create(shipMeshes.Light, new Transform({ position: [-12, 0, -50] }));

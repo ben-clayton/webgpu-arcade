@@ -59,6 +59,22 @@ class Entity {
   }
 }
 
+const tags = new Map();
+export function Tag(name) {
+  let tagInstance = tags.get(name);
+  if (!tagInstance) {
+    const className = `Tag__${name}__`;
+    const tagClass = {[className]: class {
+      isTag = true;
+      name = name;
+    }}[className];
+    tagClass.constructor = tagClass;
+    tagInstance = tagClass;
+    tags.set(name, tagInstance);
+  }
+  return tagInstance;
+}
+
 class SingletonEntity extends Entity {
   destroy() {
     throw new Error('The singleton entity cannot be destroyed');
@@ -156,7 +172,7 @@ export class World {
       delta = time - this.#lastTime;
       this.#lastTime = time;
     }
-    
+
     for (const system of this.#worldData.orderedSystems) {
       if (system.enabled) {
         system.execute(delta, time);
