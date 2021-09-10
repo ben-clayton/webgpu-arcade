@@ -15,10 +15,20 @@ import { LifetimeHealthSystem, DeadSystem, Health } from './lifetime.js';
 import { BasicWeapon, BasicWeaponSystem } from './weapon.js';
 import { Collider, CollisionSystem } from './collision.js';
 import { ImpactDamage, ImpactDamageSystem } from './impact-damage.js';
+import { ColliderVisualizerSystem } from './debug-visualizers/collision-visualizer.js';
 
 import { vec3, quat } from 'gl-matrix';
 
+import dat from 'dat.gui';
 import Stats from 'stats.js';
+
+
+const appSettings = {
+  showCollisionVolumes: false,
+};
+
+let gui = new dat.GUI();
+document.body.appendChild(gui.domElement);
 
 const stats = new Stats();
 document.body.appendChild(stats.dom);
@@ -35,6 +45,16 @@ const world = new WebGPUWorld(canvas)
   .registerRenderSystem(BasicWeaponSystem)
   ;
 
+// Debug visualizations
+gui.add(appSettings, 'showCollisionVolumes').onChange(() => {
+  let colliderSystem = world.getSystem(ColliderVisualizerSystem);
+  if (appSettings.showCollisionVolumes) {
+    world.registerRenderSystem(ColliderVisualizerSystem);
+  } else {
+    world.removeSystem(ColliderVisualizerSystem);
+  }
+});
+
 const renderer = await world.renderer();
 
 const gltfLoader = new GltfLoader(renderer);
@@ -44,10 +64,10 @@ projection.zNear = 1;
 projection.zFar = 1024;
 
 const cameraOrientation = quat.create();
-quat.rotateX(cameraOrientation, cameraOrientation, -Math.PI * 0.5);
+quat.rotateX(cameraOrientation, cameraOrientation, -Math.PI * 0.45);
 
 const camera = world.create(
-  new Transform({ position: [0, 65, 0], orientation: cameraOrientation }),
+  new Transform({ position: [0, 60, 15], orientation: cameraOrientation }),
   projection
 );
 
@@ -67,7 +87,7 @@ const player = world.create(
   new Transform({ position: [0, 0, 50] }),
   new BasicWeapon(),
   new Health(5),
-  new Collider(1.5),
+  new Collider(2.5),
   new ImpactDamage(10, Tag('player-bullet'))
 );
 
@@ -84,37 +104,37 @@ gltfLoader.fromUrl('./media/models/ships.glb').then(scene => {
   // Create some enemies
   world.create(shipMeshes.Heavy,
     new Transform({ position: [-20, 0, -50] }),
-    new Collider(2),
+    new Collider(3),
     new Health(30),
     new ImpactDamage(20)
   );
   world.create(shipMeshes.Light,
     new Transform({ position: [-12, 0, -50] }),
-    new Collider(1.5),
+    new Collider(2),
     new Health(5),
     new ImpactDamage(5)
   );
   world.create(shipMeshes.Laser,
     new Transform({ position: [-4, 0, -50] }),
-    new Collider(1.5),
+    new Collider(3),
     new Health(20),
     new ImpactDamage(10)
   );
   world.create(shipMeshes.MultiGun,
     new Transform({ position: [4, 0, -50] }),
-    new Collider(1.5),
+    new Collider(3),
     new Health(10),
     new ImpactDamage(10)
   );
   world.create(shipMeshes.Missile,
     new Transform({ position: [12, 0, -50] }),
-    new Collider(1.5),
+    new Collider(3),
     new Health(15),
     new ImpactDamage(10)
   );
   world.create(shipMeshes.Mine,
     new Transform({ position: [20, 0, -50] }),
-    new Collider(1.5),
+    new Collider(3),
     new Health(10),
     new ImpactDamage(10)
   );

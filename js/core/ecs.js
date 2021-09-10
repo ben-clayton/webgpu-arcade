@@ -155,6 +155,18 @@ export class World {
     return this;
   }
 
+  removeSystem(systemType) {
+    const system = this.#worldData.systems.get(systemType);
+    if (system) {
+      this.#worldData.systems.delete(systemType, system);
+      const index = this.#worldData.orderedSystems.indexOf(system);
+      if (index > -1) {
+        this.#worldData.orderedSystems.splice(index, 1);
+      }
+    }
+    return this;
+  }
+
   getSystem(systemType) {
     return this.#worldData.systems.get(systemType);
   }

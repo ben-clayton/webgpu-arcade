@@ -9,15 +9,18 @@ import { Lifetime, Health } from './lifetime.js';
 import { ImpactDamage } from './impact-damage.js';
 import { Collider } from './collision.js';
 
+const FIRING_TAG = Tag('firing');
+
 export class BasicWeapon {
+  fire = false;
   cooldown = 0;
   //position = vec3.fromValues(0, 0, 1);
   //direction = vec3.fromValues(0, 0, 1);
 }
 
 export class BasicWeaponSystem extends System {
-  cooldown = 0.2;
-  velocity = [0, 0, -100];
+  cooldown = 0.1;
+  velocity = [0, 0, -120];
   lifetime = 2;
   impactDamage = 1;
 
@@ -50,13 +53,21 @@ export class BasicWeaponSystem extends System {
 
   execute(delta, time) {
     this.weaponQuery.forEach((entity, weapon) => {
+      if (entity.has(FIRING_TAG)) {
+        weapon.fire = true;
+      }
+      
       // Don't do anything if the weapon is still cooling down.
       if (weapon.cooldown > 0) {
         weapon.cooldown -= delta;
         return;
       }
 
+      // If the weapon hasn't currently been set to fire, return.
+      if (!weapon.fire) { return; }
+
       weapon.cooldown = this.cooldown;
+      weapon.fire = false;
 
       const origin = entity.get(Transform);
       this.spawnBullet(origin);
