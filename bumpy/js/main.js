@@ -8,17 +8,17 @@ import { GltfLoader } from 'toro/loaders/gltf.js';
 
 import { Tag } from 'toro/core/ecs.js';
 import { WebGPUWorld } from 'toro/webgpu/webgpu-world.js';
-import { WebGPULightSpriteSystem } from 'toro/webgpu/webgpu-light-sprite.js';
 
 import { VelocityAccelerationSystem } from './velocity.js';
 import { PlayerControlSystem } from './player-controls.js';
-import { LifetimeSystem, DeadSystem } from './lifetime.js';
+import { LifetimeHealthSystem, DeadSystem, Health } from './lifetime.js';
 import { BasicWeapon, BasicWeaponSystem } from './weapon.js';
+import { Collider, CollisionSystem } from './collision.js';
+import { ImpactDamage, ImpactDamageSystem } from './impact-damage.js';
 
 import { vec3, quat } from 'gl-matrix';
 
 import Stats from 'stats.js';
-
 
 const stats = new Stats();
 document.body.appendChild(stats.dom);
@@ -27,11 +27,12 @@ const canvas = document.querySelector('canvas');
 
 const world = new WebGPUWorld(canvas)
   .registerSystem(PlayerControlSystem)
-  .registerSystem(LifetimeSystem)
   .registerSystem(VelocityAccelerationSystem)
+  .registerSystem(CollisionSystem)
+  .registerSystem(ImpactDamageSystem)
+  .registerSystem(LifetimeHealthSystem)
   .registerSystem(DeadSystem)
   .registerRenderSystem(BasicWeaponSystem)
-  .registerRenderSystem(WebGPULightSpriteSystem)
   ;
 
 const renderer = await world.renderer();
@@ -64,7 +65,10 @@ world.create(
 const player = world.create(
   Tag('player'),
   new Transform({ position: [0, 0, 50] }),
-  new BasicWeapon()
+  new BasicWeapon(),
+  new Health(5),
+  new Collider(1.5),
+  new ImpactDamage(10, Tag('player-bullet'))
 );
 
 // Load the ship models
@@ -77,12 +81,43 @@ gltfLoader.fromUrl('./media/models/ships.glb').then(scene => {
   // Add the mesh to the player
   player.add(shipMeshes.Player);
 
-  world.create(shipMeshes.Heavy, new Transform({ position: [-20, 0, -50] }));
-  world.create(shipMeshes.Light, new Transform({ position: [-12, 0, -50] }));
-  world.create(shipMeshes.Laser, new Transform({ position: [-4, 0, -50] }));
-  world.create(shipMeshes.MultiGun, new Transform({ position: [4, 0, -50] }));
-  world.create(shipMeshes.Missile, new Transform({ position: [12, 0, -50] }));
-  world.create(shipMeshes.Mine, new Transform({ position: [20, 0, -50] }));
+  // Create some enemies
+  world.create(shipMeshes.Heavy,
+    new Transform({ position: [-20, 0, -50] }),
+    new Collider(2),
+    new Health(30),
+    new ImpactDamage(20)
+  );
+  world.create(shipMeshes.Light,
+    new Transform({ position: [-12, 0, -50] }),
+    new Collider(1.5),
+    new Health(5),
+    new ImpactDamage(5)
+  );
+  world.create(shipMeshes.Laser,
+    new Transform({ position: [-4, 0, -50] }),
+    new Collider(1.5),
+    new Health(20),
+    new ImpactDamage(10)
+  );
+  world.create(shipMeshes.MultiGun,
+    new Transform({ position: [4, 0, -50] }),
+    new Collider(1.5),
+    new Health(10),
+    new ImpactDamage(10)
+  );
+  world.create(shipMeshes.Missile,
+    new Transform({ position: [12, 0, -50] }),
+    new Collider(1.5),
+    new Health(15),
+    new ImpactDamage(10)
+  );
+  world.create(shipMeshes.Mine,
+    new Transform({ position: [20, 0, -50] }),
+    new Collider(1.5),
+    new Health(10),
+    new ImpactDamage(10)
+  );
 });
 
 function onFrame() {

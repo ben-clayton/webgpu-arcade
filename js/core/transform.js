@@ -68,6 +68,11 @@ export class Transform {
     this.#makeDirty();
   }
 
+  getWorldPosition(out) {
+    vec3.set(out, 0, 0, 0);
+    vec3.transformMat4(out, out, this.worldMatrix);
+  }
+
   get orientation() {
     this.#matrixDirty = true;
     this.#makeDirty();
@@ -239,7 +244,7 @@ export class TransformPool {
 
 // Creates a lightweight transform that always reports the same world matrix
 // Mostly used for debug utilities that need to apply a static transform to
-// a mesh. 
+// a mesh.
 export class StaticTransform {
   worldMatrix = new Float32Array(16);
 

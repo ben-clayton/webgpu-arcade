@@ -9,15 +9,28 @@ export class Lifetime {
   }
 }
 
-export class LifetimeSystem extends System {
+export class Health {
+  constructor(value = 1) {
+    this.health = value;
+  }
+}
+
+export class LifetimeHealthSystem extends System {
   init() {
     this.lifetimeQuery = this.query(Lifetime);
+    this.healthQuery = this.query(Health);
   }
 
-  execute(delta, time) {
+  execute(delta) {
     this.lifetimeQuery.forEach((entity, lifetime) => {
       lifetime.lifetime -= delta;
       if (lifetime.lifetime <= 0) {
+        entity.add(DEAD_TAG);
+      }
+    });
+
+    this.healthQuery.forEach((entity, health) => {
+      if (health.health <= 0) {
         entity.add(DEAD_TAG);
       }
     });

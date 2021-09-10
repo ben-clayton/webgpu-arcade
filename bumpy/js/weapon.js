@@ -1,20 +1,13 @@
-import { System } from 'toro/core/ecs.js';
+import { System, Tag } from 'toro/core/ecs.js';
 import { SphereGeometry } from 'toro/geometry/sphere.js';
 import { UnlitMaterial } from 'toro/core/materials.js';
 import { Mesh } from 'toro/core/mesh.js';
-import { Tag } from 'toro/core/ecs.js';
 import { Transform } from 'toro/core/transform.js';
 
-import { vec3 } from 'gl-matrix';
-
 import { Velocity } from './velocity.js';
-import { Lifetime } from './lifetime.js';
-
-export class ImpactDamage {
-  constructor(value = 1) {
-    this.damage = value;
-  }
-}
+import { Lifetime, Health } from './lifetime.js';
+import { ImpactDamage } from './impact-damage.js';
+import { Collider } from './collision.js';
 
 export class BasicWeapon {
   cooldown = 0;
@@ -42,11 +35,14 @@ export class BasicWeaponSystem extends System {
 
   spawnBullet(origin) {
     const bullet = this.world.create(
+      Tag('player-bullet'),
       this.bulletMesh,
       new Transform({ transform: origin }),
       new Velocity(this.velocity),
       new Lifetime(this.lifetime),
-      new ImpactDamage(this.impactDamage)
+      new Health(1),
+      new ImpactDamage(this.impactDamage, Tag('player')),
+      new Collider(0.5)
     );
 
     return bullet;
