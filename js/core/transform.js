@@ -41,7 +41,7 @@ export class Transform {
       this.#position.set(options.transform.#position);
       this.#orientation.set(options.transform.#orientation);
       this.#scale.set(options.transform.#scale);
-      this.#matrix.set(options.transform.#matrix);
+      this.#matrix.set(options.transform.worldMatrix);
       this.#useMatrix = options.transform.#useMatrix;
       this.#matrixDirty = options.transform.#matrixDirty;
     } else if (options.matrix) {
@@ -54,6 +54,10 @@ export class Transform {
       }
       this.#orientation.set(options.orientation ? options.orientation : DEFAULT_ORIENTATION);
       this.#scale.set(options.scale ? options.scale : DEFAULT_SCALE);
+    }
+
+    if (options.parent) {
+      options.parent.addChild(this);
     }
   }
 

@@ -82,10 +82,19 @@ world.create(
   new AmbientLight(0.05, 0.05, 0.05)
 );
 
+const playerTransform = new Transform({ position: [0, 0, 50] });
+const playerWeapon = new BasicWeapon({
+  filter: Tag('player'),
+  transforms: [
+    new Transform({ position: [-1.5, 0, -3], parent: playerTransform }),
+    new Transform({ position: [1.5, 0, -3], parent: playerTransform }),
+  ]
+});
+
 const player = world.create(
   Tag('player'),
-  new Transform({ position: [0, 0, 50] }),
-  new BasicWeapon(),
+  playerWeapon,
+  playerTransform,
   new Health(5),
   new Collider(2.5),
   new ImpactDamage(10, Tag('player-bullet'))
