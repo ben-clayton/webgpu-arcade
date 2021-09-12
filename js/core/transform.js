@@ -5,14 +5,14 @@ const DEFAULT_ORIENTATION = quat.create();
 const DEFAULT_SCALE = vec3.fromValues(1, 1, 1);
 
 export class Transform {
+  #storage;
   #position;
   #orientation;
   #scale;
-  #matrix;
+  #localMatrix;
   #worldMatrix;
 
-  #useMatrix = false;
-  #matrixDirty = true;
+  #localMatrixDirty = true;
   #worldMatrixDirty = true;
   #parent = null;
   #children;
@@ -24,30 +24,22 @@ export class Transform {
     if (options.externalStorage) {
       buffer = options.externalStorage.buffer;
       offset = options.externalStorage.offset;
-      const worldMatrixOffset = options.externalStorage.worldMatrixOffset ?? offset + 26 * Float32Array.BYTES_PER_ELEMENT;
-      this.#worldMatrix = new Float32Array(buffer, worldMatrixOffset, 16);
     } else {
       buffer = new Float32Array(42).buffer;
-      this.#worldMatrix = new Float32Array(buffer, 26 * Float32Array.BYTES_PER_ELEMENT, 16);
     }
 
     this.#position = new Float32Array(buffer, offset, 3);
     this.#orientation = new Float32Array(buffer, offset + 3 * Float32Array.BYTES_PER_ELEMENT, 4);
     this.#scale = new Float32Array(buffer, offset + 7 * Float32Array.BYTES_PER_ELEMENT, 3);
-    this.#matrix = new Float32Array(buffer, offset + 10 * Float32Array.BYTES_PER_ELEMENT, 16);
+    this.#localMatrix = new Float32Array(buffer, offset + 10 * Float32Array.BYTES_PER_ELEMENT, 16);
+    this.#worldMatrix = new Float32Array(buffer, offset + 26 * Float32Array.BYTES_PER_ELEMENT, 16);
 
     if (options.transform) {
-      // Copy the transform
-      this.#position.set(options.transform.#position);
-      this.#orientation.set(options.transform.#orientation);
-      this.#scale.set(options.transform.#scale);
-      this.#matrix.set(options.transform.worldMatrix);
-      this.#useMatrix = options.transform.#useMatrix;
-      this.#matrixDirty = options.transform.#matrixDirty;
+      const storage = new Float32Array(this.#position.buffer, this.#position.byteOffset, 42);
+      storage.set(new Float32Array(options.transform.#position.buffer, options.transform.#position.byteOffset, 42));
+      this.#localMatrixDirty = options.transform.#localMatrixDirty;
     } else if (options.matrix) {
-      this.#useMatrix = true;
-      this.#matrixDirty = false;
-      this.#matrix.set(options.matrix);
+      this.setLocalMatrix(options.matrix);
     } else {
       if (options.position) {
         this.#position.set(options.position);
@@ -62,14 +54,12 @@ export class Transform {
   }
 
   get position() {
-    this.#matrixDirty = true;
     this.#makeDirty();
     return this.#position;
   }
   set position(value) {
-    this.#position.set(value);
-    this.#matrixDirty = true;
     this.#makeDirty();
+    this.#position.set(value);
   }
 
   getWorldPosition(out) {
@@ -78,75 +68,37 @@ export class Transform {
   }
 
   get orientation() {
-    this.#matrixDirty = true;
     this.#makeDirty();
     return this.#orientation;
   }
   set orientation(value) {
-    this.#orientation.set(value);
-    this.#matrixDirty = true;
     this.#makeDirty();
+    this.#orientation.set(value);
   }
 
   get scale() {
-    this.#matrixDirty = true;
     this.#makeDirty();
     return this.#scale;
   }
   set scale(value) {
-    this.#scale.set(value);
-    this.#matrixDirty = true;
     this.#makeDirty();
+    this.#scale.set(value);
   }
 
-  // Yes, this could stand to be a lot better.
-  get matrix() {
-    if (!this.#useMatrix && this.#matrixDirty) {
-      mat4.fromRotationTranslationScale(this.#matrix,
-        this.orientation,
-        this.position,
-        this.scale);
-      this.#matrixDirty = false;
-    }
-    return this.#matrix;
+  getLocalMatrix(out) {
+    return mat4.copy(out, this.#resolveLocalMatrix());
   }
 
-  set matrix(value) {
-    if (!value) {
-      this.#useMatrix = false;
-      this.#matrixDirty = true;
-    } else {
-      this.#useMatrix = true;
-      this.#matrix = value;
-      this.#makeDirty();
-    }
+  setLocalMatrix(value) {
+    mat4.copy(this.#localMatrix, value);
+    mat4.getRotation(this.#orientation, this.#localMatrix);
+    mat4.getTranslation(this.#position, this.#localMatrix);
+    mat4.getScaling(this.#scale, this.#localMatrix);
+    this.#makeDirty(false);
   }
 
   get worldMatrix() {
-    this.resolveWorldMatrix();
-    return this.#worldMatrix;
-  }
-
-  resolveWorldMatrix(recursive = false) {
-    if (this.#worldMatrixDirty) {
-      if (!this.parent) {
-        this.#worldMatrix.set(this.matrix);
-      } else {
-        mat4.mul(this.#worldMatrix, this.parent.worldMatrix, this.matrix);
-      }
-      this.#worldMatrixDirty = false;
-    }
-
-    if (recursive && this.#children) {
-      for (const child of this.#children) {
-        child.resolveWorldMatrix(recursive);
-      }
-    }
-  }
-
-  replaceWorldMatrixStorage(worldMatrixStorage) {
-    this.#worldMatrix = worldMatrixStorage;
-    this.#makeDirty();
+    return this.#resolveWorldMatrix();
   }
 
   addChild(transform) {
@@ -157,14 +109,14 @@ export class Transform {
     if (!this.#children) { this.#children = new Set(); }
     this.#children.add(transform);
     transform.#parent = this;
-    transform.#makeDirty();
+    transform.#makeDirty(false);
   }
 
   removeChild(transform) {
     const removed = this.#children?.delete(transform);
     if (removed) {
       transform.#parent = null;
-      transform.#makeDirty();
+      transform.#makeDirty(false);
     }
   }
 
@@ -176,40 +128,59 @@ export class Transform {
     return this.#parent;
   }
 
-  #makeDirty() {
+  #makeDirty(markLocalDirty = true) {
+    if (markLocalDirty) { this.#localMatrixDirty = true; }
     if (this.#worldMatrixDirty) { return; }
     this.#worldMatrixDirty = true;
 
     if (this.#children) {
       for (const child of this.#children) {
-        child.#makeDirty();
+        child.#makeDirty(false);
       }
     }
   }
 
-  // Only for use by TransformPool
-  copyFlags(other) {
-    this.#useMatrix = other.#useMatrix;
-    this.#matrixDirty = other.#matrixDirty;
+  #resolveLocalMatrix() {
+    const wasDirty = this.#localMatrixDirty;
+    if (this.#localMatrixDirty) {
+      mat4.fromRotationTranslationScale(this.#localMatrix,
+        this.#orientation,
+        this.#position,
+        this.#scale);
+      this.#localMatrixDirty = false;
+    }
+    if (this.#localMatrix.every((value) => value == 0)) {
+      console.warn(`Local Matrix empty. wasDirty: ${wasDirty}`);
+    }
+    return this.#localMatrix;
+  }
+
+  #resolveWorldMatrix() {
+    if (this.#worldMatrixDirty) {
+      if (!this.parent) {
+        this.#worldMatrix.set(this.#resolveLocalMatrix());
+      } else {
+        mat4.mul(this.#worldMatrix, this.parent.worldMatrix, this.#resolveLocalMatrix());
+      }
+      this.#worldMatrixDirty = false;
+    }
+
+    return this.#worldMatrix;
   }
 }
 
 export class TransformPool {
   #buffer;
-  #worldMatrixArray;
   #transforms = [];
 
   constructor(size) {
     this.#buffer = new Float32Array(42 * size).buffer;
-    this.#worldMatrixArray = new Float32Array(this.#buffer, 0, 16 * size);
 
-    const baseOffset = 16 * Float32Array.BYTES_PER_ELEMENT * size;
     for (let i = 0; i < size; ++i) {
       this.#transforms[i] = new Transform({
         externalStorage: {
           buffer: this.#buffer,
-          offset: baseOffset + (i * 26 * Float32Array.BYTES_PER_ELEMENT),
-          worldMatrixOffset: i * 16 * Float32Array.BYTES_PER_ELEMENT,
+          offset: (i * 42 * Float32Array.BYTES_PER_ELEMENT),
         }
       });
     }
@@ -223,25 +194,10 @@ export class TransformPool {
     return this.#transforms[index];
   }
 
-  resolveWorldMatrices() {
-    for (const transform of this.#transforms) {
-      transform.resolveWorldMatrix();
-    }
-  }
-
-  get worldMatrixArray() {
-    this.resolveWorldMatrices();
-    return this.#worldMatrixArray;
-  }
-
   clone() {
     const out = new TransformPool(this.size);
     // Copy the entire buffer from this pool to the new one.
     new Float32Array(out.#buffer).set(new Float32Array(this.#buffer));
-    for (let i = 0; i < this.size; ++i) {
-      out.#transforms[i].copyFlags(this.#transforms[i]);
-    }
-
     return out;
   }
 }

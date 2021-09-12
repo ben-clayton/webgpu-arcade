@@ -102,8 +102,8 @@ export class WebGPUCameraSystem extends WebGPUSystem {
       // Update the values for the WebGPU camera every frame and write the values to the buffer.
       const transform = entity.get(Transform);
       if (transform) {
-        mat4.invert(gpuCamera.view, transform.matrix);
-        vec3.copy(gpuCamera.position, transform.position);
+        mat4.invert(gpuCamera.view, transform.worldMatrix);
+        transform.getWorldPosition(gpuCamera.position);
       } else {
         // If the camera doesn't have a transform position it at the origin.
         mat4.identity(gpuCamera.view);

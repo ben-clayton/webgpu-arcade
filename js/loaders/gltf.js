@@ -269,7 +269,7 @@ class GltfClient {
     node.index = index;
 
     if (node.matrix) {
-      node.transform.matrix = node.matrix;
+      node.transform.setLocalMatrix(node.matrix);
     } else {
       if (node.translation) { node.transform.position = node.translation; }
       if (node.rotation) { node.transform.orientation = node.rotation; }
