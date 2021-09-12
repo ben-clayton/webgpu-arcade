@@ -186,6 +186,14 @@ export class World {
       time = performance.now() / 1000;
       delta = time - this.#lastTime;
       this.#lastTime = time;
+
+      // Long gaps are assumed to be the result of some pause of processing on
+      // the page. To prevent massive jumps in the simulation time, any time we
+      // see an abnormally large delta we'll quietly skip a frame to get us back
+      // on track with a more sensible #lastTime.
+      if (delta > 1) {
+        return;
+      }
     }
 
     for (const system of this.#worldData.orderedSystems) {

@@ -30,12 +30,13 @@ export class BasicWeaponSystem extends System {
   speed = -120;
   lifetime = 2;
   impactDamage = 1;
+  radius = 0.5;
 
   init(gpu) {
     this.weaponQuery = this.query(BasicWeapon);
 
     // Create the bullet mesh for this weapon
-    const geometry = new SphereGeometry(gpu, 0.5, 12, 6);
+    const geometry = new SphereGeometry(gpu, this.radius, 12, 6);
     const material = new UnlitMaterial();
     material.baseColorFactor[0] = 1.0;
     material.baseColorFactor[1] = 1.0;
@@ -45,10 +46,12 @@ export class BasicWeaponSystem extends System {
 
   spawnBullet(origin, filter) {
     const transform = new Transform();
-    vec3.transformMat4(transform.position, transform.position, origin.worldMatrix);
-
     vec4.set(TMP_VELOCITY, 0, 0, this.speed, 0);
-    vec4.transformMat4(TMP_VELOCITY, TMP_VELOCITY, origin.worldMatrix);
+
+    if (origin) {
+      vec3.transformMat4(transform.position, transform.position, origin.worldMatrix);
+      vec4.transformMat4(TMP_VELOCITY, TMP_VELOCITY, origin.worldMatrix);
+    }
 
     const bullet = this.world.create(
       Tag('player-bullet'),
@@ -58,7 +61,7 @@ export class BasicWeaponSystem extends System {
       new Lifetime(this.lifetime),
       new Health(1),
       new ImpactDamage(this.impactDamage, filter),
-      new Collider(0.5)
+      new Collider(this.radius)
     );
 
     return bullet;

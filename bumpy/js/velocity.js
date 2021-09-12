@@ -5,6 +5,7 @@ import { vec3 } from 'gl-matrix';
 export class Velocity {
   constructor(value) {
     this.velocity = value ? vec3.clone(value) : vec3.create();
+    this.maxSpeed = 0;
   }
 }
 
@@ -26,6 +27,12 @@ export class VelocityAccelerationSystem extends System {
     });
 
     this.velocityQuery.forEach((entity, velocity, transform) => {
+      if (velocity.maxSpeed > 0) {
+        const speed = vec3.length(velocity.velocity);
+        if (speed > velocity.maxSpeed) {
+          vec3.scale(velocity.velocity, velocity.velocity, velocity.maxSpeed / speed);
+        }
+      }
       vec3.scaleAndAdd(transform.position, transform.position, velocity.velocity, delta);
     });
   }
