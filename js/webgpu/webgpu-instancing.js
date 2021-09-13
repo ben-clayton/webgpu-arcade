@@ -22,8 +22,6 @@ export class WebGPUInstancingSystem extends WebGPUSystem {
     this.singleton.add(new WebGPURenderBatch());
   }
 
-  ensureBuffer
-
   execute(delta, time) {
     const gpu = this.world;
 

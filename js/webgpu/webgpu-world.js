@@ -12,9 +12,7 @@ import {
   WebGPUSubmitRenderPasses
 } from './webgpu-render-pass.js';
 import { WebGPUInstancingSystem } from './webgpu-instancing.js';
-import { WebGPUSkyboxSystem } from './webgpu-skybox.js';
 import { WebGPUMeshSystem } from './webgpu-mesh.js';
-//import { WebGPUSkinSystem } from './webgpu-skin.js';
 
 const desiredFeatures = [
   'texture-compression-bc'
@@ -38,17 +36,11 @@ export class WebGPUWorld extends RenderWorld {
     super(canvas);
 
     this.context = this.canvas.getContext('webgpu');
-    if (!this.context) {
-      // TODO: Remove once 'webgpu' is supported in Firefox
-      this.context = canvas.getContext('gpupresent');
-    }
 
     // Unfortunately the order of these systems is kind of delicate.
     this.registerRenderSystem(WebGPULightSystem);
     this.registerRenderSystem(WebGPUCameraSystem);
     this.registerRenderSystem(WebGPUClusteredLights);
-    this.registerRenderSystem(WebGPUSkyboxSystem);
-    //this.registerRenderSystem(WebGPUSkinSystem);
     this.registerRenderSystem(WebGPUMeshSystem);
     this.registerRenderSystem(WebGPUInstancingSystem);
     this.registerRenderSystem(WebGPUBeginRenderPasses);

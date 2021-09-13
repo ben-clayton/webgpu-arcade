@@ -1,6 +1,5 @@
 import { WebGPUSystem } from './webgpu-system.js';
 import { Stage } from '../core/stage.js';
-import { Mesh } from '../core/mesh.js';
 import { WebGPUMaterialFactory, WebGPUMaterialBindGroups } from './materials/webgpu-materials.js';
 import { WebGPURenderBatch } from './webgpu-render-batch.js';
 
@@ -31,10 +30,7 @@ export class WebGPUMeshSystem extends WebGPUSystem {
   #gpuMeshes = new WeakMap();
   #gpuSkins = new WeakMap();
 
-  async init(gpu) {
-
-    this.needsGpuMeshQuery = this.query(Mesh).not(WebGPUMesh);
-
+  init(gpu) {
     const materialFactories = WebGPUMaterialFactory.getFactories();
     for (const [material, factoryConstructor] of materialFactories) {
       const factory = new factoryConstructor();
