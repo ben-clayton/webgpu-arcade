@@ -93,6 +93,7 @@ function toGPUBufferUsage(usage) {
     case 'index':
       return GPUBufferUsage.INDEX;
     case 'joint':
+    case 'light':
       return GPUBufferUsage.STORAGE;
     default:
       throw new Error(`Unknown Buffer usage '${usage}'`);

@@ -3,7 +3,6 @@ import { WebGPUBufferManager } from './webgpu-buffer.js';
 import { WebGPUBindGroupLayouts } from './webgpu-bind-group-layouts.js'
 import { WebGPUTextureLoader } from 'webgpu-texture-loader';
 
-import { WebGPULightSystem } from './webgpu-light.js';
 import { WebGPUCameraSystem } from './webgpu-camera.js';
 import { WebGPUClusteredLights } from './webgpu-clustered-light.js';
 import {
@@ -38,7 +37,6 @@ export class WebGPUWorld extends RenderWorld {
     this.context = this.canvas.getContext('webgpu');
 
     // Unfortunately the order of these systems is kind of delicate.
-    this.registerRenderSystem(WebGPULightSystem);
     this.registerRenderSystem(WebGPUCameraSystem);
     this.registerRenderSystem(WebGPUClusteredLights);
     this.registerRenderSystem(WebGPUMeshSystem);

@@ -9,6 +9,7 @@ import { Lifetime, Health } from './lifetime.js';
 import { ImpactDamage } from './impact-damage.js';
 import { Collider } from './collision.js';
 import { vec3, vec4 } from 'gl-matrix';
+import { PointLight } from 'toro/core/light.js';
 
 const FIRING_TAG = Tag('firing');
 const TMP_VELOCITY = vec4.create();
@@ -61,7 +62,8 @@ export class BasicWeaponSystem extends System {
       new Lifetime(this.lifetime),
       new Health(1),
       new ImpactDamage(this.impactDamage, filter),
-      new Collider(this.radius)
+      new Collider(this.radius),
+      new PointLight({ color: [1.0, 1.0, 0.8], intensity: 10 })
     );
 
     return bullet;

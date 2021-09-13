@@ -130,22 +130,22 @@ world.create(new Skybox(renderer.textureLoader.fromUrl('./media/textures/skybox/
 // Add some lights
 world.create(
   new Transform({ position: [3, 3, -2] }),
-  new PointLight(1, 0.3, 0.3, 10)
+  new PointLight({ color: [1, 0.3, 0.3], intensity: 10 })
 );
 
 world.create(
   new Transform({ position: [-3, 3, -2] }),
-  new PointLight(0.3, 1, 0.3, 10)
+  new PointLight({ color: [0.3, 1, 0.3], intensity: 10 })
 );
 
 world.create(
   new Transform({ position: [2, 3, 6] }),
-  new PointLight(0.3, 0.3, 1, 10)
+  new PointLight({ color: [0.3, 0.3, 1], intensity: 10 })
 );
 
 world.create(
   new Transform({ position: [-2, 3, 6] }),
-  new PointLight(1, 1, 0.3, 10)
+  new PointLight({ color: [1, 1, 0.3], intensity: 10 })
 );
 
 world.create(

@@ -113,6 +113,8 @@ export class World {
   #nextSystemId = 1;
   #singletonEntity;
   #lastTime = performance.now() / 1000;
+  
+  timeScale = 1.0;
 
   constructor() {
     // Singleton entity is not added to the global list of entities.
@@ -195,6 +197,8 @@ export class World {
         return;
       }
     }
+
+    delta *= this.timeScale;
 
     for (const system of this.#worldData.orderedSystems) {
       if (system.enabled) {

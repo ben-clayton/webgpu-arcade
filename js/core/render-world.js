@@ -6,6 +6,7 @@ import { AnimationSystem } from './animation.js';
 import { MeshSystem } from './mesh.js';
 import { SkinSystem } from './skin.js';
 import { SkyboxSystem } from './skybox.js';
+import { LightSystem } from './light.js';
 
 export class RenderWorld extends World {
   #canvas;
@@ -24,6 +25,7 @@ export class RenderWorld extends World {
     this.registerSystem(AnimationSystem);
     this.registerSystem(MeshSystem);
     this.registerSystem(SkinSystem);
+    this.registerRenderSystem(LightSystem);
     this.registerRenderSystem(SkyboxSystem);
   }
 

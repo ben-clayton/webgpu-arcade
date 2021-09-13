@@ -3,7 +3,7 @@ import { Geometry } from '../core/mesh.js';
 import { WebGPURenderBatch } from './webgpu-render-batch.js';
 import { WebGPUMesh, WebGPUMeshPrimitive } from './webgpu-mesh.js';
 import { WebGPUMaterialPipeline, RenderOrder } from './materials/webgpu-materials.js';
-import { WebGPULightBuffer } from './webgpu-light.js';
+import { LightBuffer } from '../core/light.js';
 import { LightSpriteVertexSource, LightSpriteFragmentSource } from './wgsl/light-sprite.js';
 
 export class WebGPULightSpriteSystem extends WebGPUSystem {
@@ -74,7 +74,7 @@ export class WebGPULightSpriteSystem extends WebGPUSystem {
   }
 
   execute(delta, time) {
-    const lights = this.singleton.get(WebGPULightBuffer);
+    const lights = this.singleton.get(LightBuffer);
     const renderBatch = this.singleton.get(WebGPURenderBatch);
     renderBatch.addMesh(this.lightMesh, null, lights.lightCount);
   }

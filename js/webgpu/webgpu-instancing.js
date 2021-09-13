@@ -33,21 +33,24 @@ export class WebGPUInstancingSystem extends WebGPUSystem {
 
     // Loop through all of the instances we're going to render and place their transforms in the
     // instances buffer.
-    let arrayOffset = 0;
+    let instanceCount = 0;
     for (const geometryMaterials of renderBatch.pipelineGeometries.values()) {
       for (const materialInstances of geometryMaterials.values()) {
         for (const instances of materialInstances.values()) {
-          instances.bufferOffset = arrayOffset * Float32Array.BYTES_PER_ELEMENT;
+          instances.bufferOffset = instanceCount * INSTANCE_BUFFER_SIZE;
           for (const transform of instances.transforms) {
             // TODO: Could just copy over the 4x3 portion of the matrix needed to represent a full
             // TRS transform. Copies would be slower, though.
-            this.instanceArray.set(transform, arrayOffset);
-            arrayOffset += 16;
+            this.instanceArray.set(transform, instanceCount * 16);
+            instanceCount++;
+
+            // Stop processing instances if we overflow our max
+            if (instanceCount == MAX_INSTANCE_COUNT) { return false; }
           }
         }
       }
     }
-    gpu.device.queue.writeBuffer(this.instanceBuffer, 0, this.instanceArray, 0, arrayOffset);
+    gpu.device.queue.writeBuffer(this.instanceBuffer, 0, this.instanceArray, 0, instanceCount * 16);
 
     // Sort the pipelines by render order (e.g. so transparent objects are rendered last).
     renderBatch.sortedPipelines = Array.from(renderBatch.pipelineGeometries.keys())

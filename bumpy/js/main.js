@@ -48,6 +48,8 @@ const world = new WebGPUWorld(canvas)
   .registerRenderSystem(BasicWeaponSystem)
   ;
 
+//world.timeScale = 0.25;
+
 // Debug visualizations
 gui.add(appSettings, 'showCollisionVolumes').onChange(() => {
   let colliderSystem = world.getSystem(ColliderVisualizerSystem);

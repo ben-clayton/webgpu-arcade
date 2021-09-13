@@ -3,13 +3,13 @@ import { mat4, vec3 } from 'gl-matrix';
 
 import { Transform } from '../core/transform.js';
 import { Camera } from '../core/camera.js';
-import { WebGPULightBuffer } from './webgpu-light.js';
+import { LightBuffer } from '../core/light.js';
 
 import { CAMERA_BUFFER_SIZE } from './wgsl/common.js';
 import { CLUSTER_BOUNDS_SIZE, CLUSTER_LIGHTS_SIZE } from './wgsl/clustered-light.js';
 
 export class WebGPUCamera {
-  constructor(gpu, lights) {
+  constructor(gpu, lightBuffer) {
     const device = gpu.device;
 
     this.arrayBuffer = new ArrayBuffer(CAMERA_BUFFER_SIZE);
@@ -59,7 +59,7 @@ export class WebGPUCamera {
         resource: { buffer: this.clusterLightsBuffer },
       }, {
         binding: 3,
-        resource: { buffer: lights.buffer, },
+        resource: { buffer: lightBuffer.gpuBuffer, },
       }],
     });
 
@@ -70,7 +70,7 @@ export class WebGPUCamera {
         resource: { buffer: this.cameraBuffer, },
       }, {
         binding: 1,
-        resource: { buffer: lights.buffer, },
+        resource: { buffer: lightBuffer.gpuBuffer, },
       }, {
         binding: 2,
         resource: { buffer: this.clusterLightsBuffer, },
@@ -88,8 +88,8 @@ export class WebGPUCameraSystem extends WebGPUSystem {
 
     // If a Camera does not have an associated WebGPUCamera add one.
     this.query(Camera).not(WebGPUCamera).forEach((entity) => {
-      const lights = this.singleton.get(WebGPULightBuffer);
-      entity.add(new WebGPUCamera(gpu, lights));
+      const lights = this.singleton.get(LightBuffer);
+      entity.add(new WebGPUCamera(gpu, lights.buffer));
     });
 
     // If a WebGPUCamera has had it's Camera removed, also remove the WebGPUCamera.
