@@ -3,7 +3,7 @@ import { Stage } from '../core/stage.js';
 import { WebGPUMaterialFactory, WebGPUMaterialBindGroups } from './materials/webgpu-materials.js';
 import { WebGPURenderBatch } from './webgpu-render-batch.js';
 
-export class WebGPUMeshPrimitive {
+class WebGPUMeshPrimitive {
   constructor(geometry, pipeline, bindGroups) {
     this.geometry = geometry;
     this.pipeline = pipeline;
@@ -11,14 +11,7 @@ export class WebGPUMeshPrimitive {
   }
 }
 
-export class WebGPUMesh {
-  primitives = [];
-  constructor(...gpuPrimitives) {
-    this.primitives.push(...gpuPrimitives);
-  }
-}
-
-export class WebGPUSkin {
+class WebGPUSkin {
   id;
   bindGroup;
 }
@@ -77,7 +70,7 @@ export class WebGPUMeshSystem extends WebGPUSystem {
       }
       let gpuMesh = this.#gpuMeshes.get(mesh);
       if (!gpuMesh) {
-        const gpuPrimitives = [];
+        gpuMesh = [];
         for (const primitive of mesh.primitives) {
           const layout = primitive.geometry.layout;
           const material = primitive.material;
@@ -86,19 +79,20 @@ export class WebGPUMeshSystem extends WebGPUSystem {
             throw new Error(`No WebGPUMaterialFactory registered for ${material.constructor.name}`);
           }
 
-          gpuPrimitives.push(new WebGPUMeshPrimitive(
+          gpuMesh.push(new WebGPUMeshPrimitive(
             primitive.geometry,
             factory.getPipeline(gpu, layout, material, !!skin),
             factory.getBindGroup(gpu, material, skin)
           ));
         }
-        gpuMesh = new WebGPUMesh(...gpuPrimitives);
         this.#gpuMeshes.set(mesh, gpuMesh);
       }
 
       const instances = meshInstances.get(mesh);
-      for (const transform of instances) {
-        renderBatch.addMesh(gpuMesh, transform);
+      for (const primitive of gpuMesh) {
+        for (const transform of instances) {
+          renderBatch.addRenderable(primitive.geometry, primitive.pipeline, primitive.bindGroups, transform);
+        }
       }
     }
   }

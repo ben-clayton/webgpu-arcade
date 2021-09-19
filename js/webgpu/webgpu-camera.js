@@ -109,7 +109,7 @@ export class WebGPUCameraSystem extends WebGPUSystem {
         mat4.identity(gpuCamera.view);
         vec3.set(gpuCamera.position, 0, 0, 0);
       }
-      
+
       const aspect = gpu.size.width / gpu.size.height;
       mat4.perspectiveZO(gpuCamera.projection, camera.fieldOfView, aspect,
         camera.zNear, camera.zFar);

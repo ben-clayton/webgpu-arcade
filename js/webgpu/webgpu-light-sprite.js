@@ -1,7 +1,6 @@
 import { WebGPUSystem } from './webgpu-system.js';
 import { Geometry } from '../core/mesh.js';
 import { WebGPURenderBatch } from './webgpu-render-batch.js';
-import { WebGPUMesh, WebGPUMeshPrimitive } from './webgpu-mesh.js';
 import { WebGPUMaterialPipeline, RenderOrder } from './materials/webgpu-materials.js';
 import { LightBuffer } from '../core/light.js';
 import { LightSpriteVertexSource, LightSpriteFragmentSource } from './wgsl/light-sprite.js';
@@ -18,7 +17,7 @@ export class WebGPULightSpriteSystem extends WebGPUSystem {
     });
 
     // Setup a render pipeline for drawing the light sprites
-    this.pipeline = gpu.device.createRenderPipeline({
+    const pipeline = gpu.device.createRenderPipeline({
       label: `Light Sprite Pipeline`,
       layout: gpu.device.createPipelineLayout({
         bindGroupLayouts: [
@@ -60,22 +59,16 @@ export class WebGPULightSpriteSystem extends WebGPUSystem {
       }
     });
 
-    const gpuPipeline = new WebGPUMaterialPipeline({
-      pipeline: this.pipeline,
+    this.lightPipeline = new WebGPUMaterialPipeline({
+      pipeline,
       renderOrder: RenderOrder.Last
     });
-
-    this.lightMesh = new WebGPUMesh(
-      new WebGPUMeshPrimitive(
-        new Geometry({ drawCount: 4 }),
-        gpuPipeline
-      )
-    );
+    this.lightGeometry = new Geometry({ drawCount: 4 });
   }
 
   execute(delta, time) {
     const lights = this.singleton.get(LightBuffer);
     const renderBatch = this.singleton.get(WebGPURenderBatch);
-    renderBatch.addMesh(this.lightMesh, null, lights.lightCount);
+    renderBatch.addRenderable(this.lightGeometry, this.lightPipeline, undefined, undefined, lights.lightCount);
   }
 }

@@ -3,39 +3,10 @@ import { WebGPURenderTargets } from './webgpu-render-targets.js';
 import { WebGPURenderBatch } from './webgpu-render-batch.js';
 import { WebGPUCamera } from './webgpu-camera.js';
 
-class RenderPassGlobals {
-  commandEncoder;
-  outputTexture;
-}
-
-export class WebGPUBeginRenderPasses extends WebGPUSystem {
-  init(gpu) {
-    this.singleton.add(new RenderPassGlobals());
-    this.singleton.add(new WebGPURenderTargets(gpu));
-  }
-
-  execute() {
-    const gpu = this.world;
-    const passGlobals = this.singleton.get(RenderPassGlobals);
-    passGlobals.outputTexture = gpu.context.getCurrentTexture();
-    passGlobals.commandEncoder = gpu.device.createCommandEncoder({});
-  }
-}
-
-export class WebGPUSubmitRenderPasses extends WebGPUSystem {
-  execute() {
-    const gpu = this.world;
-    const passGlobals = this.singleton.get(RenderPassGlobals);
-    gpu.device.queue.submit([passGlobals.commandEncoder.finish()]);
-
-    // Clear the render batch. It'll be built up again next frame.
-    const renderBatch = this.singleton.get(WebGPURenderBatch);
-    renderBatch.clear();
-  }
-}
-
 export class WebGPURenderPass extends WebGPUSystem {
   async init(gpu) {
+    this.singleton.add(new WebGPURenderTargets(gpu));
+
     this.cameras = this.query(WebGPUCamera);
 
     this.colorAttachment = {
@@ -80,71 +51,69 @@ export class WebGPURenderPass extends WebGPUSystem {
     }
   }
 
-  renderPass(gpu, camera, commandEncoder, outputTexture) {
-    // Override for each render pass.
-  }
-
   execute(delta, time) {
     const gpu = this.world;
-    const passGlobals = this.singleton.get(RenderPassGlobals);
+    const renderBatch = this.singleton.get(WebGPURenderBatch);
+    const instanceBuffer = renderBatch.instanceBuffer;
 
-    this.cameras.forEach((entity, camera) => {
-      this.renderPass(gpu, camera, passGlobals.commandEncoder, passGlobals.outputTexture);
-      return false; // Don't try to process more than one camera.
-    });
-  }
-}
+    const outputTexture = gpu.context.getCurrentTexture();
+    const commandEncoder = gpu.device.createCommandEncoder({});
 
-export class WebGPUDefaultRenderPass extends WebGPURenderPass {
-  renderPass(gpu, camera, commandEncoder, outputTexture) {
     if (gpu.sampleCount > 1) {
       this.colorAttachment.resolveTarget = outputTexture.createView();
     } else {
       this.colorAttachment.view = outputTexture.createView();
     }
 
-    const renderBatch = this.singleton.get(WebGPURenderBatch);
-
     const passEncoder = commandEncoder.beginRenderPass(this.renderPassDescriptor);
 
-    passEncoder.setBindGroup(0, camera.bindGroup);
-
-    // Loop through all the renderable entities and store them by pipeline.
-    for (const pipeline of renderBatch.sortedPipelines) {
-      passEncoder.setPipeline(pipeline.pipeline);
-
-      const geometryList = renderBatch.pipelineGeometries.get(pipeline);
-      for (const [geometry, materialList] of geometryList) {
-
-        for (const vb of geometry.vertexBuffers) {
-          passEncoder.setVertexBuffer(vb.slot, vb.buffer.gpuBuffer, vb.offset);
-        }
-        const ib = geometry.indexBuffer;
-        if (ib) {
-          passEncoder.setIndexBuffer(ib.buffer.gpuBuffer, ib.format, ib.offset);
-        }
-
-        for (const [material, instances] of materialList) {
-          if (pipeline.instanceSlot >= 0) {
-            passEncoder.setVertexBuffer(pipeline.instanceSlot, renderBatch.instanceBuffer, instances.bufferOffset);
+    this.cameras.forEach((entity, camera) => {
+      passEncoder.setBindGroup(0, camera.bindGroup);
+  
+      // Loop through all the renderable entities and store them by pipeline.
+      for (const pipeline of renderBatch.sortedPipelines) {
+        passEncoder.setPipeline(pipeline.pipeline);
+  
+        const geometryList = renderBatch.pipelineGeometries.get(pipeline);
+        for (const [geometry, materialList] of geometryList) {
+  
+          for (const vb of geometry.vertexBuffers) {
+            passEncoder.setVertexBuffer(vb.slot, vb.buffer.gpuBuffer, vb.offset);
           }
-
-          if (material) {
-            let i = 1;
-            for (const bindGroup of material.bindGroups) {
-              passEncoder.setBindGroup(i++, bindGroup);
-            }
-          }
-
+          const ib = geometry.indexBuffer;
           if (ib) {
-            passEncoder.drawIndexed(geometry.drawCount, instances.instanceCount);
-          } else {
-            passEncoder.draw(geometry.drawCount, instances.instanceCount);
+            passEncoder.setIndexBuffer(ib.buffer.gpuBuffer, ib.format, ib.offset);
+          }
+  
+          for (const [material, instances] of materialList) {
+            if (pipeline.instanceSlot >= 0) {
+              passEncoder.setVertexBuffer(pipeline.instanceSlot, instanceBuffer, instances.bufferOffset);
+            }
+
+            if (material) {
+              let i = 1;
+              for (const bindGroup of material.bindGroups) {
+                passEncoder.setBindGroup(i++, bindGroup);
+              }
+            }
+
+            if (ib) {
+              passEncoder.drawIndexed(geometry.drawCount, instances.instanceCount);
+            } else {
+              passEncoder.draw(geometry.drawCount, instances.instanceCount);
+            }
           }
         }
       }
-    }
+
+      return false; // Don't try to process more than one camera.
+    });
 
     passEncoder.endPass();
+
+    gpu.device.queue.submit([commandEncoder.finish()]);
+
+    // Clear the render batch. It'll be built up again next frame.
+    renderBatch.clear();
   }
 }

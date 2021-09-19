@@ -5,13 +5,9 @@ import { WebGPUTextureLoader } from 'webgpu-texture-loader';
 
 import { WebGPUCameraSystem } from './webgpu-camera.js';
 import { WebGPUClusteredLights } from './webgpu-clustered-light.js';
-import {
-  WebGPUBeginRenderPasses,
-  WebGPUDefaultRenderPass,
-  WebGPUSubmitRenderPasses
-} from './webgpu-render-pass.js';
-import { WebGPUInstancingSystem } from './webgpu-instancing.js';
+import { WebGPURenderPass } from './webgpu-render-pass.js';
 import { WebGPUMeshSystem } from './webgpu-mesh.js';
+import { WebGPURenderBatch } from './webgpu-render-batch.js';
 
 const desiredFeatures = [
   'texture-compression-bc'
@@ -40,10 +36,7 @@ export class WebGPUWorld extends RenderWorld {
     this.registerRenderSystem(WebGPUCameraSystem);
     this.registerRenderSystem(WebGPUClusteredLights);
     this.registerRenderSystem(WebGPUMeshSystem);
-    this.registerRenderSystem(WebGPUInstancingSystem);
-    this.registerRenderSystem(WebGPUBeginRenderPasses);
-    this.registerRenderSystem(WebGPUDefaultRenderPass);
-    this.registerRenderSystem(WebGPUSubmitRenderPasses);
+    this.registerRenderSystem(WebGPURenderPass);
   }
 
   async intializeRenderer() {
@@ -74,6 +67,8 @@ export class WebGPUWorld extends RenderWorld {
       addressModeU: 'repeat',
       addressModeV: 'repeat',
     });
+
+    this.singleton.add(new WebGPURenderBatch(this.device));
 
     return this;
   }

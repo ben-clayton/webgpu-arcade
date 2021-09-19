@@ -9,7 +9,7 @@ import { GltfLoader } from 'toro/loaders/gltf.js';
 import { Tag } from 'toro/core/ecs.js';
 import { WebGPUWorld } from 'toro/webgpu/webgpu-world.js';
 
-import { Velocity, VelocityAccelerationSystem } from './velocity.js';
+import { Velocity, VelocitySystem } from './velocity.js';
 import { PlayerControlSystem, PlayerBoundsSystem } from './player-controls.js';
 import { LifetimeHealthSystem, DeadSystem, Health } from './lifetime.js';
 import { BasicWeapon, BasicWeaponSystem } from './weapon.js';
@@ -22,7 +22,7 @@ import { vec3, quat } from 'gl-matrix';
 import dat from 'dat.gui';
 import Stats from 'stats.js';
 import { EnemySpawnerSystem } from './enemy-spawner.js';
-import { Score, ScoreSystem } from './score.js';
+import { ScoreSystem } from './score.js';
 
 const appSettings = {
   showCollisionVolumes: false,
@@ -38,7 +38,7 @@ const canvas = document.querySelector('canvas');
 
 const world = new WebGPUWorld(canvas)
   .registerSystem(PlayerControlSystem)
-  .registerSystem(VelocityAccelerationSystem)
+  .registerSystem(VelocitySystem)
   .registerSystem(PlayerBoundsSystem)
   .registerSystem(CollisionSystem)
   .registerSystem(ImpactDamageSystem)
