@@ -96,13 +96,11 @@ const playerWeapon = new BasicWeapon({
     new Transform({ position: [1.5, 0, -3], parent: playerTransform }),
   ]
 });
-const playerColor = new InstanceColor();
 
 const player = world.create(
   Tag('player'),
   playerWeapon,
   playerTransform,
-  playerColor,
   new Health(5),
   new Collider(2.5),
   new ImpactDamage(10, Tag('player-bullet')),
@@ -124,8 +122,6 @@ gltfLoader.fromUrl('./media/models/ships.glb').then(scene => {
 
 function onFrame(t) {
   requestAnimationFrame(onFrame);
-
-  playerColor.color[1] = Math.sin(t / 100);
 
   stats.begin();
   world.execute();
