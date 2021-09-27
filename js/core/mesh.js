@@ -1,6 +1,7 @@
 import { System } from './ecs.js';
 import { Stage } from './stage.js';
 import { Transform } from './transform.js';
+import { InstanceColor } from './instance-color.js';
 
 export const AttributeLocation = {
   position: 0,
@@ -250,7 +251,7 @@ export class MeshSystem extends System {
 
     // TODO: This would be a perfect place for some frustum culling, etc.
     this.meshQuery.forEach((entity, mesh) => {
-      gpu.addFrameMeshInstances(mesh, entity.get(Transform));
+      gpu.addFrameMeshInstance(mesh, entity.get(Transform), entity.get(InstanceColor));
     });
   }
 }

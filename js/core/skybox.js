@@ -81,7 +81,7 @@ export class SkyboxSystem extends System {
       }
 
       if (skybox.mesh) {
-        gpu.addFrameMeshInstances(skybox.mesh, entity.get(Transform));
+        gpu.addFrameMeshInstance(skybox.mesh, entity.get(Transform));
       }
     });
   }

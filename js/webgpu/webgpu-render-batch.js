@@ -1,9 +1,10 @@
 import { mat4 } from 'gl-matrix';
 import { WebGPUMaterialBindGroups } from './materials/webgpu-material-factory.js';
-import { INSTANCE_BUFFER_SIZE } from './wgsl/common.js';
+import { INSTANCE_SIZE_BYTES, INSTANCE_SIZE_F32 } from './wgsl/common.js';
 
 const IDENTITY_MATRIX = mat4.create();
 const EMPTY_BIND_GROUP = new WebGPUMaterialBindGroups();
+const DEFAULT_INSTANCE_COLOR = new Float32Array(4);
 
 const INITIAL_INSTANCE_COUNT = 128;
 
@@ -28,9 +29,9 @@ export class WebGPURenderBatch {
 
     this.#instanceBufferDirty = true;
     this.#instanceCapacity = capacity;
-    this.#instanceArray = new Float32Array(16 * capacity);
+    this.#instanceArray = new Float32Array(INSTANCE_SIZE_F32 * capacity);
     this.#instanceBuffer = this.device.createBuffer({
-      size: INSTANCE_BUFFER_SIZE * capacity,
+      size: INSTANCE_SIZE_BYTES * capacity,
       usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST
     });
   }
@@ -41,7 +42,7 @@ export class WebGPURenderBatch {
     this.#instanceBufferDirty = true;
   }
 
-  addRenderable(geometry, pipeline, bindGroups = EMPTY_BIND_GROUP, transform = null, instanceCount = 1) {
+  addRenderable(geometry, pipeline, bindGroups = EMPTY_BIND_GROUP, instance = {}) {
     this.#instanceBufferDirty = true;
     let geometryMaterials = this.pipelineGeometries.get(pipeline);
     if (!geometryMaterials) {
@@ -55,12 +56,13 @@ export class WebGPURenderBatch {
     }
     let instances = materialInstances.get(bindGroups);
     if (!instances) {
-      instances = {instanceCount: 0, transforms: [], bufferOffset: 0};
+      instances = {instanceCount: 0, transforms: [], colors: [], bufferOffset: 0};
       materialInstances.set(bindGroups, instances);
     }
 
-    instances.instanceCount += instanceCount;
-    instances.transforms.push(transform?.worldMatrix || IDENTITY_MATRIX);
+    instances.instanceCount += instance.count || 1;
+    instances.transforms.push(instance.transform?.worldMatrix || IDENTITY_MATRIX);
+    instances.colors.push(instance.color?.buffer || DEFAULT_INSTANCE_COLOR);
     this.#totalInstanceCount += 1;
   }
 
@@ -78,11 +80,13 @@ export class WebGPURenderBatch {
       for (const geometryMaterials of this.pipelineGeometries.values()) {
         for (const materialInstances of geometryMaterials.values()) {
           for (const instances of materialInstances.values()) {
-            instances.bufferOffset = instanceCount * INSTANCE_BUFFER_SIZE;
-            for (const transform of instances.transforms) {
+            instances.bufferOffset = instanceCount * INSTANCE_SIZE_BYTES;
+            for (let i = 0; i < instances.transforms.length; ++i) {
               // TODO: Could just copy over the 4x3 portion of the matrix needed to represent a full
               // TRS transform. Copies would be slower, though.
-              this.#instanceArray.set(transform, instanceCount * 16);
+              const arrayOffset = instanceCount * INSTANCE_SIZE_F32;
+              this.#instanceArray.set(instances.transforms[i], arrayOffset);
+              this.#instanceArray.set(instances.colors[i], arrayOffset + 16);
               instanceCount++;
             }
           }
@@ -90,7 +94,7 @@ export class WebGPURenderBatch {
       }
 
       // Write the instance data out to the buffer.
-      this.device.queue.writeBuffer(this.#instanceBuffer, 0, this.#instanceArray, 0, instanceCount * 16);
+      this.device.queue.writeBuffer(this.#instanceBuffer, 0, this.#instanceArray, 0, instanceCount * INSTANCE_SIZE_F32);
       this.#instanceBufferDirty = false;
     }
     return this.#instanceBuffer;

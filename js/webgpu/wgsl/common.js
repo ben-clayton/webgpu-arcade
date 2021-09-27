@@ -62,7 +62,8 @@ export const GetSkinMatrix = `
   }
 `;
 
-export const INSTANCE_BUFFER_SIZE = 16 * Float32Array.BYTES_PER_ELEMENT;
+export const INSTANCE_SIZE_F32 = 20;
+export const INSTANCE_SIZE_BYTES = INSTANCE_SIZE_F32 * Float32Array.BYTES_PER_ELEMENT;
 
 export function DefaultVertexInput(layout) {
   let inputs = layout.locationsUsed.map((location) => {
@@ -82,6 +83,7 @@ export function DefaultVertexInput(layout) {
   inputs.push(`[[location(${AttributeLocation.maxAttributeLocation+1})]] instance1 : vec4<f32>;`);
   inputs.push(`[[location(${AttributeLocation.maxAttributeLocation+2})]] instance2 : vec4<f32>;`);
   inputs.push(`[[location(${AttributeLocation.maxAttributeLocation+3})]] instance3 : vec4<f32>;`);
+  inputs.push(`[[location(${AttributeLocation.maxAttributeLocation+4})]] instanceColor : vec4<f32>;`);
 
   return `struct VertexInput {
     ${inputs.join('\n')}
@@ -96,11 +98,12 @@ export function DefaultVertexOutput(layout) { return wgsl`
     [[location(2)]] texcoord : vec2<f32>;
     [[location(3)]] texcoord2 : vec2<f32>;
     [[location(4)]] color : vec4<f32>;
-    [[location(5)]] normal : vec3<f32>;
+    [[location(5)]] instanceColor : vec4<f32>;
+    [[location(6)]] normal : vec3<f32>;
 
 #if ${layout.locationsUsed.includes(AttributeLocation.tangent)}
-    [[location(6)]] tangent : vec3<f32>;
-    [[location(7)]] bitangent : vec3<f32>;
+    [[location(7)]] tangent : vec3<f32>;
+    [[location(8)]] bitangent : vec3<f32>;
 #endif
   };
 `;

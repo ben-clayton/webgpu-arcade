@@ -54,7 +54,7 @@ export class BoundsVisualizerSystem extends System {
       const transform = entity.get(Transform);
       vec3.subtract(scale, aabb.max, aabb.min);
 
-      gpu.addFrameMeshInstances(this.mesh, new StaticTransform({
+      gpu.addFrameMeshInstance(this.mesh, new StaticTransform({
         position: aabb.min,
         scale
       }, transform?.worldMatrix));

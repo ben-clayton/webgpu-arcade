@@ -90,8 +90,8 @@ export class WebGPUMeshSystem extends WebGPUSystem {
 
       const instances = meshInstances.get(mesh);
       for (const primitive of gpuMesh) {
-        for (const transform of instances) {
-          renderBatch.addRenderable(primitive.geometry, primitive.pipeline, primitive.bindGroups, transform);
+        for (const instance of instances) {
+          renderBatch.addRenderable(primitive.geometry, primitive.pipeline, primitive.bindGroups, instance);
         }
       }
     }

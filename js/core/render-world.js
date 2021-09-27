@@ -65,13 +65,13 @@ export class RenderWorld extends World {
     throw new Error('createDynamicBuffer must be overriden in an extended class.');
   }
 
-  addFrameMeshInstances(mesh, ...transforms) {
+  addFrameMeshInstance(mesh, transform, color) {
     let meshInstances = this.#renderMeshInstances.get(mesh);
     if (!meshInstances) {
       meshInstances = new Array();
       this.#renderMeshInstances.set(mesh, meshInstances);
     }
-    meshInstances.push(...transforms);
+    meshInstances.push({ transform, color });
   }
 
   getFrameMeshInstances() {

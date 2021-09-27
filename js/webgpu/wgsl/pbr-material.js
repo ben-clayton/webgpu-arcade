@@ -76,6 +76,12 @@ function PBRSurfaceInfo(layout) { return wgsl`
     let emissiveMap = textureSample(emissiveTexture, emissiveSampler, input.texcoord);
     surface.emissive = material.emissiveFactor * emissiveMap.rgb;
 
+    if (input.instanceColor.a == 0.0) {
+      surface.emissive = surface.emissive + input.instanceColor.rgb;
+    } else {
+      surface.albedo = surface.albedo * input.instanceColor.rgb;
+    }
+
     return surface;
   }
 `; }

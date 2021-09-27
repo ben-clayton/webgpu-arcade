@@ -46,7 +46,9 @@ export class BoneVisualizerSystem extends System {
 
     this.query(Mesh).forEach((entity, mesh) => {
       if (mesh.skin) {
-        gpu.addFrameMeshInstances(this.mesh, ...mesh.skin.joints);
+        for (const transform of mesh.skin.joints) {
+          gpu.addFrameMeshInstance(this.mesh, transform);
+        }
       }
     });
   }

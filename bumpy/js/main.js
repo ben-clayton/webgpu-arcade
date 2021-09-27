@@ -3,6 +3,7 @@ import { Camera } from 'toro/core/camera.js';
 import { PointLight, AmbientLight, DirectionalLight } from 'toro/core/light.js';
 import { Skybox } from 'toro/core/skybox.js';
 import { Mesh, AABB } from 'toro/core/mesh.js';
+import { InstanceColor } from 'toro/core/instance-color.js';
 
 import { GltfLoader } from 'toro/loaders/gltf.js';
 
@@ -95,15 +96,17 @@ const playerWeapon = new BasicWeapon({
     new Transform({ position: [1.5, 0, -3], parent: playerTransform }),
   ]
 });
+const playerColor = new InstanceColor();
 
 const player = world.create(
   Tag('player'),
   playerWeapon,
   playerTransform,
+  playerColor,
   new Health(5),
   new Collider(2.5),
   new ImpactDamage(10, Tag('player-bullet')),
-  new Velocity()
+  new Velocity(),
 );
 
 // Load the ship models
@@ -119,8 +122,10 @@ gltfLoader.fromUrl('./media/models/ships.glb').then(scene => {
   world.registerRenderSystem(EnemySpawnerSystem, shipMeshes);
 });
 
-function onFrame() {
+function onFrame(t) {
   requestAnimationFrame(onFrame);
+
+  playerColor.color[1] = Math.sin(t / 100);
 
   stats.begin();
   world.execute();

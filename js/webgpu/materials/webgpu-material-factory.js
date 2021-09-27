@@ -28,9 +28,11 @@ export class WebGPUMaterialBindGroups {
 }
 
 const INSTANCE_BUFFER_LAYOUT = {
-  arrayStride: 64,
+  arrayStride: 80,
   stepMode: 'instance',
-  attributes: [{
+  attributes: [
+  // Transform matrix (4x4)
+  {
     format: 'float32x4',
     offset: 0,
     shaderLocation: AttributeLocation.maxAttributeLocation,
@@ -46,6 +48,13 @@ const INSTANCE_BUFFER_LAYOUT = {
     format: 'float32x4',
     offset: 48,
     shaderLocation: AttributeLocation.maxAttributeLocation+3,
+  },
+  
+  // Instance Color
+  {
+    format: 'float32x4',
+    offset: 64,
+    shaderLocation: AttributeLocation.maxAttributeLocation+4,
   }]
 };
 

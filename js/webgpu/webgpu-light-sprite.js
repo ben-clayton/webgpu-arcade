@@ -69,6 +69,6 @@ export class WebGPULightSpriteSystem extends WebGPUSystem {
   execute(delta, time) {
     const lights = this.singleton.get(LightBuffer);
     const renderBatch = this.singleton.get(WebGPURenderBatch);
-    renderBatch.addRenderable(this.lightGeometry, this.lightPipeline, undefined, undefined, lights.lightCount);
+    renderBatch.addRenderable(this.lightGeometry, this.lightPipeline, undefined, { count: lights.lightCount });
   }
 }

@@ -49,6 +49,8 @@ export function DefaultVertexSource(layout, skinned = false) { return wgsl`
     output.texcoord2 = input.texcoord2;
 #endif
 
+    output.instanceColor = input.instanceColor;
+
     let modelPos = modelMatrix * input.position;
     output.worldPos = modelPos.xyz;
     output.view = camera.position - modelPos.xyz;
