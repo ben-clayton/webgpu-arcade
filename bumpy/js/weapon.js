@@ -17,8 +17,6 @@ const TMP_VELOCITY = vec4.create();
 export class BasicWeapon {
   fire = false;
   cooldown = 0;
-  //position = vec3.fromValues(0, 0, 1);
-  //direction = vec3.fromValues(0, 0, 1);
 
   constructor(options = {}) {
     this.filter = options.filter || null;
@@ -31,7 +29,7 @@ export class BasicWeaponSystem extends System {
   speed = -120;
   lifetime = 2;
   impactDamage = 1;
-  radius = 0.5;
+  radius = 0.3;
 
   init(gpu) {
     this.weaponQuery = this.query(BasicWeapon);
@@ -63,7 +61,7 @@ export class BasicWeaponSystem extends System {
       new Health(1),
       new ImpactDamage(this.impactDamage, filter),
       new Collider(this.radius),
-      new PointLight({ color: [1.0, 1.0, 0.8], intensity: 10 })
+      new PointLight({ color: [1.0, 1.0, 0.8], intensity: 10, range: 10 })
     );
 
     return bullet;

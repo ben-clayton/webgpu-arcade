@@ -7,7 +7,7 @@ import { InstanceColor } from 'toro/core/instance-color.js';
 
 import { GltfLoader } from 'toro/loaders/gltf.js';
 
-import { Tag } from 'toro/core/ecs.js';
+import { Tag, System } from 'toro/core/ecs.js';
 import { WebGPUWorld } from 'toro/webgpu/webgpu-world.js';
 
 import { Velocity, VelocitySystem } from './velocity.js';
@@ -82,11 +82,13 @@ world.create(
   // A nice bright sunlight
   new DirectionalLight({
     direction: [0.2, 0.7, -0.5],
-    color: [1.0, 1.0, 0.7],
-    intensity: 5
+    color: [0.7, 1.0, 1.0],
+    intensity: 3
   }),
   new AmbientLight(0.05, 0.05, 0.05)
 );
+
+
 
 const playerTransform = new Transform({ position: [0, 0, 50] });
 const playerWeapon = new BasicWeapon({
@@ -106,6 +108,36 @@ const player = world.create(
   new ImpactDamage(10, Tag('player-bullet')),
   new Velocity(),
 );
+
+// Load the environment
+const trenchTag = Tag('trench');
+let trenchVelocity = new Velocity([0, 0, 10]);
+let trenchOffset = -197.5;
+export class TrenchSystem extends System {
+  init() {
+    this.trenchQuery = this.query(trenchTag, Transform);
+    this.trenchSegments = [];
+
+    gltfLoader.fromUrl('./media/models/trench/trench.glb').then(scene => {
+      this.trenchSegments.push(scene.createInstance(world), scene.createInstance(world));
+      const trench1Transform = this.trenchSegments[1].get(Transform);
+      trench1Transform.position[2] += trenchOffset;
+    
+      this.trenchSegments[0].add(trenchTag, trenchVelocity);
+      this.trenchSegments[1].add(trenchTag, trenchVelocity);
+    });
+  }
+
+  execute(delta, time) {
+    this.trenchQuery.forEach((entity, trench, transform) => {
+      // Make trench segments loop back up to the top so we get an endless channel.
+      if (transform.position[2] > -trenchOffset) {
+        transform.position[2] += trenchOffset * 2;
+      }
+    });
+  }
+}
+world.registerSystem(TrenchSystem);
 
 // Load the ship models
 const shipMeshes = {};
