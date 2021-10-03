@@ -31,9 +31,7 @@ export class SkinSystem extends System {
     this.meshQuery = this.query(Mesh);
   }
 
-  execute() {
-    const gpu = this.world;
-
+  execute(delta, time, gpu) {
     // Look through all of the meshes in the world and update any skins we find.
     this.meshQuery.forEach((entity, mesh) => {
       const skin = mesh.skin;

@@ -1,4 +1,4 @@
-import { RenderWorld } from '../core/render-world.js';
+import { RenderWorld, Renderer } from '../core/render-world.js';
 import { WebGPUBufferManager } from './webgpu-buffer.js';
 import { WebGPUBindGroupLayouts } from './webgpu-bind-group-layouts.js'
 import { WebGPUTextureLoader } from 'webgpu-texture-loader';
@@ -13,33 +13,22 @@ const desiredFeatures = [
   'texture-compression-bc'
 ];
 
-export class WebGPUWorld extends RenderWorld {
+class WebGPURenderer extends Renderer {
   adapter = null;
   device = null;
+  context = null;
+
   format = 'bgra8unorm';
   depthFormat = 'depth24plus';
   sampleCount = 4;
 
-  context = null;
   size = {width: 0, height: 0};
-
   bindGroupLayouts = {};
   bufferManager = null;
   #textureLoader = null;
 
-  constructor(canvas) {
-    super(canvas);
-
-    this.context = this.canvas.getContext('webgpu');
-
-    // Unfortunately the order of these systems is kind of delicate.
-    this.registerRenderSystem(WebGPUCameraSystem);
-    this.registerRenderSystem(WebGPUClusteredLights);
-    this.registerRenderSystem(WebGPUMeshSystem);
-    this.registerRenderSystem(WebGPURenderPass);
-  }
-
-  async intializeRenderer() {
+  async init(canvas) {
+    this.context = canvas.getContext('webgpu');
     this.adapter = await navigator.gpu.requestAdapter({
       powerPreference: "high-performance"
     });
@@ -67,10 +56,10 @@ export class WebGPUWorld extends RenderWorld {
       addressModeU: 'repeat',
       addressModeV: 'repeat',
     });
+  }
 
-    this.singleton.add(new WebGPURenderBatch(this.device));
-
-    return this;
+  get canvas() {
+    return this.context.canvas;
   }
 
   // RenderWorld overloads
@@ -84,5 +73,22 @@ export class WebGPUWorld extends RenderWorld {
 
   createDynamicBuffer(sizeOrArrayBuffer, usage = 'vertex') {
     return this.bufferManager.createDynamicBuffer(sizeOrArrayBuffer, usage);
+  }
+}
+
+export class WebGPUWorld extends RenderWorld {
+  async intializeRenderer() {
+    const renderer = new WebGPURenderer();
+    await renderer.init(this.canvas);
+
+    this.singleton.add(new WebGPURenderBatch(renderer.device));
+
+    // Unfortunately the order of these systems is kind of delicate.
+    this.registerRenderSystem(WebGPUCameraSystem);
+    this.registerRenderSystem(WebGPUClusteredLights);
+    this.registerRenderSystem(WebGPUMeshSystem);
+    this.registerRenderSystem(WebGPURenderPass);
+
+    return renderer;
   }
 }

@@ -56,8 +56,7 @@ export class WebGPUMeshSystem extends WebGPUSystem {
     return gpuSkin;
   }
 
-  execute(delta, time) {
-    const gpu = this.world;
+  execute(delta, time, gpu) {
     const renderBatch = this.singleton.get(WebGPURenderBatch);
 
     const meshInstances = gpu.getFrameMeshInstances();

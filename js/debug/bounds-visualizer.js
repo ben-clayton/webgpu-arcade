@@ -45,9 +45,7 @@ export class BoundsVisualizerSystem extends System {
     this.mesh = new Mesh({ geometry, material });
   }
 
-  execute() {
-    const gpu = this.world;
-
+  execute(delta, time, gpu) {
     const scale = vec3.create();
 
     this.query(AABB).forEach((entity, aabb) => {

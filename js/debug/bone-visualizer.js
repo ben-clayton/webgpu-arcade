@@ -41,9 +41,7 @@ export class BoneVisualizerSystem extends System {
     this.mesh = new Mesh({ geometry, material });
   }
 
-  execute() {
-    const gpu = this.world;
-
+  execute(delta, time, gpu) {
     this.query(Mesh).forEach((entity, mesh) => {
       if (mesh.skin) {
         for (const transform of mesh.skin.joints) {

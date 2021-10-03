@@ -51,8 +51,7 @@ export class WebGPURenderPass extends WebGPUSystem {
     }
   }
 
-  execute(delta, time) {
-    const gpu = this.world;
+  execute(delta, time, gpu) {
     const renderBatch = this.singleton.get(WebGPURenderBatch);
     const instanceBuffer = renderBatch.instanceBuffer;
 

@@ -183,7 +183,7 @@ export class World {
     return this.#worldData.getQuery(componentTypes);
   }
 
-  execute(delta, time) {
+  execute(delta, time, ...args) {
     if (!delta) {
       time = performance.now() / 1000;
       delta = time - this.#lastTime;
@@ -202,7 +202,7 @@ export class World {
 
     for (const system of this.#worldData.orderedSystems) {
       if (system.enabled) {
-        system.execute(delta, time);
+        system.execute(delta, time, ...args);
       }
     }
   }

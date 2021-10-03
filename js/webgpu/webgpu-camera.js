@@ -83,9 +83,7 @@ export class WebGPUCamera {
 }
 
 export class WebGPUCameraSystem extends WebGPUSystem {
-  execute(delta, time) {
-    const gpu = this.world;
-
+  execute(delta, time, gpu) {
     // If a Camera does not have an associated WebGPUCamera add one.
     this.query(Camera).not(WebGPUCamera).forEach((entity) => {
       const lights = this.singleton.get(LightBuffer);

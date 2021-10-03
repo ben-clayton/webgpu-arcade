@@ -70,8 +70,7 @@ export class SkyboxSystem extends System {
     this.skyboxQuery = this.query(Skybox);
   }
 
-  execute(delta, time) {
-    const gpu = this.world;
+  execute(delta, time, gpu) {
     this.skyboxQuery.forEach((entity, skybox) => {
       if (!skybox.mesh && skybox.material) {
         skybox.mesh = new Mesh({

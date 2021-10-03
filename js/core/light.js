@@ -66,9 +66,7 @@ export class LightSystem extends System {
     this.pointLightQuery = this.query(PointLight);
   }
 
-  execute(delta, time) {
-    const gpu = this.world;
-
+  execute(delta, time, gpu) {
     const lightBuffer = this.singleton.get(LightBuffer);
     lightBuffer.buffer.beginUpdate();
     const arrayBuffer = lightBuffer.buffer.arrayBuffer;

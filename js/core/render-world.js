@@ -8,17 +8,53 @@ import { SkinSystem } from './skin.js';
 import { SkyboxSystem } from './skybox.js';
 import { LightSystem } from './light.js';
 
+export class Renderer {
+  #renderMeshInstances = new Map();
+
+  get textureLoader() {
+    throw new Error('textureLoader getter must be overriden in an extended class.');
+  }
+
+  createStaticBuffer(sizeOrArrayBuffer, usage = 'vertex') {
+    throw new Error('createStaticBuffer must be overriden in an extended class.');
+  }
+
+  createDynamicBuffer(sizeOrArrayBuffer, usage = 'vertex') {
+    throw new Error('createDynamicBuffer must be overriden in an extended class.');
+  }
+
+  clearFrameMeshInstances() {
+    this.#renderMeshInstances.clear();
+  }
+
+  addFrameMeshInstance(mesh, transform, color) {
+    let meshInstances = this.#renderMeshInstances.get(mesh);
+    if (!meshInstances) {
+      meshInstances = new Array();
+      this.#renderMeshInstances.set(mesh, meshInstances);
+    }
+    meshInstances.push({ transform, color });
+  }
+
+  getFrameMeshInstances() {
+    return this.#renderMeshInstances;
+  }
+}
+
 export class RenderWorld extends World {
   #canvas;
+  #renderer = null;
   #rendererInitialized;
-  #renderMeshInstances = new Map();
 
   constructor(canvas) {
     super();
 
     this.#canvas = canvas || document.createElement('canvas');
 
-    this.#rendererInitialized = this.intializeRenderer();
+    this.#rendererInitialized = this.intializeRenderer().then((renderer) => {
+      this.#renderer = renderer;
+      return renderer;
+    });
 
     this.registerSystem(InputSystem);
     this.registerSystem(EntityGroupSystem);
@@ -34,8 +70,8 @@ export class RenderWorld extends World {
   }
 
   execute(delta, time) {
-    this.#renderMeshInstances.clear();
-    super.execute(delta, time);
+    this.#renderer?.clearFrameMeshInstances();
+    super.execute(delta, time, this.#renderer);
   }
 
   registerRenderSystem(systemType, ...initArgs) {
@@ -51,30 +87,5 @@ export class RenderWorld extends World {
 
   async renderer() {
     return await this.#rendererInitialized;
-  }
-
-  get textureLoader() {
-    throw new Error('textureLoader getter must be overriden in an extended class.');
-  }
-
-  createStaticBuffer(sizeOrArrayBuffer, usage = 'vertex') {
-    throw new Error('createStaticBuffer must be overriden in an extended class.');
-  }
-
-  createDynamicBuffer(sizeOrArrayBuffer, usage = 'vertex') {
-    throw new Error('createDynamicBuffer must be overriden in an extended class.');
-  }
-
-  addFrameMeshInstance(mesh, transform, color) {
-    let meshInstances = this.#renderMeshInstances.get(mesh);
-    if (!meshInstances) {
-      meshInstances = new Array();
-      this.#renderMeshInstances.set(mesh, meshInstances);
-    }
-    meshInstances.push({ transform, color });
-  }
-
-  getFrameMeshInstances() {
-    return this.#renderMeshInstances;
   }
 }

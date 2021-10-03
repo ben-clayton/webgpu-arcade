@@ -95,9 +95,7 @@ export class WebGPUClusteredLights extends WebGPUSystem {
     gpu.device.queue.submit([commandEncoder.finish()]);
   }
 
-  execute(delta, time) {
-    const gpu = this.world;
-
+  execute(delta, time, gpu) {
     this.query(WebGPUCamera).forEach((entity, camera) => {
       this.updateClusterBounds(gpu, camera);
       this.updateClusterLights(gpu, camera);
