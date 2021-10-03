@@ -65,7 +65,7 @@ export class ColliderVisualizerSystem extends System {
     this.query(Collider).forEach((entity, collider) => {
       const transform = entity.get(Transform);
 
-      gpu.addFrameMeshInstances(this.mesh, new StaticTransform({
+      gpu.addFrameMeshInstance(this.mesh, new StaticTransform({
         scale: [collider.radius, collider.radius, collider.radius]
       }, transform?.worldMatrix));
     });

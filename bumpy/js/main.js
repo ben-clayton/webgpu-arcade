@@ -22,7 +22,7 @@ import { vec3, quat } from 'gl-matrix';
 
 import dat from 'dat.gui';
 import Stats from 'stats.js';
-import { EnemySpawnerSystem } from './enemy-spawner.js';
+import { EnemySpawnerSystem } from './enemies/enemy-spawner.js';
 import { ScoreSystem } from './score.js';
 
 const appSettings = {
@@ -103,7 +103,7 @@ const player = world.create(
   Tag('player'),
   playerWeapon,
   playerTransform,
-  new Health(5),
+  new Health(50),
   new Collider(2.5),
   new ImpactDamage(10, Tag('player-bullet')),
   new Velocity(),
@@ -141,7 +141,7 @@ world.registerSystem(TrenchSystem);
 
 // Load the ship models
 const shipMeshes = {};
-gltfLoader.fromUrl('./media/models/ships.glb').then(scene => {
+gltfLoader.fromUrl('./media/models/ships2.glb').then(scene => {
   for (const mesh of scene.meshes) {
     shipMeshes[mesh.name] = mesh;
   }
