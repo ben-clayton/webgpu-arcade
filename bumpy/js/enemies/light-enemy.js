@@ -9,6 +9,7 @@ import { ImpactDamage } from '../impact-damage.js';
 import { Lifetime, Health } from '../lifetime.js';
 import { Velocity } from '../velocity.js';
 import { PointLight } from 'toro/core/light.js';
+import { BulletFactory } from '../weapon.js';
 
 const LightEnemyState = {
   ADVANCING: 0,
@@ -27,17 +28,18 @@ export class LightEnemy {
   nextShot = Math.random() * 6 + 3;
 }
 
+
 export class LightEnemySystem extends System {
   init(gpu) {
     this.playerQuery = this.query(Tag('player'), Transform);
     this.lightEnemyQuery = this.query(LightEnemy, Transform, Velocity);
 
-    const geometry = new SphereGeometry(gpu, 0.4, 12, 6);
-    const material = new UnlitMaterial();
-    material.baseColorFactor[0] = 1.0;
-    material.baseColorFactor[1] = 0.8;
-    material.baseColorFactor[2] = 1.0;
-    this.bulletMesh = new Mesh({ geometry, material });
+    this.bulletFactory = new BulletFactory(gpu, {
+      speed: 35,
+      radius: 0.5,
+      color: [1.0, 0.8, 1.0],
+      filter: Tag('enemy')
+    });
   }
 
   execute(delta, time) {
@@ -59,7 +61,8 @@ export class LightEnemySystem extends System {
       if (lightEnemy.nextShot <= 0) {
         lightEnemy.nextShot = Math.random() * 5 + 5;
 
-        this.spawnBullet(transform, playerTransform);
+        this.bulletFactory.fireBullet(this.world, transform, playerTransform)
+          .add(Tag('enemy'));
       }
 
       // Fly till the ship nears the edge of the screen
@@ -92,25 +95,5 @@ export class LightEnemySystem extends System {
           break;
       }
     });
-  }
-
-  spawnBullet(transform, playerTransform) {
-    if (!playerTransform) { return; }
-
-    vec3.subtract(tmpVec, playerTransform.position, transform.position);
-    vec3.normalize(tmpVec, tmpVec);
-    vec3.scale(tmpVec, tmpVec, 35);
-
-    this.world.create(
-      Tag('enemy'),
-      this.bulletMesh,
-      new Transform({ position: transform.position }),
-      new Velocity(tmpVec),
-      new Lifetime(3),
-      new Health(1),
-      new ImpactDamage(1, Tag('enemy')),
-      new Collider(0.3),
-      new PointLight({ color: [1.0, 0.8, 1.0], intensity: 10, range: 10 })
-    );
   }
 }

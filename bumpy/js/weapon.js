@@ -12,7 +12,52 @@ import { vec3, vec4 } from 'gl-matrix';
 import { PointLight } from 'toro/core/light.js';
 
 const FIRING_TAG = Tag('firing');
-const TMP_VELOCITY = vec4.create();
+const tmpVec = vec3.create();
+
+export class BulletFactory {
+  constructor(gpu, options = {}) {
+    this.speed = options.speed !== undefined ? options.speed : 120;
+    this.lifetime = options.lifetime || 2;
+    this.impactDamage = options.impactDamage || 1;
+    this.radius = options.radius || 0.3;
+    this.color = options.color || [1.0, 1.0, 0.8];
+    this.filter = options.filter;
+
+    const geometry = new SphereGeometry(gpu, this.radius, 12, 6);
+    const material = new UnlitMaterial();
+    material.baseColorFactor.set(this.color);
+    this.bulletMesh = new Mesh({ geometry, material });
+  }
+
+  fireBullet(world, origin, destination) {
+    let transform;
+    let velocity;
+    if (destination) {
+      vec3.subtract(tmpVec, origin.position, destination.position);
+      vec3.normalize(tmpVec, tmpVec);
+      vec3.scale(tmpVec, tmpVec, -this.speed);
+
+      transform = new Transform({ position: origin.position });
+      velocity = new Velocity(tmpVec);
+    } else {
+      transform = new Transform({ matrix: origin.worldMatrix });
+      velocity = new Velocity([0, 0, -this.speed]);
+    }
+
+    const bullet = world.create(
+      this.bulletMesh,
+      transform,
+      velocity,
+      new Lifetime(this.lifetime),
+      new Health(1),
+      new ImpactDamage(this.impactDamage, this.filter),
+      new Collider(this.radius),
+      new PointLight({ color: [1.0, 1.0, 0.8], intensity: 10, range: 10 }),
+    );
+
+    return bullet;
+  }
+}
 
 export class BasicWeapon {
   fire = false;
@@ -26,37 +71,13 @@ export class BasicWeapon {
 
 export class BasicWeaponSystem extends System {
   cooldown = 0.1;
-  speed = -120;
-  lifetime = 2;
-  impactDamage = 1;
-  radius = 0.3;
 
   init(gpu) {
     this.weaponQuery = this.query(BasicWeapon);
 
-    // Create the bullet mesh for this weapon
-    const geometry = new SphereGeometry(gpu, this.radius, 12, 6);
-    const material = new UnlitMaterial();
-    material.baseColorFactor[0] = 1.0;
-    material.baseColorFactor[1] = 1.0;
-    material.baseColorFactor[2] = 0.8;
-    this.bulletMesh = new Mesh({ geometry, material });
-  }
-
-  spawnBullet(origin, filter) {
-    const bullet = this.world.create(
-      Tag('player-bullet'),
-      this.bulletMesh,
-      new Transform({ matrix: origin.worldMatrix }),
-      new Velocity([0, 0, this.speed]),
-      new Lifetime(this.lifetime),
-      new Health(1),
-      new ImpactDamage(this.impactDamage, filter),
-      new Collider(this.radius),
-      new PointLight({ color: [1.0, 1.0, 0.8], intensity: 10, range: 10 })
-    );
-
-    return bullet;
+    this.bulletFactory = new BulletFactory(gpu, {
+      filter: Tag('player') // TODO: Should have been pulled from the weapon
+    });
   }
 
   execute(delta, time) {
@@ -80,7 +101,8 @@ export class BasicWeaponSystem extends System {
       const origin = entity.get(Transform);
 
       for (const weaponTransform of weapon.transforms) {
-        this.spawnBullet(weaponTransform || origin, weapon.filter);
+        this.bulletFactory.fireBullet(this.world, weaponTransform || origin)
+          .add(Tag('player-bullet'));
       }
     });
   }
