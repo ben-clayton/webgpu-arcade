@@ -43,9 +43,9 @@ export class AmbientLight {
 }
 
 const MAX_POINT_LIGHT_COUNT = 512;
-const AMBIENT_LIGHT_BYTE_SIZE = 4;
-const DIRECTIONAL_LIGHT_BYTE_SIZE = 8;
-const POINT_LIGHT_BYTE_SIZE = 8;
+const AMBIENT_LIGHT_BYTE_SIZE = 4 * Float32Array.BYTES_PER_ELEMENT;
+const DIRECTIONAL_LIGHT_BYTE_SIZE = 8 * Float32Array.BYTES_PER_ELEMENT;
+const POINT_LIGHT_BYTE_SIZE = 8 * Float32Array.BYTES_PER_ELEMENT;
 const LIGHT_BUFFER_SIZE = AMBIENT_LIGHT_BYTE_SIZE + DIRECTIONAL_LIGHT_BYTE_SIZE + (POINT_LIGHT_BYTE_SIZE * MAX_POINT_LIGHT_COUNT);
 
 export class LightBuffer {
@@ -93,7 +93,7 @@ export class LightSystem extends System {
       return false; // Only process the first one.
     });
 
-    let pointLightByteOffset = 12 * Float32Array.BYTES_PER_ELEMENT;
+    let pointLightByteOffset = AMBIENT_LIGHT_BYTE_SIZE + DIRECTIONAL_LIGHT_BYTE_SIZE;
     lightBuffer.lightCount = 0;
     this.pointLightQuery.forEach((entity, light) => {
       if (light.intensity > 0) {

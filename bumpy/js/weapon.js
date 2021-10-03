@@ -52,7 +52,7 @@ export class BulletFactory {
       new Health(1),
       new ImpactDamage(this.impactDamage, this.filter),
       new Collider(this.radius),
-      new PointLight({ color: [1.0, 1.0, 0.8], intensity: 10, range: 10 }),
+      new PointLight({ color: this.color, intensity: 10, range: 10 }),
     );
 
     return bullet;

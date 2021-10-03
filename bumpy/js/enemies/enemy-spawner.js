@@ -6,8 +6,15 @@ import { Health } from '../lifetime.js';
 import { Points } from '../score.js';
 import { Velocity } from '../velocity.js';
 import { LightEnemy, LightEnemySystem } from './light-enemy.js';
+import { MineEnemy, MineEnemySystem } from './mine-enemy.js';
+import { quat } from 'gl-matrix';
 
 const ENEMY_TAG = Tag('enemy');
+
+const CW_90 = quat.create();
+quat.rotateY(CW_90, CW_90, Math.PI / 2);
+const CCW_90 = quat.create();
+quat.rotateY(CCW_90, CCW_90, Math.PI / -2);
 
 export class EnemySpawnerSystem extends System {
   nextSpawn = 0
@@ -16,6 +23,7 @@ export class EnemySpawnerSystem extends System {
     this.shipMeshes = shipMeshes;
 
     this.world.registerRenderSystem(LightEnemySystem);
+    this.world.registerRenderSystem(MineEnemySystem);
   }
 
   execute(delta, time) {
@@ -52,10 +60,16 @@ export class EnemySpawnerSystem extends System {
           );
           break;
         case 2:
+          const direction = Math.floor(Math.random() * 2) ? -1 : 1;
+
           this.world.create(this.shipMeshes.Mine,
             ENEMY_TAG,
-            new Transform({ position: [enemyX, 0, enemyZ] }),
-            new Velocity([0, 0, 20]),
+            new MineEnemy(),
+            new Transform({
+              position: [-70 * direction, 0, -60],
+              orientation: direction > 0 ? CW_90 : CCW_90
+            }),
+            new Velocity([-10 * direction, 0, 15]),
             new Collider(3),
             new Health(10),
             new ImpactDamage(10, ENEMY_TAG),

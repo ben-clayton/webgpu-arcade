@@ -1,14 +1,7 @@
 import { quat, vec3 } from 'gl-matrix';
 import { System, Tag } from 'toro/core/ecs.js';
 import { Transform } from 'toro/core/transform.js';
-import { SphereGeometry } from 'toro/geometry/sphere.js';
-import { UnlitMaterial } from 'toro/core/materials.js';
-import { Mesh } from 'toro/core/mesh.js';
-import { Collider } from '../collision.js';
-import { ImpactDamage } from '../impact-damage.js';
-import { Lifetime, Health } from '../lifetime.js';
 import { Velocity } from '../velocity.js';
-import { PointLight } from 'toro/core/light.js';
 import { BulletFactory } from '../weapon.js';
 
 const LightEnemyState = {
