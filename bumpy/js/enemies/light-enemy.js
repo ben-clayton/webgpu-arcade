@@ -1,11 +1,14 @@
 import { quat, vec3 } from 'gl-matrix';
 import { System, Tag } from 'toro/core/ecs.js';
 import { Transform } from 'toro/core/transform.js';
+import { SphereGeometry } from 'toro/geometry/sphere.js';
+import { UnlitMaterial } from 'toro/core/materials.js';
+import { Mesh } from 'toro/core/mesh.js';
 import { Collider } from '../collision.js';
 import { ImpactDamage } from '../impact-damage.js';
-import { Health } from '../lifetime.js';
-import { Points } from '../score.js';
+import { Lifetime, Health } from '../lifetime.js';
 import { Velocity } from '../velocity.js';
+import { PointLight } from 'toro/core/light.js';
 
 const LightEnemyState = {
   ADVANCING: 0,
@@ -14,20 +17,27 @@ const LightEnemyState = {
 };
 
 const TURN_TIME = 1;
-const ORIGIN = vec3.create();
+const tmpVec = vec3.create();
 
 export class LightEnemy {
   state = LightEnemyState.ADVANCING;
   initialOrientation;
-  initialVelocity;
   turnAmount = TURN_TIME;
   turnDirection = 1;
+  nextShot = Math.random() * 6 + 3;
 }
 
 export class LightEnemySystem extends System {
   init(gpu) {
     this.playerQuery = this.query(Tag('player'), Transform);
     this.lightEnemyQuery = this.query(LightEnemy, Transform, Velocity);
+
+    const geometry = new SphereGeometry(gpu, 0.4, 12, 6);
+    const material = new UnlitMaterial();
+    material.baseColorFactor[0] = 1.0;
+    material.baseColorFactor[1] = 0.8;
+    material.baseColorFactor[2] = 1.0;
+    this.bulletMesh = new Mesh({ geometry, material });
   }
 
   execute(delta, time) {
@@ -40,9 +50,16 @@ export class LightEnemySystem extends System {
     });
 
     this.lightEnemyQuery.forEach((entity, lightEnemy, transform, velocity) => {
-      if (!lightEnemy.initialVelocity) {
+      if (!lightEnemy.initialOrientation) {
         lightEnemy.initialOrientation = quat.clone(transform.orientation);
-        lightEnemy.initialVelocity = vec3.clone(velocity.velocity);
+      }
+
+      // Fire a shot towards the 
+      lightEnemy.nextShot -= delta;
+      if (lightEnemy.nextShot <= 0) {
+        lightEnemy.nextShot = Math.random() * 5 + 5;
+
+        this.spawnBullet(transform, playerTransform);
       }
 
       // Fly till the ship nears the edge of the screen
@@ -63,7 +80,6 @@ export class LightEnemySystem extends System {
           lightEnemy.turnAmount -= delta;
           const t = Math.min(1, (TURN_TIME - lightEnemy.turnAmount) / TURN_TIME);
           quat.rotateY(transform.orientation, lightEnemy.initialOrientation, Math.PI * t * lightEnemy.turnDirection);
-          vec3.rotateY(velocity.velocity, lightEnemy.initialVelocity, ORIGIN, Math.PI * t * lightEnemy.turnDirection);
           if (t >= 1) {
             lightEnemy.state = LightEnemyState.RETREATING;
           }
@@ -76,5 +92,25 @@ export class LightEnemySystem extends System {
           break;
       }
     });
+  }
+
+  spawnBullet(transform, playerTransform) {
+    if (!playerTransform) { return; }
+
+    vec3.subtract(tmpVec, playerTransform.position, transform.position);
+    vec3.normalize(tmpVec, tmpVec);
+    vec3.scale(tmpVec, tmpVec, 35);
+
+    this.world.create(
+      Tag('enemy'),
+      this.bulletMesh,
+      new Transform({ position: transform.position }),
+      new Velocity(tmpVec),
+      new Lifetime(3),
+      new Health(1),
+      new ImpactDamage(1, Tag('enemy')),
+      new Collider(0.3),
+      new PointLight({ color: [1.0, 0.8, 1.0], intensity: 10, range: 10 })
+    );
   }
 }

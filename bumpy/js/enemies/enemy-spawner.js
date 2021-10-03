@@ -15,7 +15,7 @@ export class EnemySpawnerSystem extends System {
   init(gpu, shipMeshes) {
     this.shipMeshes = shipMeshes;
 
-    this.world.registerSystem(LightEnemySystem);
+    this.world.registerRenderSystem(LightEnemySystem);
   }
 
   execute(delta, time) {

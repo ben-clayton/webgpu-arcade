@@ -44,19 +44,11 @@ export class BasicWeaponSystem extends System {
   }
 
   spawnBullet(origin, filter) {
-    const transform = new Transform();
-    vec4.set(TMP_VELOCITY, 0, 0, this.speed, 0);
-
-    if (origin) {
-      vec3.transformMat4(transform.position, transform.position, origin.worldMatrix);
-      vec4.transformMat4(TMP_VELOCITY, TMP_VELOCITY, origin.worldMatrix);
-    }
-
     const bullet = this.world.create(
       Tag('player-bullet'),
       this.bulletMesh,
-      transform,
-      new Velocity(TMP_VELOCITY),
+      new Transform({ matrix: origin.worldMatrix }),
+      new Velocity([0, 0, this.speed]),
       new Lifetime(this.lifetime),
       new Health(1),
       new ImpactDamage(this.impactDamage, filter),
