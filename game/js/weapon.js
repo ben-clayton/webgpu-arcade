@@ -1,15 +1,15 @@
-import { System, Tag } from 'toro/core/ecs.js';
-import { SphereGeometry } from 'toro/geometry/sphere.js';
-import { UnlitMaterial } from 'toro/core/materials.js';
-import { Mesh } from 'toro/core/mesh.js';
-import { Transform } from 'toro/core/transform.js';
+import { System, Tag } from 'engine/core/ecs.js';
+import { SphereGeometry } from 'engine/geometry/sphere.js';
+import { UnlitMaterial } from 'engine/core/materials.js';
+import { Mesh } from 'engine/core/mesh.js';
+import { Transform } from 'engine/core/transform.js';
 
 import { Velocity } from './velocity.js';
 import { Lifetime, Health } from './lifetime.js';
 import { ImpactDamage } from './impact-damage.js';
 import { Collider } from './collision.js';
 import { vec3, vec4 } from 'gl-matrix';
-import { PointLight } from 'toro/core/light.js';
+import { PointLight } from 'engine/core/light.js';
 
 const FIRING_TAG = Tag('firing');
 const tmpVec = vec3.create();

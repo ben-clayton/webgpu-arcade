@@ -1,11 +1,11 @@
 {
-    "name": "webgpu-ecs",
+    "name": "webgpu-arcade-game",
     "version": "0.0.1",
     "repository": "https://github.com/toji/webgpu-ecs",
     "authors": [
         "Brandon Jones <tojiro@gmail.com>"
     ],
-    "description": "Just testing.",
+    "description": "A simple Galaga-style arcade game with WebGPU",
     "license": "MIT",
     "dependencies": {
         "dat.gui": "^0.7.7",

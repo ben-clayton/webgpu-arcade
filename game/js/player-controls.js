@@ -1,6 +1,6 @@
-import { System, Tag } from 'toro/core/ecs.js';
-import { KeyboardState, GamepadState } from 'toro/core/input.js';
-import { Transform } from 'toro/core/transform.js';
+import { System, Tag } from 'engine/core/ecs.js';
+import { KeyboardState, GamepadState } from 'engine/core/input.js';
+import { Transform } from 'engine/core/transform.js';
 import { Velocity } from './velocity.js';
 import { vec3 } from 'gl-matrix';
 

@@ -1,14 +1,14 @@
-import { Transform } from 'toro/core/transform.js';
-import { Camera } from 'toro/core/camera.js';
-import { PointLight, AmbientLight, DirectionalLight } from 'toro/core/light.js';
-import { Skybox } from 'toro/core/skybox.js';
-import { Mesh, AABB } from 'toro/core/mesh.js';
-import { InstanceColor } from 'toro/core/instance-color.js';
+import { Transform } from 'engine/core/transform.js';
+import { Camera } from 'engine/core/camera.js';
+import { PointLight, AmbientLight, DirectionalLight } from 'engine/core/light.js';
+import { Skybox } from 'engine/core/skybox.js';
+import { Mesh, AABB } from 'engine/core/mesh.js';
+import { InstanceColor } from 'engine/core/instance-color.js';
 
-import { GltfLoader } from 'toro/loaders/gltf.js';
+import { GltfLoader } from 'engine/loaders/gltf.js';
 
-import { Tag, System } from 'toro/core/ecs.js';
-import { WebGPUWorld } from 'toro/webgpu/webgpu-world.js';
+import { Tag, System } from 'engine/core/ecs.js';
+import { WebGPUWorld } from 'engine/webgpu/webgpu-world.js';
 
 import { Velocity, VelocitySystem } from './velocity.js';
 import { PlayerControlSystem, PlayerBoundsSystem } from './player-controls.js';

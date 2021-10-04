@@ -51,31 +51,31 @@
             "webgpu-texture-loader": "../node_modules/web-texture-tool/build/webgpu-texture-loader.js",
             "dat.gui": "../node_modules/dat.gui/build/dat.gui.module.js",
             "stats.js": "../node_modules/stats.js/src/Stats.js",
-            "toro/": "../js/"
+            "engine/": "../engine/"
         }
     }
     </script>
 
     <script type="module">
-import { Transform } from 'toro/core/transform.js';
-import { Camera } from 'toro/core/camera.js';
-import { PointLight, AmbientLight, DirectionalLight } from 'toro/core/light.js';
-import { Skybox } from 'toro/core/skybox.js';
-import { Mesh, AABB } from 'toro/core/mesh.js';
+import { Transform } from 'engine/core/transform.js';
+import { Camera } from 'engine/core/camera.js';
+import { PointLight, AmbientLight, DirectionalLight } from 'engine/core/light.js';
+import { Skybox } from 'engine/core/skybox.js';
+import { Mesh, AABB } from 'engine/core/mesh.js';
 
-import { GltfLoader } from 'toro/loaders/gltf.js';
+import { GltfLoader } from 'engine/loaders/gltf.js';
 
-import { FlyingControls, FlyingControlsSystem } from 'toro/controls/flying-controls.js';
-import { OrbitControls, OrbitControlsSystem } from 'toro/controls/orbit-controls.js';
+import { FlyingControls, FlyingControlsSystem } from 'engine/controls/flying-controls.js';
+import { OrbitControls, OrbitControlsSystem } from 'engine/controls/orbit-controls.js';
 
-import { BoneVisualizerSystem } from 'toro/debug/bone-visualizer.js';
-import { BoundsVisualizerSystem } from 'toro/debug/bounds-visualizer.js';
+import { BoneVisualizerSystem } from 'engine/debug/bone-visualizer.js';
+import { BoundsVisualizerSystem } from 'engine/debug/bounds-visualizer.js';
 
-import { WebGPUWorld } from 'toro/webgpu/webgpu-world.js';
+import { WebGPUWorld } from 'engine/webgpu/webgpu-world.js';
 
-import { CubeGeometry } from 'toro/geometry/cube.js';
-import { PBRMaterial, UnlitMaterial } from 'toro/core/materials.js';
-import { WebGPULightSpriteSystem } from 'toro/webgpu/webgpu-light-sprite.js';
+import { CubeGeometry } from 'engine/geometry/cube.js';
+import { PBRMaterial, UnlitMaterial } from 'engine/core/materials.js';
+import { WebGPULightSpriteSystem } from 'engine/webgpu/webgpu-light-sprite.js';
 
 import { vec3, quat } from 'gl-matrix';
 

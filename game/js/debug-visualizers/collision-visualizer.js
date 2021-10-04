@@ -1,8 +1,8 @@
-import { System } from 'toro/core/ecs.js';
-import { Stage } from 'toro/core/stage.js';
-import { Mesh, Geometry, Attribute } from 'toro/core/mesh.js';
-import { UnlitMaterial } from 'toro/core/materials.js';
-import { Transform, StaticTransform } from 'toro/core/transform.js';
+import { System } from 'engine/core/ecs.js';
+import { Stage } from 'engine/core/stage.js';
+import { Mesh, Geometry, Attribute } from 'engine/core/mesh.js';
+import { UnlitMaterial } from 'engine/core/materials.js';
+import { Transform, StaticTransform } from 'engine/core/transform.js';
 import { vec3 } from 'gl-matrix';
 
 import { Collider } from '../collision.js';

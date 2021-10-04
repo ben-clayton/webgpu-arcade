@@ -1,5 +1,5 @@
-import { System } from 'toro/core/ecs.js';
-import { Transform } from 'toro/core/transform.js';
+import { System } from 'engine/core/ecs.js';
+import { Transform } from 'engine/core/transform.js';
 import { vec3 } from 'gl-matrix';
 
 let orientedVelocity = new vec3.create();

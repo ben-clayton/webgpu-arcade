@@ -1,5 +1,5 @@
-import { System, Tag } from 'toro/core/ecs.js';
-import { Transform } from 'toro/core/transform.js';
+import { System, Tag } from 'engine/core/ecs.js';
+import { Transform } from 'engine/core/transform.js';
 import { Collider } from '../collision.js';
 import { ImpactDamage } from '../impact-damage.js';
 import { Health } from '../lifetime.js';

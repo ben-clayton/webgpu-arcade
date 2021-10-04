@@ -1,5 +1,5 @@
-import { System, Tag } from 'toro/core/ecs.js';
-import { Stage } from 'toro/core/stage.js';
+import { System, Tag } from 'engine/core/ecs.js';
+import { Stage } from 'engine/core/stage.js';
 
 export class Points {
   constructor(value = 100) {

@@ -1,6 +1,6 @@
-import { System } from 'toro/core/ecs.js';
-import { Mesh } from 'toro/core/mesh.js';
-import { InstanceColor } from 'toro/core/instance-color.js';
+import { System } from 'engine/core/ecs.js';
+import { Mesh } from 'engine/core/mesh.js';
+import { InstanceColor } from 'engine/core/instance-color.js';
 import { Collisions } from './collision.js';
 import { Health } from './lifetime.js';
 

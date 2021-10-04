@@ -1,6 +1,6 @@
 import { quat, vec3 } from 'gl-matrix';
-import { System, Tag } from 'toro/core/ecs.js';
-import { Transform } from 'toro/core/transform.js';
+import { System, Tag } from 'engine/core/ecs.js';
+import { Transform } from 'engine/core/transform.js';
 import { Velocity } from '../velocity.js';
 import { BulletFactory } from '../weapon.js';
 
