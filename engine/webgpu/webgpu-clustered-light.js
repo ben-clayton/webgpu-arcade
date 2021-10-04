@@ -51,16 +51,16 @@ export class WebGPUClusteredLights extends WebGPUSystem {
 
   updateClusterBounds(gpu, camera) {
     if (!this.boundsPipeline ||
-      (this.#outputSize.width == gpu.size.width &&
-      this.#outputSize.height == gpu.size.height &&
+      (this.#outputSize.width == gpu.renderTargets.size.width &&
+      this.#outputSize.height == gpu.renderTargets.size.height &&
       this.#zRange[0] == camera.zRange[0] &&
       this.#zRange[1] == camera.zRange[1])) {
       return;
     }
 
     // TODO: This should really be updated for any change in the camera
-    this.#outputSize.width = gpu.size.width;
-    this.#outputSize.height = gpu.size.height;
+    this.#outputSize.width = gpu.renderTargets.size.width;
+    this.#outputSize.height = gpu.renderTargets.size.height;
     this.#zRange[0] = camera.zRange[0];
     this.#zRange[1] = camera.zRange[1];
 

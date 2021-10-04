@@ -1,51 +1,69 @@
-// Singleton class which holds render targets which need to be shared between render passes.
-
+// Holds render targets which need to be shared between render passes.
 export class WebGPURenderTargets extends EventTarget {
+  context;
+
   msaaColorTexture;
   depthTexture;
 
-  constructor(gpu) {
+  format = 'bgra8unorm';
+  depthFormat = 'depth24plus';
+  sampleCount = 4;
+  size = {width: 0, height: 0};
+
+  constructor(adapter, device, canvas) {
     super();
+
+    this.context = canvas.getContext('webgpu');
+
+    // This function isn't available in Firefox, though it is in the spec.
+    if (this.context.getPreferredFormat) {
+      this.format = this.context.getPreferredFormat(adapter);
+    }
+
     this.resizeObserver = new ResizeObserver(entries => {
       for (let entry of entries) {
-        if (entry.target != gpu.canvas) { continue; }
+        if (entry.target != canvas) { continue; }
 
         if (entry.devicePixelContentBoxSize) {
           // Should give exact pixel dimensions, but only works on Chrome.
           const devicePixelSize = entry.devicePixelContentBoxSize[0];
-          this.onCanvasResized(gpu, devicePixelSize.inlineSize, devicePixelSize.blockSize);
+          this.onCanvasResized(device, devicePixelSize.inlineSize, devicePixelSize.blockSize);
         } else if (entry.contentBoxSize) {
           // Firefox implements `contentBoxSize` as a single content rect, rather than an array
           const contentBoxSize = Array.isArray(entry.contentBoxSize) ? entry.contentBoxSize[0] : entry.contentBoxSize;
-          this.onCanvasResized(gpu, contentBoxSize.inlineSize, contentBoxSize.blockSize);
+          this.onCanvasResized(device, contentBoxSize.inlineSize, contentBoxSize.blockSize);
         } else {
-          this.onCanvasResized(gpu, entry.contentRect.width, entry.contentRect.height);
+          this.onCanvasResized(device, entry.contentRect.width, entry.contentRect.height);
         }
       }
     });
-    this.resizeObserver.observe(gpu.canvas);
-    this.onCanvasResized(gpu, gpu.canvas.width, gpu.canvas.height);
+    this.resizeObserver.observe(canvas);
+    this.onCanvasResized(device, canvas.width, canvas.height);
   }
 
-  onCanvasResized(gpu, pixelWidth, pixelHeight) {
-    gpu.size.width = pixelWidth;
-    gpu.size.height = pixelHeight;
-    gpu.context.configure(gpu);
+  onCanvasResized(device, pixelWidth, pixelHeight) {
+    this.size.width = pixelWidth;
+    this.size.height = pixelHeight;
+    this.context.configure({
+      device: device,
+      size: this.size,
+      format: this.format,
+    });
 
-    if (gpu.sampleCount > 1) {
-      this.msaaColorTexture = gpu.device.createTexture({
-        size: gpu.size,
-        sampleCount: gpu.sampleCount,
-        format: gpu.format,
+    if (this.sampleCount > 1) {
+      this.msaaColorTexture = device.createTexture({
+        size: this.size,
+        sampleCount: this.sampleCount,
+        format: this.format,
         usage: GPUTextureUsage.RENDER_ATTACHMENT,
       });
     }
 
-    if (gpu.depthFormat) {
-      this.depthTexture = gpu.device.createTexture({
-        size: gpu.size,
-        sampleCount: gpu.sampleCount,
-        format: gpu.depthFormat,
+    if (this.depthFormat) {
+      this.depthTexture = device.createTexture({
+        size: this.size,
+        sampleCount: this.sampleCount,
+        format: this.depthFormat,
         usage: GPUTextureUsage.RENDER_ATTACHMENT
       });
     }

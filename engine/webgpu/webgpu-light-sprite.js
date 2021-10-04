@@ -1,6 +1,5 @@
 import { WebGPUSystem } from './webgpu-system.js';
 import { Geometry } from '../core/mesh.js';
-import { WebGPURenderBatch } from './webgpu-render-batch.js';
 import { WebGPUMaterialPipeline, RenderOrder } from './materials/webgpu-materials.js';
 import { LightBuffer } from '../core/light.js';
 import { LightSpriteVertexSource, LightSpriteFragmentSource } from './wgsl/light-sprite.js';
@@ -32,7 +31,7 @@ export class WebGPULightSpriteSystem extends WebGPUSystem {
         module: fragmentModule,
         entryPoint: 'fragmentMain',
         targets: [{
-          format: gpu.format,
+          format: gpu.renderTargets.format,
           blend: {
             color: {
               srcFactor: 'src-alpha',
@@ -52,10 +51,10 @@ export class WebGPULightSpriteSystem extends WebGPUSystem {
       depthStencil: {
         depthWriteEnabled: false,
         depthCompare: 'less',
-        format: gpu.depthFormat,
+        format: gpu.renderTargets.depthFormat,
       },
       multisample: {
-        count: gpu.sampleCount,
+        count: gpu.renderTargets.sampleCount,
       }
     });
 
@@ -66,9 +65,8 @@ export class WebGPULightSpriteSystem extends WebGPUSystem {
     this.lightGeometry = new Geometry({ drawCount: 4 });
   }
 
-  execute(delta, time) {
+  execute(delta, time, gpu) {
     const lights = this.singleton.get(LightBuffer);
-    const renderBatch = this.singleton.get(WebGPURenderBatch);
-    renderBatch.addRenderable(this.lightGeometry, this.lightPipeline, undefined, { count: lights.lightCount });
+    gpu.renderBatch.addRenderable(this.lightGeometry, this.lightPipeline, undefined, { count: lights.lightCount });
   }
 }

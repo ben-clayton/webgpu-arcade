@@ -47,7 +47,7 @@ export class WebGPUSkyboxMaterial extends WebGPUMaterialFactory {
         module: fragmentModule,
         entryPoint: 'fragmentMain',
         targets: [{
-          format: gpu.format
+          format: gpu.renderTargets.format
         }],
       },
       primitive: {
@@ -56,10 +56,10 @@ export class WebGPUSkyboxMaterial extends WebGPUMaterialFactory {
       depthStencil: {
         depthWriteEnabled: false,
         depthCompare: 'less-equal',
-        format: gpu.depthFormat,
+        format: gpu.renderTargets.depthFormat,
       },
       multisample: {
-        count: gpu.sampleCount,
+        count: gpu.renderTargets.sampleCount,
       }
     });
 
