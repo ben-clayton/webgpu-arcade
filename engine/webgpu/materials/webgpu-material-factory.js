@@ -136,7 +136,7 @@ export class WebGPUMaterialFactory {
     }
 
     fragment.targets = [{
-      format: gpu.format,
+      format: gpu.renderTargets.format,
       blend,
     }];
 
@@ -163,11 +163,11 @@ export class WebGPUMaterialFactory {
         cullMode: material.doubleSided ? 'none' : 'back',
       },
       depthStencil: {
-        format: gpu.depthFormat,
+        format: gpu.renderTargets.depthFormat,
         depthWriteEnabled: material.depthWrite,
         depthCompare: material.depthCompare,
       },
-      multisample: { count: gpu.sampleCount, },
+      multisample: { count: gpu.renderTargets.sampleCount, },
     });
   }
 

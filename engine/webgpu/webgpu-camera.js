@@ -108,14 +108,14 @@ export class WebGPUCameraSystem extends WebGPUSystem {
         vec3.set(gpuCamera.position, 0, 0, 0);
       }
 
-      const aspect = gpu.size.width / gpu.size.height;
+      const aspect = gpu.renderTargets.size.width / gpu.renderTargets.size.height;
       mat4.perspectiveZO(gpuCamera.projection, camera.fieldOfView, aspect,
         camera.zNear, camera.zFar);
       mat4.invert(gpuCamera.inverseProjection, gpuCamera.projection);
 
       gpuCamera.time[0] = time;
-      gpuCamera.outputSize[0] = gpu.size.width;
-      gpuCamera.outputSize[1] = gpu.size.height;
+      gpuCamera.outputSize[0] = gpu.renderTargets.size.width;
+      gpuCamera.outputSize[1] = gpu.renderTargets.size.height;
       gpuCamera.zRange[0] = camera.zNear;
       gpuCamera.zRange[1] = camera.zFar;
 

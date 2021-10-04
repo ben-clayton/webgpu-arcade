@@ -1,7 +1,6 @@
 import { WebGPUSystem } from './webgpu-system.js';
 import { Stage } from '../core/stage.js';
 import { WebGPUMaterialFactory, WebGPUMaterialBindGroups } from './materials/webgpu-materials.js';
-import { WebGPURenderBatch } from './webgpu-render-batch.js';
 
 class WebGPUMeshPrimitive {
   constructor(geometry, pipeline, bindGroups) {
@@ -57,8 +56,6 @@ export class WebGPUMeshSystem extends WebGPUSystem {
   }
 
   execute(delta, time, gpu) {
-    const renderBatch = this.singleton.get(WebGPURenderBatch);
-
     const meshInstances = gpu.getFrameMeshInstances();
     for (const mesh of meshInstances.keys()) {
       const skin = this.getGPUSkin(gpu, mesh.skin);
@@ -90,7 +87,7 @@ export class WebGPUMeshSystem extends WebGPUSystem {
       const instances = meshInstances.get(mesh);
       for (const primitive of gpuMesh) {
         for (const instance of instances) {
-          renderBatch.addRenderable(primitive.geometry, primitive.pipeline, primitive.bindGroups, instance);
+          gpu.renderBatch.addRenderable(primitive.geometry, primitive.pipeline, primitive.bindGroups, instance);
         }
       }
     }
