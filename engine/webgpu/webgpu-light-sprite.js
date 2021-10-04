@@ -1,0 +1,74 @@
+import { WebGPUSystem } from './webgpu-system.js';
+import { Geometry } from '../core/mesh.js';
+import { WebGPURenderBatch } from './webgpu-render-batch.js';
+import { WebGPUMaterialPipeline, RenderOrder } from './materials/webgpu-materials.js';
+import { LightBuffer } from '../core/light.js';
+import { LightSpriteVertexSource, LightSpriteFragmentSource } from './wgsl/light-sprite.js';
+
+export class WebGPULightSpriteSystem extends WebGPUSystem {
+  init(gpu) {
+    const vertexModule = gpu.device.createShaderModule({
+      code: LightSpriteVertexSource,
+      label: 'Light Sprite Vertex'
+    });
+    const fragmentModule = gpu.device.createShaderModule({
+      code: LightSpriteFragmentSource,
+      label: 'Light Sprite Fragment'
+    });
+
+    // Setup a render pipeline for drawing the light sprites
+    const pipeline = gpu.device.createRenderPipeline({
+      label: `Light Sprite Pipeline`,
+      layout: gpu.device.createPipelineLayout({
+        bindGroupLayouts: [
+          gpu.bindGroupLayouts.frame,
+        ]
+      }),
+      vertex: {
+        module: vertexModule,
+        entryPoint: 'vertexMain'
+      },
+      fragment: {
+        module: fragmentModule,
+        entryPoint: 'fragmentMain',
+        targets: [{
+          format: gpu.format,
+          blend: {
+            color: {
+              srcFactor: 'src-alpha',
+              dstFactor: 'one',
+            },
+            alpha: {
+              srcFactor: "one",
+              dstFactor: "one",
+            },
+          },
+        }],
+      },
+      primitive: {
+        topology: 'triangle-strip',
+        stripIndexFormat: 'uint32'
+      },
+      depthStencil: {
+        depthWriteEnabled: false,
+        depthCompare: 'less',
+        format: gpu.depthFormat,
+      },
+      multisample: {
+        count: gpu.sampleCount,
+      }
+    });
+
+    this.lightPipeline = new WebGPUMaterialPipeline({
+      pipeline,
+      renderOrder: RenderOrder.Last
+    });
+    this.lightGeometry = new Geometry({ drawCount: 4 });
+  }
+
+  execute(delta, time) {
+    const lights = this.singleton.get(LightBuffer);
+    const renderBatch = this.singleton.get(WebGPURenderBatch);
+    renderBatch.addRenderable(this.lightGeometry, this.lightPipeline, undefined, { count: lights.lightCount });
+  }
+}

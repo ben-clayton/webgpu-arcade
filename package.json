@@ -1,0 +1,20 @@
+{
+    "name": "webgpu-arcade-game",
+    "version": "0.0.1",
+    "repository": "https://github.com/toji/webgpu-ecs",
+    "authors": [
+        "Brandon Jones <tojiro@gmail.com>"
+    ],
+    "description": "A simple Galaga-style arcade game with WebGPU",
+    "license": "MIT",
+    "dependencies": {
+        "dat.gui": "^0.7.7",
+        "gl-matrix": "github:toji/gl-matrix",
+        "stats.js": "^0.17.0",
+        "web-texture-tool": "github:toji/web-texture-tool"
+    },
+    "devDependencies": {
+        "esbuild": "^0.12.15",
+        "esbuild-plugin-import-map": "^2.1.0"
+    }
+}
