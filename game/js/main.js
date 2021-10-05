@@ -1,21 +1,20 @@
 import { Transform } from 'engine/core/transform.js';
 import { Camera } from 'engine/core/camera.js';
-import { PointLight, AmbientLight, DirectionalLight } from 'engine/core/light.js';
-import { Skybox } from 'engine/core/skybox.js';
-import { Mesh, AABB } from 'engine/core/mesh.js';
-import { InstanceColor } from 'engine/core/instance-color.js';
+import { AmbientLight, DirectionalLight } from 'engine/core/light.js';
 
 import { GltfLoader } from 'engine/loaders/gltf.js';
 
 import { Tag, System } from 'engine/core/ecs.js';
 import { WebGPUWorld } from 'engine/webgpu/webgpu-world.js';
 
-import { Velocity, VelocitySystem } from './velocity.js';
+import { Velocity, VelocitySystem } from './common/velocity.js';
+import { LifetimeHealthSystem, DeadSystem, Health } from './common/lifetime.js';
+import { Collider, CollisionSystem } from './common/collision.js';
+import { ImpactDamage, ImpactDamageSystem } from './common/impact-damage.js';
+import { ScoreSystem } from './common/score.js';
+
 import { PlayerControlSystem, PlayerBoundsSystem } from './player-controls.js';
-import { LifetimeHealthSystem, DeadSystem, Health } from './lifetime.js';
 import { BasicWeapon, BasicWeaponSystem } from './weapon.js';
-import { Collider, CollisionSystem } from './collision.js';
-import { ImpactDamage, ImpactDamageSystem } from './impact-damage.js';
 import { ColliderVisualizerSystem } from './debug-visualizers/collision-visualizer.js';
 
 import { vec3, quat } from 'gl-matrix';
@@ -23,7 +22,6 @@ import { vec3, quat } from 'gl-matrix';
 import dat from 'dat.gui';
 import Stats from 'stats.js';
 import { EnemySpawnerSystem } from './enemies/enemy-spawner.js';
-import { ScoreSystem } from './score.js';
 
 const appSettings = {
   showCollisionVolumes: false,
@@ -122,7 +120,7 @@ export class TrenchSystem extends System {
       this.trenchSegments.push(scene.createInstance(world), scene.createInstance(world));
       const trench1Transform = this.trenchSegments[1].get(Transform);
       trench1Transform.position[2] += trenchOffset;
-    
+
       this.trenchSegments[0].add(trenchTag, trenchVelocity);
       this.trenchSegments[1].add(trenchTag, trenchVelocity);
     });

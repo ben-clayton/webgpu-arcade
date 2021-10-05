@@ -1,7 +1,6 @@
 import { quat, vec3 } from 'gl-matrix';
 import { System, Tag } from 'engine/core/ecs.js';
 import { Transform } from 'engine/core/transform.js';
-import { Velocity } from '../velocity.js';
 import { BulletFactory } from '../weapon.js';
 
 const tmpTransform = new Transform();
@@ -38,7 +37,7 @@ export class MineEnemySystem extends System {
 
   execute(delta, time) {
     this.mineEnemyQuery.forEach((entity, lightEnemy, transform) => {
-      // Fire a shot towards the 
+      // Fire a shot towards the
       lightEnemy.mineCooldown -= delta;
       if (lightEnemy.mineCooldown <= 0) {
         lightEnemy.mineCooldown += MINE_COOLDOWN;

@@ -1,7 +1,7 @@
 import { quat, vec3 } from 'gl-matrix';
 import { System, Tag } from 'engine/core/ecs.js';
 import { Transform } from 'engine/core/transform.js';
-import { Velocity } from '../velocity.js';
+import { Velocity } from '../common/velocity.js';
 import { BulletFactory } from '../weapon.js';
 
 const LightEnemyState = {
@@ -49,7 +49,7 @@ export class LightEnemySystem extends System {
         lightEnemy.initialOrientation = quat.clone(transform.orientation);
       }
 
-      // Fire a shot towards the 
+      // Fire a shot towards the
       lightEnemy.nextShot -= delta;
       if (lightEnemy.nextShot <= 0) {
         lightEnemy.nextShot = Math.random() * 5 + 5;
