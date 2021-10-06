@@ -35,17 +35,18 @@ export class EnemySpawnerSystem extends System {
       const enemyX = Math.random() * 80 - 40;
       const enemyZ = -75;
 
-      const enemyType = Math.floor(Math.random() * 3);
+      const enemyType = Math.floor(Math.random() * 6);
       switch(enemyType) {
         case 0:
           for (let i = 0; i < 5; ++i) {
             this.world.create(this.shipMeshes.Light,
+              this.shipMeshes.Light.boundingVolume,
               ENEMY_TAG,
               new LightEnemy(),
               new Transform({ position: [enemyX, 0, enemyZ - (i * 8)] }),
               new Velocity([0, 0, 30]),
               new Collider(ENEMY_TAG),
-              new BoundingVolume({ radius: 2 }),
+              //new BoundingVolume({ radius: 2 }),
               new Health(3),
               new ImpactDamage(5),
               new Points(200)
@@ -54,11 +55,12 @@ export class EnemySpawnerSystem extends System {
           break;
         case 1:
           this.world.create(this.shipMeshes.MultiGun,
+            this.shipMeshes.MultiGun.boundingVolume,
             ENEMY_TAG,
             new Transform({ position: [enemyX, 0, enemyZ] }),
             new Velocity([0, 0, 20]),
             new Collider(ENEMY_TAG),
-            new BoundingVolume({ radius: 3 }),
+            //new BoundingVolume({ radius: 3 }),
             new Health(5),
             new ImpactDamage(10),
             new Points(500)
@@ -68,6 +70,7 @@ export class EnemySpawnerSystem extends System {
           const direction = Math.floor(Math.random() * 2) ? -1 : 1;
 
           this.world.create(this.shipMeshes.Mine,
+            this.shipMeshes.Mine.boundingVolume,
             ENEMY_TAG,
             new MineEnemy(),
             new Transform({
@@ -76,7 +79,7 @@ export class EnemySpawnerSystem extends System {
             }),
             new Velocity([-10 * direction, 0, 15]),
             new Collider(ENEMY_TAG),
-            new BoundingVolume({ radius: 3 }),
+            //new BoundingVolume({ radius: 3 }),
             new Health(10),
             new ImpactDamage(10),
             new Points(800)
@@ -84,11 +87,12 @@ export class EnemySpawnerSystem extends System {
           break;
         case 3:
           this.world.create(this.shipMeshes.Laser,
+            this.shipMeshes.Laser.boundingVolume,
             ENEMY_TAG,
             new Transform({ position: [enemyX, 0, enemyZ] }),
             new Velocity([0, 0, 15]),
             new Collider(ENEMY_TAG),
-            new BoundingVolume({ radius: 4 }),
+            //new BoundingVolume({ radius: 4 }),
             new Health(15),
             new ImpactDamage(10),
             new Points(1000)
@@ -96,11 +100,12 @@ export class EnemySpawnerSystem extends System {
           break;
         case 4:
           this.world.create(this.shipMeshes.Missile,
+            this.shipMeshes.Missile.boundingVolume,
             ENEMY_TAG,
             new Transform({ position: [enemyX, 0, enemyZ] }),
             new Velocity([0, 0, 15]),
             new Collider(ENEMY_TAG),
-            new BoundingVolume({ radius: 3 }),
+            //new BoundingVolume({ radius: 3 }),
             new Health(20),
             new ImpactDamage(10),
             new Points(1200)
@@ -108,11 +113,12 @@ export class EnemySpawnerSystem extends System {
           break;
         case 5:
           this.world.create(this.shipMeshes.Heavy,
+            this.shipMeshes.Heavy.boundingVolume,
             ENEMY_TAG,
             new Transform({ position: [enemyX, 0, enemyZ] }),
             new Velocity([0, 0, 12]),
             new Collider(ENEMY_TAG),
-            new BoundingVolume({ radius: 5.5 }),
+            //new BoundingVolume({ radius: 5.5 }),
             new Health(30),
             new ImpactDamage(20),
             new Points(2000)
@@ -120,7 +126,7 @@ export class EnemySpawnerSystem extends System {
           break;
       }
 
-      this.nextSpawn += (Math.random() * 2.0) + 0.5;
+      this.nextSpawn += (Math.random() * 2.0) + 1;
     }
 
     // Any enemies that pass off the bottom of the screen are destroyed.

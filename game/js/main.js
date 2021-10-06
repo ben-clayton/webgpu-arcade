@@ -103,7 +103,7 @@ const player = world.create(
   playerTransform,
   new Health(50),
   new Collider(Tag('player-bullet')),
-  new BoundingVolume({ radius: 2.5 }),
+  //new BoundingVolume({ radius: 2.5 }),
   new ImpactDamage(10),
   new Velocity(),
 );
@@ -146,7 +146,7 @@ gltfLoader.fromUrl('./media/models/ships2.glb').then(scene => {
   }
 
   // Add the mesh to the player
-  player.add(shipMeshes.Player);
+  player.add(shipMeshes.Player, shipMeshes.Player.boundingVolume);
 
   world.registerRenderSystem(EnemySpawnerSystem, shipMeshes);
 });
