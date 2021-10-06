@@ -5,7 +5,7 @@ import { UnlitMaterial } from 'engine/core/materials.js';
 import { Transform, StaticTransform } from 'engine/core/transform.js';
 import { vec3 } from 'gl-matrix';
 
-import { Collider } from '../collision.js';
+import { Collider } from '../common/collision.js';
 
 const RING_SEGMENTS = 16;
 
@@ -22,7 +22,7 @@ export class ColliderVisualizerSystem extends System {
       colliderVerts.push(Math.cos(u), 0, Math.sin(u));
       if (i > 0) { colliderIndices.push(idx, ++idx); }
     }
-    
+
     idx++
     for (let i = 0; i < RING_SEGMENTS+1; ++i) {
       const u = (i / RING_SEGMENTS) * Math.PI * 2;

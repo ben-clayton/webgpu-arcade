@@ -3,7 +3,7 @@ import { vec3 } from 'gl-matrix';
 
 // Big swaths of this code lifted with love from Three.js
 export class SphereGeometry extends Geometry {
-  constructor(gpu, radius = 1, widthSegments = 32, heightSegments = 16 ) {
+  constructor(renderer, radius = 1, widthSegments = 32, heightSegments = 16 ) {
     const phiStart = 0;
     const phiLength = Math.PI * 2;
     const thetaStart = 0;
@@ -76,7 +76,7 @@ export class SphereGeometry extends Geometry {
       }
     }
 
-    const vertBuffer = gpu.createStaticBuffer(new Float32Array(vertices));
+    const vertBuffer = renderer.createStaticBuffer(new Float32Array(vertices));
     const attributes = new InterleavedAttributes(vertBuffer, 32)
       .addAttribute('position', 0)
       .addAttribute('normal', 12)
@@ -86,7 +86,7 @@ export class SphereGeometry extends Geometry {
       drawCount: indices.length,
       attributes: [attributes],
       indices: {
-        buffer: gpu.createStaticBuffer(new Uint16Array(indices), 'index'),
+        buffer: renderer.createStaticBuffer(new Uint16Array(indices), 'index'),
         format: 'uint16',
       },
     });
