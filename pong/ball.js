@@ -5,7 +5,7 @@ import { PBRMaterial } from 'engine/core/materials.js';
 import { Mesh } from 'engine/core/mesh.js';
 import { PointLight } from 'engine/core/light.js';
 
-import { Velocity } from '../common/velocity.js';
+import { Physics2DBody } from '../common/physics-2d.js';
 
 import { vec3 } from 'gl-matrix';
 
@@ -15,7 +15,7 @@ class BallState {
 
 export class BallSystem extends System {
   init(gpu) {
-    this.ballQuery = this.query(BallState, Transform, Velocity);
+    this.ballQuery = this.query(BallState, Transform, Physics2DBody);
 
     const ballGeometry = new SphereGeometry(gpu, 1);
     const ballMaterial = new PBRMaterial();
@@ -26,33 +26,19 @@ export class BallSystem extends System {
 
   execute(delta, time) {
     let ballCount = 0;
-    this.ballQuery.forEach((entity, ball, transform, velocity) => {
+    this.ballQuery.forEach((entity, ball, transform, body) => {
       if (ball.launchTimeout > 0) {
         ball.launchTimeout -= delta;
         if (ball.launchTimeout <= 0) {
           // Launch the ball in a random direction
-          vec3.set(velocity.velocity, (Math.random() * 2.0 - 1.0) * 1.2, (Math.random() * 2.0 - 1.0), 0);
-          vec3.normalize(velocity.velocity, velocity.velocity);
-          vec3.scale(velocity.velocity, velocity.velocity, 20);
+          const vel = vec3.fromValues((Math.random() * 2.0 - 1.0) * 1.2, (Math.random() * 2.0 - 1.0), 0);
+          vec3.normalize(vel, vel);
+          vec3.scale(vel, vel, 1);
+          Matter.Body.setVelocity(body.body, {
+            x: vel[0],
+            y: vel[1]
+          });
         }
-      }
-
-      // Bounce the ball against the walls
-      if (transform.position[1] > 23) {
-        transform.position[1] = 23;
-        velocity.velocity[1] *= -1;
-      } else if (transform.position[1] < -23) {
-        transform.position[1] = -23;
-        velocity.velocity[1] *= -1;
-      }
-
-      // Bounce against the little corner bits
-      if (transform.position[0] > 30 && Math.abs(transform.position[1]) >= 21) {
-        transform.position[0] = 30;
-        velocity.velocity[0] *= -1;
-      } else if (transform.position[0] < -30 && Math.abs(transform.position[1]) >= 21) {
-        transform.position[0] = -30;
-        velocity.velocity[0] *= -1;
       }
 
       // If the ball gets past a player, increase the score and destroy the ball.
@@ -77,10 +63,10 @@ export class BallSystem extends System {
     const ball = this.world.create(
       new BallState(),
       this.ballMesh,
-      new Transform({ position: [0, 0, 0] }),
-      new Velocity([0, 0, 0]),
-      new PointLight({ color: [1, 1, 0.8], intensity: 10, range: 10 })
+      new PointLight({ color: [1, 1, 0.8], intensity: 10, range: 10 }),
+      new Physics2DBody('circle', 0, 0, 1, { friction: 0, restitution: 1, frictionAir: 0 })
     );
+
     return ball;
   }
 }
