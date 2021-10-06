@@ -4,9 +4,8 @@ import { Collisions } from './collision.js';
 import { Health } from './lifetime.js';
 
 export class ImpactDamage {
-  constructor(value = 1, filter = null) {
+  constructor(value = 1) {
     this.damage = value;
-    this.filter = filter;
   }
 }
 
@@ -26,12 +25,7 @@ export class ImpactDamageSystem extends System {
   execute(delta) {
     // Accumulate damage from all colliders that inflict impact damage
     this.impactDamageQuery.forEach((entity, damage, collisions) => {
-      let totalDamage = 0;
       for (const colliderEntity of collisions.entities) {
-        if (damage.filter && colliderEntity.has(damage.filter)) {
-          continue;
-        }
-
         const colliderHealth = colliderEntity.get(Health);
         if (colliderHealth) {
           colliderHealth.health -= damage.damage;

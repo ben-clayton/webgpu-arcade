@@ -15,13 +15,14 @@ import { ScoreSystem } from '../../common/score.js';
 
 import { PlayerControlSystem, PlayerBoundsSystem } from './player-controls.js';
 import { BasicWeapon, BasicWeaponSystem } from './weapon.js';
-import { ColliderVisualizerSystem } from './debug-visualizers/collision-visualizer.js';
+import { BoundsVisualizerSystem } from 'engine/debug/bounds-visualizer.js';
 
 import { vec3, quat } from 'gl-matrix';
 
 import dat from 'dat.gui';
 import Stats from 'stats.js';
 import { EnemySpawnerSystem } from './enemies/enemy-spawner.js';
+import { BoundingVolume } from '../../engine/core/bounding-volume.js';
 
 const appSettings = {
   showCollisionVolumes: false,
@@ -51,11 +52,10 @@ const world = new WebGPUWorld(canvas)
 
 // Debug visualizations
 gui.add(appSettings, 'showCollisionVolumes').onChange(() => {
-  let colliderSystem = world.getSystem(ColliderVisualizerSystem);
   if (appSettings.showCollisionVolumes) {
-    world.registerRenderSystem(ColliderVisualizerSystem);
+    world.registerRenderSystem(BoundsVisualizerSystem);
   } else {
-    world.removeSystem(ColliderVisualizerSystem);
+    world.removeSystem(BoundsVisualizerSystem);
   }
 });
 
@@ -102,8 +102,9 @@ const player = world.create(
   playerWeapon,
   playerTransform,
   new Health(50),
-  new Collider(2.5),
-  new ImpactDamage(10, Tag('player-bullet')),
+  new Collider(Tag('player-bullet')),
+  new BoundingVolume({ radius: 2.5 }),
+  new ImpactDamage(10),
   new Velocity(),
 );
 

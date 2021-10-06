@@ -10,6 +10,7 @@ import { Velocity } from '../../../common/velocity.js';
 import { LightEnemy, LightEnemySystem } from './light-enemy.js';
 import { MineEnemy, MineEnemySystem } from './mine-enemy.js';
 import { quat } from 'gl-matrix';
+import { BoundingVolume } from '../../../engine/core/bounding-volume.js';
 
 const ENEMY_TAG = Tag('enemy');
 
@@ -43,9 +44,10 @@ export class EnemySpawnerSystem extends System {
               new LightEnemy(),
               new Transform({ position: [enemyX, 0, enemyZ - (i * 8)] }),
               new Velocity([0, 0, 30]),
-              new Collider(2),
+              new Collider(ENEMY_TAG),
+              new BoundingVolume({ radius: 2 }),
               new Health(3),
-              new ImpactDamage(5, ENEMY_TAG),
+              new ImpactDamage(5),
               new Points(200)
             );
           }
@@ -55,9 +57,10 @@ export class EnemySpawnerSystem extends System {
             ENEMY_TAG,
             new Transform({ position: [enemyX, 0, enemyZ] }),
             new Velocity([0, 0, 20]),
-            new Collider(3),
+            new Collider(ENEMY_TAG),
+            new BoundingVolume({ radius: 3 }),
             new Health(5),
-            new ImpactDamage(10, ENEMY_TAG),
+            new ImpactDamage(10),
             new Points(500)
           );
           break;
@@ -72,9 +75,10 @@ export class EnemySpawnerSystem extends System {
               orientation: direction > 0 ? CW_90 : CCW_90
             }),
             new Velocity([-10 * direction, 0, 15]),
-            new Collider(3),
+            new Collider(ENEMY_TAG),
+            new BoundingVolume({ radius: 3 }),
             new Health(10),
-            new ImpactDamage(10, ENEMY_TAG),
+            new ImpactDamage(10),
             new Points(800)
           );
           break;
@@ -83,9 +87,10 @@ export class EnemySpawnerSystem extends System {
             ENEMY_TAG,
             new Transform({ position: [enemyX, 0, enemyZ] }),
             new Velocity([0, 0, 15]),
-            new Collider(4),
+            new Collider(ENEMY_TAG),
+            new BoundingVolume({ radius: 4 }),
             new Health(15),
-            new ImpactDamage(10, ENEMY_TAG),
+            new ImpactDamage(10),
             new Points(1000)
           );
           break;
@@ -94,9 +99,10 @@ export class EnemySpawnerSystem extends System {
             ENEMY_TAG,
             new Transform({ position: [enemyX, 0, enemyZ] }),
             new Velocity([0, 0, 15]),
-            new Collider(3),
+            new Collider(ENEMY_TAG),
+            new BoundingVolume({ radius: 3 }),
             new Health(20),
-            new ImpactDamage(10, ENEMY_TAG),
+            new ImpactDamage(10),
             new Points(1200)
           );
           break;
@@ -105,9 +111,10 @@ export class EnemySpawnerSystem extends System {
             ENEMY_TAG,
             new Transform({ position: [enemyX, 0, enemyZ] }),
             new Velocity([0, 0, 12]),
-            new Collider(5.5),
+            new Collider(ENEMY_TAG),
+            new BoundingVolume({ radius: 5.5 }),
             new Health(30),
-            new ImpactDamage(20, ENEMY_TAG),
+            new ImpactDamage(20),
             new Points(2000)
           );
           break;

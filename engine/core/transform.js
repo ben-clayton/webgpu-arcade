@@ -62,8 +62,14 @@ export class Transform {
     this.#position.set(value);
   }
 
-  getWorldPosition(out) {
-    vec3.set(out, 0, 0, 0);
+  getWorldPosition(out, position) {
+    if (position) {
+      if (position != out) {
+        vec3.copy(out, position);
+      }
+    } else {
+      vec3.set(out, 0, 0, 0);
+    }
     vec3.transformMat4(out, out, this.worldMatrix);
   }
 
