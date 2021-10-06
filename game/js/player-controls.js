@@ -1,7 +1,7 @@
 import { System, Tag } from 'engine/core/ecs.js';
 import { KeyboardState, GamepadState } from 'engine/core/input.js';
 import { Transform } from 'engine/core/transform.js';
-import { Velocity } from './common/velocity.js';
+import { Velocity } from '../../common/velocity.js';
 import { vec3 } from 'gl-matrix';
 
 // TODO: Move somewhere more globally accessible?

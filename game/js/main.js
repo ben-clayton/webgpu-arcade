@@ -7,11 +7,11 @@ import { GltfLoader } from 'engine/loaders/gltf.js';
 import { Tag, System } from 'engine/core/ecs.js';
 import { WebGPUWorld } from 'engine/webgpu/webgpu-world.js';
 
-import { Velocity, VelocitySystem } from './common/velocity.js';
-import { LifetimeHealthSystem, DeadSystem, Health } from './common/lifetime.js';
-import { Collider, CollisionSystem } from './common/collision.js';
-import { ImpactDamage, ImpactDamageSystem } from './common/impact-damage.js';
-import { ScoreSystem } from './common/score.js';
+import { Velocity, VelocitySystem } from '../../common/velocity.js';
+import { LifetimeHealthSystem, DeadSystem, Health } from '../../common/lifetime.js';
+import { Collider, CollisionSystem } from '../../common/collision.js';
+import { ImpactDamage, ImpactDamageSystem } from '../../common/impact-damage.js';
+import { ScoreSystem } from '../../common/score.js';
 
 import { PlayerControlSystem, PlayerBoundsSystem } from './player-controls.js';
 import { BasicWeapon, BasicWeaponSystem } from './weapon.js';
