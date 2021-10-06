@@ -4,10 +4,10 @@ import { UnlitMaterial } from 'engine/core/materials.js';
 import { Mesh } from 'engine/core/mesh.js';
 import { Transform } from 'engine/core/transform.js';
 
-import { Velocity } from './common/velocity.js';
-import { Lifetime, Health } from './common/lifetime.js';
-import { ImpactDamage } from './common/impact-damage.js';
-import { Collider } from './common/collision.js';
+import { Velocity } from '../../common/velocity.js';
+import { Lifetime, Health } from '../../common/lifetime.js';
+import { ImpactDamage } from '../../common/impact-damage.js';
+import { Collider } from '../../common/collision.js';
 
 import { vec3, vec4 } from 'gl-matrix';
 import { PointLight } from 'engine/core/light.js';

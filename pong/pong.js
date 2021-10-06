@@ -3,15 +3,16 @@ import { Transform } from 'engine/core/transform.js';
 import { Camera } from 'engine/core/camera.js';
 import { AmbientLight, DirectionalLight } from 'engine/core/light.js';
 import { BoxGeometry } from 'engine/geometry/box.js';
-import { SphereGeometry } from 'engine/geometry/sphere.js';
 import { PBRMaterial } from 'engine/core/materials.js';
 import { Mesh } from 'engine/core/mesh.js';
 import { GltfLoader } from 'engine/loaders/gltf.js';
 import { WebGPUWorld } from 'engine/webgpu/webgpu-world.js';
-import { PointLight } from 'engine/core/light.js';
 
-/*import { Velocity, VelocitySystem } from './common/velocity.js';
-import { Collider, CollisionSystem } from './common/collision.js';
+
+import { BallSystem } from './ball.js';
+import { Velocity, VelocitySystem } from '../common/velocity.js';
+
+/*import { Collider, CollisionSystem } from './common/collision.js';
 import { ImpactDamage, ImpactDamageSystem } from './common/impact-damage.js';
 import { ScoreSystem } from './common/score.js';*/
 
@@ -19,9 +20,6 @@ import { vec3, quat } from 'gl-matrix';
 
 import dat from 'dat.gui';
 import Stats from 'stats.js';
-
-
-
 
 const appSettings = {
   showCollisionVolumes: false,
@@ -36,8 +34,9 @@ document.body.appendChild(stats.dom);
 const canvas = document.querySelector('canvas');
 
 const world = new WebGPUWorld(canvas)
-  /*.registerSystem(VelocitySystem)
-  .registerSystem(CollisionSystem)
+  .registerSystem(VelocitySystem)
+  .registerRenderSystem(BallSystem)
+  /*.registerSystem(CollisionSystem)
   .registerSystem(ScoreSystem)*/
   ;
 
@@ -100,7 +99,7 @@ const leftTop = new BoxGeometry(renderer, {
   height: 5,
   depth: 4,
   x: -31,
-  y: -23.5,
+  y: 23.5,
 });
 
 const leftBottom = new BoxGeometry(renderer, {
@@ -108,7 +107,7 @@ const leftBottom = new BoxGeometry(renderer, {
   height: 5,
   depth: 4,
   x: -31,
-  y: 23.5,
+  y: -23.5,
 });
 
 const rightTop = new BoxGeometry(renderer, {
@@ -116,7 +115,7 @@ const rightTop = new BoxGeometry(renderer, {
   height: 5,
   depth: 4,
   x: 31,
-  y: -23.5,
+  y: 23.5,
 });
 
 const rightBottom = new BoxGeometry(renderer, {
@@ -124,7 +123,7 @@ const rightBottom = new BoxGeometry(renderer, {
   height: 5,
   depth: 4,
   x: 31,
-  y: 23.5,
+  y: -23.5,
 });
 
 const centerLine = new BoxGeometry(renderer, {
@@ -187,17 +186,6 @@ const rightPaddle = world.create(
 );
 
 // Ball
-
-const ballGeometry = new SphereGeometry(renderer, 1);
-const ballMaterial = new PBRMaterial();
-ballMaterial.baseColorFactor.set([0.0, 0.0, 0.0, 1.0]);
-ballMaterial.emissiveFactor.set([0.9, 0.9, 0.5]);
-
-const ball = world.create(
-  new Mesh({ geometry: ballGeometry, material: ballMaterial }),
-  new Transform({ position: [0, 0, 0] }),
-  new PointLight({ color: [1, 1, 0.8], intensity: 10, range: 10 })
-);
 
 function onFrame(t) {
   requestAnimationFrame(onFrame);

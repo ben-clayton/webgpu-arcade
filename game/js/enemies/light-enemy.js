@@ -1,7 +1,7 @@
 import { quat, vec3 } from 'gl-matrix';
 import { System, Tag } from 'engine/core/ecs.js';
 import { Transform } from 'engine/core/transform.js';
-import { Velocity } from '../common/velocity.js';
+import { Velocity } from '../../../common/velocity.js';
 import { BulletFactory } from '../weapon.js';
 
 const LightEnemyState = {

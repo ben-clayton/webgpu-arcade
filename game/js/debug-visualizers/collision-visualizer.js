@@ -5,7 +5,7 @@ import { UnlitMaterial } from 'engine/core/materials.js';
 import { Transform, StaticTransform } from 'engine/core/transform.js';
 import { vec3 } from 'gl-matrix';
 
-import { Collider } from '../common/collision.js';
+import { Collider } from '../../../common/collision.js';
 
 const RING_SEGMENTS = 16;
 

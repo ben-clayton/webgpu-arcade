@@ -1,11 +1,11 @@
 import { System, Tag } from 'engine/core/ecs.js';
 import { Transform } from 'engine/core/transform.js';
 
-import { Collider } from '../common/collision.js';
-import { ImpactDamage } from '../common/impact-damage.js';
-import { Health } from '../common/lifetime.js';
-import { Points } from '../common/score.js';
-import { Velocity } from '../common/velocity.js';
+import { Collider } from '../../../common/collision.js';
+import { ImpactDamage } from '../../../common/impact-damage.js';
+import { Health } from '../../../common/lifetime.js';
+import { Points } from '../../../common/score.js';
+import { Velocity } from '../../../common/velocity.js';
 
 import { LightEnemy, LightEnemySystem } from './light-enemy.js';
 import { MineEnemy, MineEnemySystem } from './mine-enemy.js';
