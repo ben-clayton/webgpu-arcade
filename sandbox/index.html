@@ -73,7 +73,7 @@ import { BoundsVisualizerSystem } from 'engine/debug/bounds-visualizer.js';
 
 import { WebGPUWorld } from 'engine/webgpu/webgpu-world.js';
 
-import { CubeGeometry } from 'engine/geometry/cube.js';
+import { BoxGeometry } from 'engine/geometry/box.js';
 import { PBRMaterial, UnlitMaterial } from 'engine/core/materials.js';
 import { WebGPULightSpriteSystem } from 'engine/webgpu/webgpu-light-sprite.js';
 
@@ -154,7 +154,7 @@ world.create(
 );
 
 // Create a grid of cube instances to test the instancing system.
-/*const cubeGeometry = new CubeGeometry(world);
+/*const cubeGeometry = new BoxGeometry(world);
 
 for (let x = 0; x < 5; ++x) {
   for (let y = 0; y < 5; ++y) {
