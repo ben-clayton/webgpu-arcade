@@ -21,7 +21,7 @@ class Entity {
         this.#worldData.components.set(component.constructor, componentSet);
       }
       componentSet.set(this.id, component);
-      component.addedToEntity?.(this.id);
+      component.addedToEntity?.(this);
     }
 
     return this;
@@ -33,7 +33,7 @@ class Entity {
     const component = componentSet.get(this.id);
     if (!component) { return undefined; }
     componentSet.delete(this.id);
-    component.removedFromEntity?.(this.id);
+    component.removedFromEntity?.(this);
     return component;
   }
 
@@ -48,15 +48,13 @@ class Entity {
   }
 
   destroy() {
-    this.#worldData.entities.delete(this.id);
+    this.#worldData.entities.delete(this);
     this.#destroyed = true;
     for (const componentSet of this.#worldData.components.values()) {
       const component = componentSet.get(this.id);
       if (component) {
         componentSet.delete(this.id);
-        if (component.destroy !== undefined) {
-          component.destroy();
-        }
+        component.removedFromEntity?.(this);
       }
     }
   }

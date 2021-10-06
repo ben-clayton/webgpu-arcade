@@ -14,14 +14,30 @@ export class Collisions {
 }
 
 const tmpVec = vec3.create();
+const tmpVec2 = vec3.create();
+const tmpMatrix = mat4.create();
+
+function sphereIntersectsAABB(center, radiusSqr, min, max) {
+  tmpVec2[0] = Math.max(min[0], Math.min(center[0], max[0]));
+  tmpVec2[1] = Math.max(min[1], Math.min(center[1], max[1]));
+  tmpVec2[2] = Math.max(min[2], Math.min(center[2], max[2]));
+
+  // this is the same as isPointInsideSphere
+  var distSqr = vec3.sqrDist(center, tmpVec2);
+
+  if (distSqr < radiusSqr) {
+    return tmpVec2;
+  }
+  return null;
+}
 
 class FrameCollider {
   constructor(entity, collider, bounds, transform) {
     this.entity = entity;
     this.filters = collider.filter;
     this.bounds = bounds;
-
-    mat4.getScaling(tmpVec, transform.worldMatrix);
+    this.worldMatrix = transform.worldMatrix;
+    mat4.getScaling(tmpVec, this.worldMatrix);
     const scale = Math.max(tmpVec[0], Math.max(tmpVec[1], tmpVec[2]));
     this.radiusSq = (bounds.radius * scale) * (bounds.radius * scale);
 
@@ -50,9 +66,17 @@ class FrameCollider {
     if (sqrDist < this.radiusSq + other.radiusSq) {
       // TODO: Do a more precise check for AABB vs. AABB.
       if (this.bounds.type == BoundingVolumeType.AABB) {
-        
+        // Transform the sphere into the space of the AABB to simplify the
+        mat4.invert(tmpMatrix, this.worldMatrix);
+        vec3.transformMat4(tmpVec, other.worldPosition, tmpMatrix);
+        const result = sphereIntersectsAABB(tmpVec, other.radiusSq, this.bounds.min, this.bounds.max);
+        if (!result) { return; }
       } else if (other.bounds.type == BoundingVolumeType.AABB) {
-        
+        // Transform the sphere into the space of the AABB to simplify the
+        mat4.invert(tmpMatrix, other.worldMatrix);
+        vec3.transformMat4(tmpVec, this.worldPosition, tmpMatrix);
+        const result = sphereIntersectsAABB(tmpVec, this.radiusSq, other.bounds.min, other.bounds.max);
+        if (!result) { return; }
       }
 
       // Collision detected!

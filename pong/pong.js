@@ -11,6 +11,7 @@ import { WebGPUWorld } from 'engine/webgpu/webgpu-world.js';
 
 import { BallSystem } from './ball.js';
 import { Velocity, VelocitySystem } from '../common/velocity.js';
+import { Physics2DBody, Physics2DSystem } from '../common/physics-2d.js';
 
 /*import { Collider, CollisionSystem } from './common/collision.js';
 import { ImpactDamage, ImpactDamageSystem } from './common/impact-damage.js';
@@ -35,6 +36,7 @@ const canvas = document.querySelector('canvas');
 
 const world = new WebGPUWorld(canvas)
   .registerSystem(VelocitySystem)
+  .registerSystem(Physics2DSystem)
   .registerRenderSystem(BallSystem)
   /*.registerSystem(CollisionSystem)
   .registerSystem(ScoreSystem)*/
@@ -159,6 +161,14 @@ const arena = world.create(
   arenaMesh
 );
 
+world.create(new Physics2DBody('rectangle', 0, -25, 60, 2, { isStatic: true, friction: 0, restitution: 1 }));
+world.create(new Physics2DBody('rectangle', 0, 25, 60, 2, { isStatic: true, friction: 0, restitution: 1 }));
+
+world.create(new Physics2DBody('rectangle', -31, 23.5, 2, 5, { isStatic: true, friction: 0, restitution: 1 }));
+world.create(new Physics2DBody('rectangle', -31, -23.5, 2, 5, { isStatic: true, friction: 0, restitution: 1 }));
+world.create(new Physics2DBody('rectangle', 31, 23.5, 2, 5, { isStatic: true, friction: 0, restitution: 1 }));
+world.create(new Physics2DBody('rectangle', 31, -23.5, 2, 5, { isStatic: true, friction: 0, restitution: 1 }));
+
 // Paddles
 
 const paddleGeometry = new BoxGeometry(renderer, {
@@ -177,12 +187,12 @@ rightPaddleMaterial.emissiveFactor.set([0.0, 0.0, 0.2]);
 
 const leftPaddle = world.create(
   new Mesh({ geometry: paddleGeometry, material: leftPaddleMaterial }),
-  new Transform({ position: [-30, 0, 0] })
+  new Physics2DBody('rectangle', -30, 0, 1, 10, { isStatic: true, friction: 0, restitution: 1 })
 );
 
 const rightPaddle = world.create(
   new Mesh({ geometry: paddleGeometry, material: rightPaddleMaterial }),
-  new Transform({ position: [30, 0, 0] })
+  new Physics2DBody('rectangle', 30, 0, 1, 10, { isStatic: true, friction: 0, restitution: 1 })
 );
 
 // Ball
