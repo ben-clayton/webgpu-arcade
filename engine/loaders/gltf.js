@@ -1,7 +1,8 @@
 import { Gltf2Loader } from './lib/gltf2-loader.js';
 import { Transform, TransformPool } from '../core/transform.js';
 import { EntityGroup } from '../core/entity-group.js';
-import { Mesh, Geometry, InterleavedAttributes, AABB } from '../core/mesh.js';
+import { Mesh, Geometry, InterleavedAttributes } from '../core/mesh.js';
+import { BoundingVolume } from '../core/bounding-volume.js';
 import { UnlitMaterial, PBRMaterial } from '../core/materials.js';
 import { mat4, vec3 } from 'gl-matrix';
 import { Skin } from '../core/skin.js';
@@ -152,7 +153,8 @@ class GltfClient {
   }
 
   createPrimitive(primitive) {
-    const aabb = new AABB();
+    const min = vec3.create();
+    const max = vec3.create();
     let drawCount = 0;
     const attribBuffers = new Map();
     for (const name in primitive.attributes) {
@@ -180,8 +182,8 @@ class GltfClient {
       }
 
       if (name == "POSITION") {
-        vec3.copy(aabb.min, accessor.min);
-        vec3.copy(aabb.max, accessor.max);
+        vec3.copy(min, accessor.min);
+        vec3.copy(max, accessor.max);
       }
     }
 
@@ -219,13 +221,31 @@ class GltfClient {
     return {
       geometry: new Geometry(geometryDescriptor),
       material: primitive.material,
-      aabb
+      min,
+      max
     };
   }
 
   createMesh(mesh) {
     const outMesh = new Mesh(...mesh.primitives);
     outMesh.name = mesh.name;
+
+    let min, max;
+
+    for (const primitive of mesh.primitives) {
+      if (min) {
+        vec3.min(min, min, primitive.min);
+        vec3.max(max, max, primitive.max);
+      } else {
+        min = vec3.clone(primitive.min);
+        max = vec3.clone(primitive.max);
+      }
+    }
+
+    if (min) {
+      outMesh.boundingVolume = new BoundingVolume({ min, max });
+    }
+
     return outMesh;
   }
 
@@ -276,22 +296,6 @@ class GltfClient {
       if (node.scale) { node.transform.scale = node.scale; }
     }
 
-    if (node.mesh) {
-      node.aabb = new AABB();
-      let aabbInitialized = false;
-
-      for (const primitive of node.mesh.primitives) {
-        if (aabbInitialized) {
-          vec3.min(node.aabb.min, node.aabb.min, primitive.aabb.min);
-          vec3.max(node.aabb.max, node.aabb.max, primitive.aabb.max);
-        } else {
-          vec3.copy(node.aabb.min, primitive.aabb.min);
-          vec3.copy(node.aabb.max, primitive.aabb.max);
-          aabbInitialized = true;
-        }
-      }
-    }
-
     return node;
   }
 
@@ -307,7 +311,7 @@ export class GltfScene {
   nodeTransforms;
   meshes;
   animations;
-  aabb;
+  boundingVolume;
 
   #createNodeInstance(nodeIndex, world, transforms, group) {
     const node = this.nodes[nodeIndex];
@@ -315,12 +319,14 @@ export class GltfScene {
 
     if (node.mesh) {
       let mesh = node.mesh;
+      let boundingVolume = mesh.boundingVolume;
       if (node.skin) {
         const joints = [];
         for (const jointIndex of node.skin.joints) {
           joints.push(transforms.getTransform(jointIndex));
         }
         mesh = new Mesh(...mesh.primitives);
+        mesh.boundingVolume = boundingVolume;
         mesh.skin = new Skin({
           joints,
           inverseBindMatrixBuffer: node.skin.inverseBindMatrices.clientInverseBindMatrixBuffer,
@@ -328,7 +334,7 @@ export class GltfScene {
         });
       }
 
-      const nodeEntity = world.create(transform, mesh, node.aabb);
+      const nodeEntity = world.create(transform, mesh, boundingVolume);
       nodeEntity.name = node.name;
       group.entities.push(nodeEntity);
     }
@@ -353,7 +359,7 @@ export class GltfScene {
       this.#createNodeInstance(nodeIndex, world, instanceTransforms, group);
       sceneTransform.addChild(instanceTransforms.getTransform(nodeIndex));
     }
-    entity.add(sceneTransform, instanceTransforms, this.aabb, group);
+    entity.add(sceneTransform, instanceTransforms, this.boundingVolume, group);
     return entity;
   }
 
@@ -392,22 +398,25 @@ export class GltfLoader {
         gltfScene.animations[animation.name] = animation;
       }
 
-      // Generate a bounding box for the entire scene.
-      gltfScene.aabb = new AABB();
-      let aabbInitialized = false;
+      // Generate a bounding volume for the entire scene.
+      let min;
+      let max;
 
       for (const node of result.nodes) {
-        if (!node.aabb) { continue; }
+        if (!node.mesh?.boundingVolume) { continue; }
 
         // TODO: Take into account geometry transforms.
-        if (aabbInitialized) {
-          vec3.min(gltfScene.aabb.min, gltfScene.aabb.min, node.aabb.min);
-          vec3.max(gltfScene.aabb.max, gltfScene.aabb.max, node.aabb.max);
+        if (min) {
+          vec3.min(min, min, node.mesh.boundingVolume.min);
+          vec3.max(max, max, node.mesh.boundingVolume.max);
         } else {
-          vec3.copy(gltfScene.aabb.min, node.aabb.min);
-          vec3.copy(gltfScene.aabb.max, node.aabb.max);
-          aabbInitialized = true;
+          min = vec3.clone(node.mesh.boundingVolume.min);
+          max = vec3.clone(node.mesh.boundingVolume.max);
         }
+      }
+
+      if (min) {
+        gltfScene.boundingVolume = new BoundingVolume({ min, max });
       }
 
       return gltfScene;

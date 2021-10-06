@@ -11,6 +11,7 @@ import { Collider } from '../../common/collision.js';
 
 import { vec3, vec4 } from 'gl-matrix';
 import { PointLight } from 'engine/core/light.js';
+import { BoundingVolume } from '../../engine/core/bounding-volume.js';
 
 const FIRING_TAG = Tag('firing');
 const tmpVec = vec3.create();
@@ -51,8 +52,9 @@ export class BulletFactory {
       velocity,
       new Lifetime(this.lifetime),
       new Health(1),
-      new ImpactDamage(this.impactDamage, this.filter),
-      new Collider(this.radius),
+      new ImpactDamage(this.impactDamage),
+      new Collider(this.filter),
+      new BoundingVolume({ radius: this.radius }),
       new PointLight({ color: this.color, intensity: 10, range: 10 }),
     );
 
