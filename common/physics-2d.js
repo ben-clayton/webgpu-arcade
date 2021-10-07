@@ -14,6 +14,13 @@ export class Physics2DBody {
 
   constructor(type, ...args) {
     this.body = Matter.Bodies[type](...args);
+    this.type = type;
+    if (type == 'circle') {
+      this.radius = args[2]
+    } else if (type == 'rectangle') {
+      this.width = args[2];
+      this.height = args[3];
+    }
   }
 
   addedToEntity(entity) {
