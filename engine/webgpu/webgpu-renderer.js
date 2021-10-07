@@ -1,5 +1,6 @@
 import { Renderer } from '../core/render-world.js';
 import { WebGPURenderTargets } from './webgpu-render-targets.js';
+import { WebGPURenderPass } from './webgpu-render-pass.js';
 import { WebGPURenderBatch } from './webgpu-render-batch.js';
 import { WebGPUBufferManager } from './webgpu-buffer.js';
 import { WebGPUBindGroupLayouts } from './webgpu-bind-group-layouts.js'
@@ -8,6 +9,55 @@ import { WebGPUTextureLoader } from 'webgpu-texture-loader';
 const desiredFeatures = [
   'texture-compression-bc'
 ];
+
+class MainRenderPass extends WebGPURenderPass {
+  constructor(gpu) {
+    super();
+    this.gpu = gpu;
+  }
+
+  render(passEncoder, camera) {
+    const gpu = this.gpu;
+
+    passEncoder.setBindGroup(0, camera.bindGroup);
+
+    // Loop through all the renderable entities and store them by pipeline.
+    for (const pipeline of gpu.renderBatch.sortedPipelines) {
+      passEncoder.setPipeline(pipeline.pipeline);
+
+      const geometryList = gpu.renderBatch.pipelineGeometries.get(pipeline);
+      for (const [geometry, materialList] of geometryList) {
+
+        for (const vb of geometry.vertexBuffers) {
+          passEncoder.setVertexBuffer(vb.slot, vb.buffer.gpuBuffer, vb.offset);
+        }
+        const ib = geometry.indexBuffer;
+        if (ib) {
+          passEncoder.setIndexBuffer(ib.buffer.gpuBuffer, ib.format, ib.offset);
+        }
+
+        for (const [material, instances] of materialList) {
+          if (pipeline.instanceSlot >= 0) {
+            passEncoder.setVertexBuffer(pipeline.instanceSlot, gpu.renderBatch.instanceBuffer, instances.bufferOffset);
+          }
+
+          if (material) {
+            let i = 1;
+            for (const bindGroup of material.bindGroups) {
+              passEncoder.setBindGroup(i++, bindGroup);
+            }
+          }
+
+          if (ib) {
+            passEncoder.drawIndexed(geometry.drawCount, instances.instanceCount);
+          } else {
+            passEncoder.draw(geometry.drawCount, instances.instanceCount);
+          }
+        }
+      }
+    }
+  }
+};
 
 export class WebGPURenderer extends Renderer {
   adapter = null;
@@ -19,6 +69,9 @@ export class WebGPURenderer extends Renderer {
   bufferManager = null;
   #textureLoader = null;
 
+  computePasses = [];
+  renderPasses = [];
+
   async init(canvas) {
     this.adapter = await navigator.gpu.requestAdapter({
       powerPreference: "high-performance"
@@ -26,7 +79,7 @@ export class WebGPURenderer extends Renderer {
 
     // Determine which of the desired features can be enabled for this device.
     const requiredFeatures = desiredFeatures.filter(feature => this.adapter.features.has(feature));
-    this.device = await this.adapter.requestDevice({requiredFeatures});
+    this.device = await this.adapter.requestDevice({ requiredFeatures });
 
     this.renderTargets = new WebGPURenderTargets(this.adapter, this.device, canvas);
 
@@ -75,6 +128,16 @@ export class WebGPURenderer extends Renderer {
       this.onRenderTargetsReconfigured();
     });
     this.onRenderTargetsReconfigured();
+
+    this.addRenderPass(new MainRenderPass(this));
+  }
+
+  addComputePass(pass) {
+    this.computePasses.push(pass);
+  }
+
+  addRenderPass(pass) {
+    this.renderPasses.push(pass);
   }
 
   get canvas() {
@@ -107,10 +170,14 @@ export class WebGPURenderer extends Renderer {
   }
 
   render(camera) {
-    const instanceBuffer = this.renderBatch.instanceBuffer;
+    const commandEncoder = this.device.createCommandEncoder({});
+    for (var pass of this.computePasses) {
+      const passEncoder = commandEncoder.beginComputePass();
+      pass.run(passEncoder, camera);
+      passEncoder.endPass();
+    }
 
     const outputTexture = this.renderTargets.context.getCurrentTexture();
-    const commandEncoder = this.device.createCommandEncoder({});
 
     if (this.renderTargets.sampleCount > 1) {
       this.colorAttachment.resolveTarget = outputTexture.createView();
@@ -119,45 +186,9 @@ export class WebGPURenderer extends Renderer {
     }
 
     const passEncoder = commandEncoder.beginRenderPass(this.renderPassDescriptor);
-
-    passEncoder.setBindGroup(0, camera.bindGroup);
-
-    // Loop through all the renderable entities and store them by pipeline.
-    for (const pipeline of this.renderBatch.sortedPipelines) {
-      passEncoder.setPipeline(pipeline.pipeline);
-
-      const geometryList = this.renderBatch.pipelineGeometries.get(pipeline);
-      for (const [geometry, materialList] of geometryList) {
-
-        for (const vb of geometry.vertexBuffers) {
-          passEncoder.setVertexBuffer(vb.slot, vb.buffer.gpuBuffer, vb.offset);
-        }
-        const ib = geometry.indexBuffer;
-        if (ib) {
-          passEncoder.setIndexBuffer(ib.buffer.gpuBuffer, ib.format, ib.offset);
-        }
-
-        for (const [material, instances] of materialList) {
-          if (pipeline.instanceSlot >= 0) {
-            passEncoder.setVertexBuffer(pipeline.instanceSlot, instanceBuffer, instances.bufferOffset);
-          }
-
-          if (material) {
-            let i = 1;
-            for (const bindGroup of material.bindGroups) {
-              passEncoder.setBindGroup(i++, bindGroup);
-            }
-          }
-
-          if (ib) {
-            passEncoder.drawIndexed(geometry.drawCount, instances.instanceCount);
-          } else {
-            passEncoder.draw(geometry.drawCount, instances.instanceCount);
-          }
-        }
-      }
+    for (var pass of this.renderPasses) {
+      pass.render(passEncoder, camera);
     }
-
     passEncoder.endPass();
 
     this.device.queue.submit([commandEncoder.finish()]);

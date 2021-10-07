@@ -119,7 +119,7 @@ export class WebGPUBufferManager {
     }
 
     // Align the size to the next multiple of 4
-    size =  Math.ceil(size / 4) * 4;
+    size = Math.ceil(size / 4) * 4;
 
     const gpuBuffer = this.device.createBuffer({
       size,

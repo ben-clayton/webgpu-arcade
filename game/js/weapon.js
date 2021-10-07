@@ -9,8 +9,9 @@ import { Lifetime, Health } from '../../common/lifetime.js';
 import { ImpactDamage } from '../../common/impact-damage.js';
 import { Collider } from '../../common/collision.js';
 
-import { vec3, vec4 } from 'gl-matrix';
+import { vec3 } from 'gl-matrix';
 import { PointLight } from 'engine/core/light.js';
+import { SpriteParticleEmitter } from '../../engine/core/particle.js';
 
 const FIRING_TAG = Tag('firing');
 const tmpVec = vec3.create();
@@ -50,10 +51,24 @@ export class BulletFactory {
       transform,
       velocity,
       new Lifetime(this.lifetime),
-      new Health(1),
+      // new Health(1),
       new ImpactDamage(this.impactDamage, this.filter),
       new Collider(this.radius),
       new PointLight({ color: this.color, intensity: 10, range: 10 }),
+      new SpriteParticleEmitter({
+        num_particles: 256,
+        spawn_rate: 32,
+        spread: 1.0,
+        speed_from: 3,
+        speed_to: 4,
+        particle_life_from: 0.2,
+        particle_life_to: 0.3,
+        particle_size_start: 0.4,
+        particle_size_end: 0.5,
+        global_velocity: [0, 0, 10],
+        attractor: transform,
+        attractor_strength: 100,
+      }),
     );
 
     return bullet;

@@ -1,8 +1,9 @@
 import { wgsl } from './wgsl-utils.js';
 import { AttributeLocation } from '../../core/mesh.js';
 
-export const CAMERA_BUFFER_SIZE = 56 * Float32Array.BYTES_PER_ELEMENT;
-export function CameraStruct(group = 0, binding = 0) { return `
+export const CAMERA_BUFFER_SIZE = 68 * Float32Array.BYTES_PER_ELEMENT;
+export function CameraStruct(group = 0, binding = 0) {
+  return `
   [[block]] struct Camera {
     projection : mat4x4<f32>;
     inverseProjection : mat4x4<f32>;
@@ -12,13 +13,17 @@ export function CameraStruct(group = 0, binding = 0) { return `
     outputSize : vec2<f32>;
     zNear : f32;
     zFar : f32;
+    up : vec3<f32>;
+    right : vec3<f32>;
+    forward : vec3<f32>;
   };
   [[group(${group}), binding(${binding})]] var<uniform> camera : Camera;
 `;
 }
 
 export const LIGHT_BUFFER_SIZE = 8 * Float32Array.BYTES_PER_ELEMENT;
-export function LightStruct(group = 0, binding = 1) { return `
+export function LightStruct(group = 0, binding = 1) {
+  return `
   struct Light {
     position : vec3<f32>;
     range : f32;
@@ -38,7 +43,8 @@ export function LightStruct(group = 0, binding = 1) { return `
 `;
 }
 
-export function SkinStructs(group = 1) { return `
+export function SkinStructs(group = 1) {
+  return `
   [[block]] struct Joints {
     matrices : [[stride(64)]] array<mat4x4<f32>>;
   };
@@ -67,7 +73,7 @@ export const INSTANCE_SIZE_BYTES = INSTANCE_SIZE_F32 * Float32Array.BYTES_PER_EL
 
 export function DefaultVertexInput(layout) {
   let inputs = layout.locationsUsed.map((location) => {
-      switch(location) {
+    switch (location) {
       case AttributeLocation.position: return `[[location(${AttributeLocation.position})]] position : vec4<f32>;`;
       case AttributeLocation.normal: return `[[location(${AttributeLocation.normal})]] normal : vec3<f32>;`;
       case AttributeLocation.tangent: return `[[location(${AttributeLocation.tangent})]] tangent : vec4<f32>;`;
@@ -76,21 +82,22 @@ export function DefaultVertexInput(layout) {
       case AttributeLocation.color: return `[[location(${AttributeLocation.color})]] color : vec4<f32>;`;
       case AttributeLocation.joints: return `[[location(${AttributeLocation.joints})]] joints : vec4<u32>;`;
       case AttributeLocation.weights: return `[[location(${AttributeLocation.weights})]] weights : vec4<f32>;`;
-      }
+    }
   });
 
   inputs.push(`[[location(${AttributeLocation.maxAttributeLocation})]] instance0 : vec4<f32>;`);
-  inputs.push(`[[location(${AttributeLocation.maxAttributeLocation+1})]] instance1 : vec4<f32>;`);
-  inputs.push(`[[location(${AttributeLocation.maxAttributeLocation+2})]] instance2 : vec4<f32>;`);
-  inputs.push(`[[location(${AttributeLocation.maxAttributeLocation+3})]] instance3 : vec4<f32>;`);
-  inputs.push(`[[location(${AttributeLocation.maxAttributeLocation+4})]] instanceColor : vec4<f32>;`);
+  inputs.push(`[[location(${AttributeLocation.maxAttributeLocation + 1})]] instance1 : vec4<f32>;`);
+  inputs.push(`[[location(${AttributeLocation.maxAttributeLocation + 2})]] instance2 : vec4<f32>;`);
+  inputs.push(`[[location(${AttributeLocation.maxAttributeLocation + 3})]] instance3 : vec4<f32>;`);
+  inputs.push(`[[location(${AttributeLocation.maxAttributeLocation + 4})]] instanceColor : vec4<f32>;`);
 
   return `struct VertexInput {
     ${inputs.join('\n')}
   };`;
 };
 
-export function DefaultVertexOutput(layout) { return wgsl`
+export function DefaultVertexOutput(layout) {
+  return wgsl`
   struct VertexOutput {
     [[builtin(position)]] position : vec4<f32>;
     [[location(0)]] worldPos : vec3<f32>;
@@ -150,4 +157,19 @@ export const ColorConversions = wgsl`
     return pow((srgb + vec3<f32>(0.055, 0.055, 0.055)) / vec3<f32>(1.055, 1.055, 1.055), vec3<f32>(2.4, 2.4, 2.4));
   }
 #endif
+`;
+
+export const Rand = `
+var<private> rand_seed : vec2<f32>;
+fn rand() -> f32 {
+    rand_seed.x = fract(tan(dot(rand_seed, vec2<f32>(23.14077926, 232.61690225))) * 136.8168);
+    rand_seed.y = fract(tan(dot(rand_seed, vec2<f32>(54.47856553, 345.84153136))) * 534.7645);
+    return rand_seed.y;
+}
+fn rand_vec3() -> vec3<f32> {
+  return vec3<f32>(rand(), rand(), rand()) - vec3<f32>(0.5);
+}
+fn initRand(seed : vec2<f32>) {
+  rand_seed = seed;
+}
 `;

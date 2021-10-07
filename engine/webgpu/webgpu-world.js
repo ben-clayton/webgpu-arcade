@@ -6,6 +6,7 @@ import { WebGPUCameraSystem } from './webgpu-camera.js';
 import { WebGPUClusteredLights } from './webgpu-clustered-light.js';
 import { WebGPUMeshSystem } from './webgpu-mesh.js';
 import { WebGPURenderer } from './webgpu-renderer.js';
+import { WebGPUParticleSystem } from './webgpu-particles.js';
 
 class WebGPURenderPass extends WebGPUSystem {
   async init(gpu) {
@@ -30,6 +31,7 @@ export class WebGPUWorld extends RenderWorld {
     this.registerRenderSystem(WebGPUClusteredLights);
     this.registerRenderSystem(WebGPUMeshSystem);
     this.registerRenderSystem(WebGPURenderPass);
+    this.registerRenderSystem(WebGPUParticleSystem);
 
     return renderer;
   }

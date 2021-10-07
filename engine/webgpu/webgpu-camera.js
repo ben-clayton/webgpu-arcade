@@ -20,6 +20,9 @@ export class WebGPUCamera {
     this.time = new Float32Array(this.arrayBuffer, 51 * Float32Array.BYTES_PER_ELEMENT, 1);
     this.outputSize = new Float32Array(this.arrayBuffer, 52 * Float32Array.BYTES_PER_ELEMENT, 2);
     this.zRange = new Float32Array(this.arrayBuffer, 54 * Float32Array.BYTES_PER_ELEMENT, 2);
+    this.right = new Float32Array(this.arrayBuffer, 56 * Float32Array.BYTES_PER_ELEMENT, 3);
+    this.up = new Float32Array(this.arrayBuffer, 60 * Float32Array.BYTES_PER_ELEMENT, 3);
+    this.forward = new Float32Array(this.arrayBuffer, 64 * Float32Array.BYTES_PER_ELEMENT, 3);
 
     this.cameraBuffer = device.createBuffer({
       size: CAMERA_BUFFER_SIZE,
@@ -118,6 +121,16 @@ export class WebGPUCameraSystem extends WebGPUSystem {
       gpuCamera.outputSize[1] = gpu.renderTargets.size.height;
       gpuCamera.zRange[0] = camera.zNear;
       gpuCamera.zRange[1] = camera.zFar;
+      gpuCamera.right[0] = gpuCamera.view[0];
+      gpuCamera.right[1] = gpuCamera.view[4];
+      gpuCamera.right[2] = gpuCamera.view[8];
+      gpuCamera.up[0] = gpuCamera.view[1];
+      gpuCamera.up[1] = gpuCamera.view[5];
+      gpuCamera.up[2] = gpuCamera.view[9];
+      gpuCamera.forward[0] = gpuCamera.view[2];
+      gpuCamera.forward[1] = gpuCamera.view[6];
+      gpuCamera.forward[2] = gpuCamera.view[10];
+
 
       gpu.device.queue.writeBuffer(gpuCamera.cameraBuffer, 0, gpuCamera.arrayBuffer);
     });

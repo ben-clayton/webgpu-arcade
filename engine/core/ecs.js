@@ -1,4 +1,4 @@
-class Entity {
+export class Entity {
   #worldData;
   #destroyed = false;
   enabled = true;
@@ -67,10 +67,12 @@ export function Tag(name) {
   let tagInstance = tags.get(name);
   if (!tagInstance) {
     const className = `Tag__${name}__`;
-    const tagClass = {[className]: class {
-      isTag = true;
-      name = name;
-    }}[className];
+    const tagClass = {
+      [className]: class {
+        isTag = true;
+        name = name;
+      }
+    }[className];
     tagClass.constructor = tagClass;
     tagInstance = tagClass;
     tags.set(name, tagInstance);
@@ -97,7 +99,7 @@ class WorldData {
 
   getQuery(componentTypes) {
     let componentNames = [];
-    for(const type of componentTypes) {
+    for (const type of componentTypes) {
       componentNames.push(getComponentName(type));
     }
     const queryName = componentNames.join(':');
@@ -113,7 +115,7 @@ export class World {
   #nextSystemId = 1;
   #singletonEntity;
   #lastTime = performance.now() / 1000;
-  
+
   timeScale = 1.0;
 
   constructor() {
@@ -227,14 +229,14 @@ export class System {
     return this.world.singleton;
   }
 
-  execute(delta, time) {}
+  execute(delta, time) { }
 }
 
 class Query {
   #worldData;
   #includeDisabled;
 
-  constructor(worldData, queryName, includedTypes, excludedTypes = [], includeDisabled=false) {
+  constructor(worldData, queryName, includedTypes, excludedTypes = [], includeDisabled = false) {
     this.#worldData = worldData;
     this.queryName = queryName;
     this.#worldData.queries.set(queryName, this);
@@ -253,7 +255,7 @@ class Query {
 
   not(...componentTypes) {
     let componentNames = [];
-    for(const type of componentTypes) {
+    for (const type of componentTypes) {
       componentNames.push(getComponentName(type));
     }
     const queryName = this.queryName + '!' + componentNames.join(':!');
@@ -283,7 +285,7 @@ class Query {
       } else {
         queryEntities = queryEntities.filter(entityId => componentEntities.includes(entityId));
       }
-      
+
       // Early out if we've reduced the entity set to zero.
       if (queryEntities.length === 0) {
         return;

@@ -4,6 +4,7 @@ import { InputSystem } from './input.js';
 import { EntityGroupSystem } from './entity-group.js';
 import { AnimationSystem } from './animation.js';
 import { MeshSystem } from './mesh.js';
+import { ParticleSystem } from './particle.js';
 import { SkinSystem } from './skin.js';
 import { SkyboxSystem } from './skybox.js';
 import { LightSystem } from './light.js';
@@ -60,6 +61,7 @@ export class RenderWorld extends World {
     this.registerSystem(EntityGroupSystem);
     this.registerSystem(AnimationSystem);
     this.registerSystem(MeshSystem);
+    this.registerSystem(ParticleSystem);
     this.registerSystem(SkinSystem);
     this.registerRenderSystem(LightSystem);
     this.registerRenderSystem(SkyboxSystem);
