@@ -189,12 +189,14 @@ const leftPaddle = world.create(
   new Mesh({ geometry: paddleGeometry, material: leftPaddleMaterial }),
   new Physics2DBody('rectangle', -30, 0, 1, 10, { isStatic: true, friction: 0, restitution: 1 })
 );
+leftPaddle.name = 'Left Paddle';
 
 const rightPaddle = world.create(
   new Paddle(1),
   new Mesh({ geometry: paddleGeometry, material: rightPaddleMaterial }),
   new Physics2DBody('rectangle', 30, 0, 1, 10, { isStatic: true, friction: 0, restitution: 1 })
 );
+rightPaddle.name = 'Right Paddle';
 
 // Ball
 
