@@ -2,15 +2,12 @@ import { System } from 'engine/core/ecs.js';
 import { Transform } from 'engine/core/transform.js';
 import { BoundingVolume, BoundingVolumeType } from 'engine/core/bounding-volume.js';
 import { vec3, mat4 } from 'gl-matrix';
+import { Collisions } from './impact-damage.js';
 
 export class Collider {
   constructor(...filter) {
     this.filter = filter;
   }
-}
-
-export class Collisions {
-  entities = [];
 }
 
 const tmpVec = vec3.create();
@@ -84,13 +81,13 @@ class FrameCollider {
         this.collisions = new Collisions();
         this.entity.add(this.collisions);
       }
-      this.collisions.entities.push(other.entity);
+      this.collisions.entities.add(other.entity);
 
       if (!other.collisions) {
         other.collisions = new Collisions();
         other.entity.add(other.collisions);
       }
-      other.collisions.entities.push(this.entity);
+      other.collisions.entities.add(this.entity);
     }
   }
 }

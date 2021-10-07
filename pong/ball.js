@@ -6,8 +6,10 @@ import { Mesh } from 'engine/core/mesh.js';
 import { PointLight } from 'engine/core/light.js';
 
 import { Physics2DBody } from '../common/physics-2d.js';
+import { Paddle } from './player-controls.js';
 
 import { vec3 } from 'gl-matrix';
+import { Collisions } from '../common/impact-damage.js';
 
 class BallState {
   launchTimeout = 1;
@@ -33,11 +35,25 @@ export class BallSystem extends System {
           // Launch the ball in a random direction
           const vel = vec3.fromValues((Math.random() * 2.0 - 1.0) * 1.2, (Math.random() * 2.0 - 1.0), 0);
           vec3.normalize(vel, vel);
-          vec3.scale(vel, vel, 1);
+          vec3.scale(vel, vel, 0.8);
           Matter.Body.setVelocity(body.body, {
             x: vel[0],
             y: vel[1]
           });
+        }
+      }
+
+      // Has the ball collided with anything?
+      const collisions = entity.get(Collisions);
+      if (collisions) {
+        for (const collider of collisions.entities) {
+          // If we collided with a paddle give the ball's velocity a little bump.
+          if (collider.get(Paddle)) {
+            Matter.Body.setVelocity(body.body, {
+              x: body.body.velocity.x * 1.2,
+              y: body.body.velocity.y * 1.2,
+            });
+          }
         }
       }
 
@@ -66,6 +82,7 @@ export class BallSystem extends System {
       new PointLight({ color: [1, 1, 0.8], intensity: 10, range: 10 }),
       new Physics2DBody('circle', 0, 0, 1, { friction: 0, restitution: 1, frictionAir: 0 })
     );
+    ball.name = 'The Ball';
 
     return ball;
   }

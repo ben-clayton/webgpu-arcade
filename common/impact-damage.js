@@ -1,12 +1,15 @@
 import { System } from 'engine/core/ecs.js';
 import { InstanceColor } from 'engine/core/instance-color.js';
-import { Collisions } from './collision.js';
 import { Health } from './lifetime.js';
 
 export class ImpactDamage {
   constructor(value = 1) {
     this.damage = value;
   }
+}
+
+export class Collisions {
+  entities = new Set();
 }
 
 const FLASH_DURATION = 0.1;
